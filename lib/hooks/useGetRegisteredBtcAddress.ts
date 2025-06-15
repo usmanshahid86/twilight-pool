@@ -24,54 +24,66 @@ export default function useGetRegisteredBTCAddress(
     SuccessResponse | ErrorResponse | undefined
   >();
 
-  useEffect(() => {
-    async function getRegisteredBTCAddresses() {
-      const allRegisteredAddress = await getRegisteredBTCDepositAddress();
+  // useEffect(() => {
+  //   async function getRegisteredBTCAddresses() {
+  //     const allRegisteredAddress = await getRegisteredBTCDepositAddress();
 
-      if (allRegisteredAddress.length < 1) {
-        setResponse({
-          success: false,
-          data: undefined,
-          error: "Could not query registered BTC Deposit Addresses",
-        });
-        return;
-      }
+  //     if (allRegisteredAddress.length < 1) {
+  //       setResponse({
+  //         success: false,
+  //         data: undefined,
+  //         error: "Could not query registered BTC Deposit Addresses",
+  //       });
+  //       return;
+  //     }
 
-      const twilightAddress = chainWallet?.address;
-      const filtered = allRegisteredAddress.filter(
-        (struct) => struct.twilightAddress === twilightAddress
-      );
+  //     const twilightAddress = chainWallet?.address;
+  //     const filtered = allRegisteredAddress.filter(
+  //       (struct) => struct.twilightAddress === twilightAddress
+  //     );
 
-      if (filtered.length < 1) {
-        setResponse({
-          success: false,
-          data: undefined,
-          error: "BTC Address has not been registered",
-        });
-        return;
-      }
+  //     if (filtered.length < 1) {
+  //       setResponse({
+  //         success: false,
+  //         data: undefined,
+  //         error: "BTC Address has not been registered",
+  //       });
+  //       return;
+  //     }
 
-      setResponse({
-        success: true,
-        data: filtered[0],
-        error: undefined,
-      });
-    }
+  //     setResponse({
+  //       success: true,
+  //       data: filtered[0],
+  //       error: undefined,
+  //     });
+  //   }
 
-    if (mainWallet === undefined || shouldRefetch === false) return;
+  //   if (mainWallet === undefined || shouldRefetch === false) return;
 
-    if (!mainWallet.isWalletConnected) {
-      setResponse({
-        success: false,
-        error: "Wallet is not connected", // todo: enum of standard error messages
-        data: undefined,
-      });
+  //   if (!mainWallet.isWalletConnected) {
+  //     setResponse({
+  //       success: false,
+  //       error: "Wallet is not connected", // todo: enum of standard error messages
+  //       data: undefined,
+  //     });
 
-      return;
-    }
+  //     return;
+  //   }
 
-    getRegisteredBTCAddresses();
-  }, [mainWallet, chainWallet, chainWallet?.address, shouldRefetch]);
+  //   getRegisteredBTCAddresses();
+  // }, [mainWallet, chainWallet, chainWallet?.address, shouldRefetch]);
 
+  return {
+    success: true,
+    data: {
+      btcDepositAddress: "",
+      btcSatoshiTestAmount: "",
+      twilightStakingAmount: "",
+      twilightAddress: "",
+      isConfirmed: false,
+      CreationTwilightBlockHeight: "",
+    },
+    error: undefined,
+  };
   return response;
 }

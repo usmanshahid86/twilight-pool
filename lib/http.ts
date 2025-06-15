@@ -84,6 +84,32 @@ function wfetch(url: RequestInfo | URL, init?: RequestInit) {
         };
       }
     },
+    async text(): Promise<SuccessData<string> | ErrorData> {
+      await this._resolve();
+      if (_error || !_done) {
+        return {
+          success: false,
+          data: undefined,
+          error: _error,
+        };
+      }
+
+      try {
+        const data = await _done.text();
+
+        return {
+          success: true,
+          data,
+          error: undefined,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          data: undefined,
+          error,
+        };
+      }
+    },
   };
 }
 

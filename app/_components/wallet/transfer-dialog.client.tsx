@@ -189,7 +189,7 @@ const TransferDialog = ({
         const res = await stargateClient.signAndBroadcast(
           twilightAddress,
           [msg],
-          100
+          "auto"
         );
 
         console.log("sent sats from funding to trading", transferAmount);
@@ -568,7 +568,7 @@ const TransferDialog = ({
           const mintBurnRes = await stargateClient.signAndBroadcast(
             twilightAddress,
             [mintBurnMsg],
-            100
+            "auto"
           );
 
           updateZkAccount(senderZkAccount.address, {
@@ -838,7 +838,7 @@ const TransferDialog = ({
                           <SelectItem
                             disabled={
                               selectedTradingAccountFrom ===
-                                subAccount.address &&
+                              subAccount.address &&
                               fromAccountValue === "trading"
                             }
                             value={subAccount.address}

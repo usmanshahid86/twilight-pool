@@ -45,10 +45,10 @@ export const twilightTestnet: Chain = {
     fee_tokens: [
       {
         denom: "nyks",
-        average_gas_price: 0.0025,
-        high_gas_price: 0.004,
-        low_gas_price: 0.001,
-        fixed_min_gas_price: 0.001,
+        average_gas_price: 0.0001,
+        high_gas_price: 0.0001,
+        low_gas_price: 0.0001,
+        fixed_min_gas_price: 0.0001,
       },
     ],
   },

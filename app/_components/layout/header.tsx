@@ -62,7 +62,7 @@ const Header = () => {
             <div className="hidden items-center lg:flex">
               <div className="flex items-center space-x-1">
                 <MultiLink title="Trade" subLinks={marketSubLinks} />
-                <MultiLink title="Funds" subLinks={btcSubLinks} />
+                {/* <MultiLink title="Funds" subLinks={btcSubLinks} /> */}
               </div>
               <Separator className="mr-6 h-5" orientation="vertical" />
               <div className="flex items-center space-x-4">
@@ -73,8 +73,15 @@ const Header = () => {
                   subLinks={SetupGuideLinks}
                 />
                 <Link
+                  href="/faucet"
+                  className="flex dark:text-gray-400 dark:hover:text-primary"
+                >
+                  Faucet <ArrowUpRight className="h-4 w-4" />
+                </Link>
+                <Link
                   href="https://docs.twilight.org/"
                   className="flex dark:text-gray-400 dark:hover:text-primary"
+                  target="_blank"
                 >
                   Specs <ArrowUpRight className="h-4 w-4" />
                 </Link>
