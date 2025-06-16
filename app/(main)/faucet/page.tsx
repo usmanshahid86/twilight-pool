@@ -25,7 +25,7 @@ const faucetSteps = [
   {
     id: 2,
     title: "Get NYKS Tokens",
-    description: "Receive 10,000 NYKS tokens from the faucet"
+    description: "Receive 100,000 NYKS tokens from the faucet"
   },
   {
     id: 3,
@@ -84,7 +84,7 @@ const Page = () => {
         return { success: false, error: error?.toString() || "Request failed" };
       }
 
-      return { success: true, message: "Successfully received 10,000 NYKS tokens" };
+      return { success: true, message: "Successfully received 100,000 NYKS tokens" };
     } catch (error) {
       return { success: false, error: error?.toString() || "Network error" };
     }
@@ -146,7 +146,7 @@ const Page = () => {
 
         toast({
           title: "NYKS Tokens Received",
-          description: result.message || "Successfully received 10,000 NYKS tokens",
+          description: result.message || "Successfully received 100,000 NYKS tokens",
         });
       } else {
         toast({
@@ -255,7 +255,7 @@ const Page = () => {
 
         toast({
           title: "BTC Tokens Received",
-          description: result.message || "Successfully received 10,000 sats",
+          description: result.message || "Successfully received 100,000 sats",
         });
       } else {
         toast({
@@ -320,7 +320,7 @@ const Page = () => {
                 Address: <span className="text-primary font-mono">{twilightAddress}</span>
               </Text>
               <Text className="text-sm text-primary-accent opacity-80">
-                Click below to receive 10,000 NYKS tokens from the faucet.
+                Click below to receive 100,000 NYKS tokens from the faucet.
               </Text>
             </div>
             <Button
@@ -469,7 +469,7 @@ const Page = () => {
             <Text className="text-primary opacity-80 text-sm" asChild>
               <div className="flex items-start space-x-2">
                 <AlertCircle size={16} className="flex-shrink-0 mt-0.5 text-primary-accent" />
-                <span>The faucet provides 10,000 NYKS tokens and 10,000 sats for testing purposes.</span>
+                <span>The faucet provides 100,000 NYKS tokens and 10,000 sats for testing purposes.</span>
               </div>
             </Text>
             <Text className="text-primary opacity-80 text-sm" asChild>
