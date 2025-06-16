@@ -303,10 +303,6 @@ const Page = () => {
   const handleReset = () => {
     setCurrentStep(1);
     setCompletedSteps([]);
-    setTwilightAddress("");
-    if (twilightAddressRef.current) {
-      twilightAddressRef.current.value = "";
-    }
   };
 
   const renderStepContent = () => {

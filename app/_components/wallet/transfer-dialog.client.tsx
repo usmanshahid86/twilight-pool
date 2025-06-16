@@ -237,7 +237,7 @@ const TransferDialog = ({
                 asChild
               >
                 <Link
-                  href={`https://nyks.twilight-explorer.com/transaction/${res.transactionHash}`}
+                  href={`https://explorer.twilight.rest/nyks/tx/${res.transactionHash}`}
                   target={"_blank"}
                 >
                   Explorer link
@@ -607,7 +607,7 @@ const TransferDialog = ({
                   asChild
                 >
                   <Link
-                    href={`https://nyks.twilight-explorer.com/transaction/${mintBurnRes.transactionHash}`}
+                    href={`https://explorer.twilight.rest/nyks/tx/${mintBurnRes.transactionHash}`}
                     target={"_blank"}
                   >
                     Explorer link

@@ -25,12 +25,12 @@ const formatDate = (date: Date) =>
   `${date.getDate().toString().padStart(2, "0")}:${(date.getMonth() + 1)
     .toString()
     .padStart(2, "0")}:${date.getFullYear()} ${date
-    .getHours()
-    .toString()
-    .padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}:${date
-    .getSeconds()
-    .toString()
-    .padStart(2, "0")}`;
+      .getHours()
+      .toString()
+      .padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}:${date
+        .getSeconds()
+        .toString()
+        .padStart(2, "0")}`;
 
 export const tradeHistoryColumns: ColumnDef<Trade, any>[] = [
   {
@@ -66,7 +66,7 @@ export const tradeHistoryColumns: ColumnDef<Trade, any>[] = [
     cell: (row) => (
       <Button className="justify-end" asChild variant="link">
         <Link
-          href={`https://nyks.twilight-explorer.com/transaction/${row.getValue()}`}
+          href={`https://explorer.twilight.rest/nyks/tx/${row.getValue()}`}
           target="_blank"
         >
           {row.getValue()}

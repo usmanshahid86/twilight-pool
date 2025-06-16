@@ -30,7 +30,7 @@ export const twilightTestnet: Chain = {
   explorers: [
     {
       kind: "blockExplorer",
-      url: "https://nyks.twilight-explorer.com/",
+      url: "https://explorer.twilight.rest/nyks//",
     },
   ],
   bech32_config: {
