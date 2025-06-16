@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Button from "@/components/button";
 import { Input } from "@/components/input";
 import { Text } from "@/components/typography";
@@ -59,9 +59,18 @@ const Page = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [twilightAddress, setTwiightAddress] = useState("");
 
   const { mainWallet } = useWallet();
+  const chainWallet = mainWallet?.getChainWallet("nyks");
+
+  const [twilightAddress, setTwilightAddress] = useState(chainWallet?.address || "");
+
+  // Update twilight address when wallet connects/disconnects
+  useEffect(() => {
+    if (chainWallet?.address) {
+      setTwilightAddress(chainWallet.address);
+    }
+  }, [chainWallet?.address]);
 
   const markStepCompleted = (stepId: number) => {
     if (!completedSteps.includes(stepId)) {
@@ -109,18 +118,34 @@ const Page = () => {
   };
 
   const handleSubmitAddress = async () => {
-    const address = twilightAddressRef.current?.value?.trim();
-
-    if (!address) {
+    if (!chainWallet || !twilightAddress) {
       toast({
         variant: "error",
         title: "Error",
-        description: "Please enter a valid twilight address",
+        description: "Please connect your Cosmos wallet",
       });
       return;
     }
 
-    setTwiightAddress(address);
+    toast({
+      title: "Address Validated",
+      description: "Ready to proceed with token distribution",
+    });
+
+    const stargateClient = await chainWallet.getStargateClient()
+    const nyksBalanceString = await stargateClient.getBalance(
+      twilightAddress,
+      "nyks"
+    );
+
+    const nyksBalance = parseInt(nyksBalanceString.amount);
+
+    if (nyksBalance > 50_000) {
+      setCompletedSteps([1, 2, 3]);
+      setCurrentStep(4);
+      return;
+    }
+
     markStepCompleted(1);
     setCurrentStep(2);
 
@@ -278,7 +303,7 @@ const Page = () => {
   const handleReset = () => {
     setCurrentStep(1);
     setCompletedSteps([]);
-    setTwiightAddress("");
+    setTwilightAddress("");
     if (twilightAddressRef.current) {
       twilightAddressRef.current.value = "";
     }
@@ -299,6 +324,8 @@ const Page = () => {
                 ref={twilightAddressRef}
                 id="twilight-address"
                 placeholder="twilight1..."
+                value={twilightAddress}
+                onChange={(e) => setTwilightAddress(e.target.value)}
                 required
               />
             </div>
