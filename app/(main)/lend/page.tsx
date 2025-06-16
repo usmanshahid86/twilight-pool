@@ -36,16 +36,21 @@ const Page = () => {
   const zKAccounts = useTwilightStore((state) => state.zk.zkAccounts);
   const lendOrders = useTwilightStore((state) => state.lend.lends);
 
+  const addTransactionHistory = useTwilightStore(
+    (state) => state.history.addTransaction
+  );
+
   const removeLend = useTwilightStore((state) => state.lend.removeLend);
 
   const [isRedeemLoading, setIsRedeemLoading] = useState(false);
 
   const { status } = useWallet();
 
-  const totalTradingSatsBalance = zKAccounts.reduce(
-    (acc, account) => (acc += account.value || 0),
-    0
-  );
+  const totalTradingSatsBalance = zKAccounts.reduce((acc, account) => {
+    acc += account.value || 0;
+
+    return acc;
+  }, 0);
 
   const totalSatsBalance = Big(twilightSats).plus(totalTradingSatsBalance || 0);
 
@@ -75,7 +80,7 @@ const Page = () => {
 
   const totalBTCBalanceString = new BTC(
     "sats",
-    totalSatsBalance.plus(totalTradingSatsBalance)
+    totalSatsBalance,
   )
     .convert("BTC")
     .toFixed(8);
@@ -152,15 +157,36 @@ const Page = () => {
 
         removeLend(lendOrder);
 
+        const selectedZkAccount = zKAccounts.find(
+          (account) => account.address === lendOrder.accountAddress
+        );
+
+        addTransactionHistory({
+          date: new Date(),
+          from: selectedZkAccount?.address || "",
+          fromTag: selectedZkAccount?.tag || "",
+          to: lendOrder.accountAddress,
+          toTag: selectedZkAccount?.tag || "",
+          tx_hash: executeLendRes.transactionHash,
+          type: "Redeem Lend",
+          value: lendOrder.value,
+        });
+
         setIsRedeemLoading(false);
         toast({
           title: "Success",
           description: "Redeemed lend sats successfully",
         });
+
       }
     } catch (err) {
       setIsRedeemLoading(false);
       console.error(err);
+      toast({
+        variant: "error",
+        title: "Error",
+        description: "An error has occurred executing redeem lend, try again later.",
+      });
     }
   }
 

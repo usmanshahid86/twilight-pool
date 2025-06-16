@@ -105,7 +105,7 @@ async function executeLendOrder(msg: string) {
     return {};
   }
 
-  console.log("success sent execute trade order", data);
+  console.log("success sent execute lend  order", data);
   return data;
 }
 

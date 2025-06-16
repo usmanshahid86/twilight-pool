@@ -37,6 +37,9 @@ const LendDialog = ({ children }: Props) => {
 
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
   const addLendOrder = useTwilightStore((state) => state.lend.addLend);
+  const addTransactionHistory = useTwilightStore(
+    (state) => state.history.addTransaction
+  );
 
   const [selectedAccountIndex, setSelectedAccountIndex] = useState(0);
   const [depositDenom, setDepositDenom] = useState<string>("BTC");
@@ -97,6 +100,18 @@ const LendDialog = ({ children }: Props) => {
         orderStatus: "",
         value: depositAmount,
       });
+
+      addTransactionHistory({
+        date: new Date(),
+        from: selectedZkAccount.address,
+        fromTag: selectedZkAccount.tag,
+        to: selectedZkAccount.address,
+        toTag: selectedZkAccount.tag,
+        tx_hash: data.result.id_key as string,
+        type: "Lend",
+        value: depositAmount,
+      });
+
     } else {
       toast({
         variant: "error",
