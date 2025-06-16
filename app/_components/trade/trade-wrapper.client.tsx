@@ -15,7 +15,6 @@ import DetailsPanel from "./details/details.client";
 import Skeleton from "@/components/skeleton";
 import dayjs from "dayjs";
 import { CandleInterval } from "@/lib/types";
-import { useTwilightStore } from "@/lib/providers/store";
 import { useSessionStore } from "@/lib/providers/session";
 
 const layout = [
@@ -68,12 +67,12 @@ const TradeWrapper = () => {
 
   useEffect(() => {
     async function fetchCandleData() {
-      const since = dayjs().subtract(1, "hour");
+      const since = dayjs().subtract(12, "hour");
 
       const candleDataResponse = await getCandleData({
         since: since.toISOString(),
         interval: CandleInterval.ONE_MINUTE,
-        limit: 60,
+        limit: 1000,
       });
 
       const candleData = candleDataResponse.success
@@ -88,7 +87,7 @@ const TradeWrapper = () => {
     }
 
     fetchCandleData();
-  }, [setPrice]);
+  }, []);
 
   useEffect(() => {
     setHasMounted(true);

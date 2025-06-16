@@ -1,10 +1,12 @@
 "use client";
 import { useGrid } from "@/lib/providers/grid";
 import { useTwilight } from "@/lib/providers/twilight";
+import { CandleInterval } from '@/lib/types';
 import {
   ColorType,
   CrosshairMode,
   IChartApi,
+  LogicalRange,
   createChart,
 } from "lightweight-charts";
 import { useTheme } from "next-themes";
@@ -19,14 +21,18 @@ import React, {
 
 export const chartContext = createContext<ChartApi>({
   _api: undefined,
-  api: () => {},
-  free: () => {},
+  api: () => { },
+  free: () => { },
+  interval: CandleInterval.ONE_MINUTE,
+  setInterval: () => { },
 });
 
 type ChartApi = {
   _api?: IChartApi;
   api: () => IChartApi | void;
   free: () => void;
+  interval: CandleInterval;
+  setInterval: (interval: CandleInterval) => void;
 };
 
 const CHART_X_PADDING = 20;
@@ -35,10 +41,12 @@ const CHART_Y_PADDING = 80;
 type Props = {
   container: HTMLElement;
   children: React.ReactNode;
+  interval: CandleInterval;
+  setInterval: (interval: CandleInterval) => void;
 };
 
 const Chart = forwardRef<IChartApi | void, Props>(
-  ({ children, container }, ref) => {
+  ({ children, container, interval, setInterval }, ref) => {
     const { width, height } = useGrid();
 
     const { theme } = useTheme();
@@ -92,7 +100,8 @@ const Chart = forwardRef<IChartApi | void, Props>(
               secondsVisible: false,
             },
           });
-          this._api.timeScale().fitContent();
+          // Show the last 50 candlestick
+          this._api.timeScale().setVisibleLogicalRange({ from: -50, to: 0 });
         }
         return this._api;
       },
@@ -105,6 +114,8 @@ const Chart = forwardRef<IChartApi | void, Props>(
           console.error(err);
         }
       },
+      interval: interval,
+      setInterval,
     });
 
     useLayoutEffect(() => {
@@ -170,6 +181,12 @@ const Chart = forwardRef<IChartApi | void, Props>(
         },
       });
     }, [theme]);
+
+    // Update the interval in the chart API ref when interval prop changes
+    useEffect(() => {
+      chartApiRef.current.interval = interval;
+      chartApiRef.current.setInterval = setInterval;
+    }, [interval, setInterval]);
 
     useImperativeHandle(ref, () => chartApiRef.current.api(), []);
 

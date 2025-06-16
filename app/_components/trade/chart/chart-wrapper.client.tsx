@@ -41,7 +41,7 @@ const TIME_INTERVALS: {
       name: "1m",
       offset: {
         unit: "minute",
-        amount: 120,
+        amount: 720,
       },
     },
     {
@@ -49,7 +49,7 @@ const TIME_INTERVALS: {
       name: "15m",
       offset: {
         unit: "minute",
-        amount: 120,
+        amount: 10800,
       },
     },
     {
@@ -57,7 +57,7 @@ const TIME_INTERVALS: {
       name: "4h",
       offset: {
         unit: "hour",
-        amount: 20,
+        amount: 720,
       },
     },
     {
@@ -65,7 +65,7 @@ const TIME_INTERVALS: {
       name: "24h",
       offset: {
         unit: "day",
-        amount: 30,
+        amount: 90,
       },
     },
   ];
@@ -168,6 +168,7 @@ const ChartWrapper = ({ candleData }: Props) => {
               if (timeInterval === item.id) return;
 
               setTimeInterval(item.id);
+
               try {
                 const timeOffset = dayjs().subtract(
                   item.offset.amount,
@@ -177,7 +178,7 @@ const ChartWrapper = ({ candleData }: Props) => {
                 const candleDataResponse = await getCandleData({
                   since: timeOffset.toISOString(),
                   interval: item.id,
-                  limit: 120,
+                  limit: 1000,
                 });
 
                 const fetchedCandleData = candleDataResponse.success
@@ -190,9 +191,13 @@ const ChartWrapper = ({ candleData }: Props) => {
                 );
 
                 const chartData = fetchedCandleData.map((candle) => {
-                  const time = Math.floor(
+                  const unixTime = Math.floor(
                     Date.parse(candle.start) / 1000
                   ) as UTCTimestamp;
+
+                  const localTimezoneOffset = new Date().getTimezoneOffset() * 60;
+                  const time = (unixTime - localTimezoneOffset) as UTCTimestamp;
+
                   return {
                     close: parseFloat(candle.close),
                     open: parseFloat(candle.open),
@@ -218,7 +223,7 @@ const ChartWrapper = ({ candleData }: Props) => {
       </div>
       <div ref={handleRef}>
         {container && (
-          <Chart container={container}>
+          <Chart container={container} interval={timeInterval} setInterval={setTimeInterval}>
             <Series data={candleData} ref={seriesRef} />
           </Chart>
         )}

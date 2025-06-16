@@ -45,8 +45,8 @@ function convertDisplayLimitData(
         oldPrice === order.price
           ? LimitChange.EQUAL
           : order.price > oldPrice
-          ? LimitChange.INCREASE
-          : LimitChange.DECREASE,
+            ? LimitChange.INCREASE
+            : LimitChange.DECREASE,
     };
   });
 }
@@ -88,7 +88,7 @@ export function OrderbookLayouts({ layouts }: Props) {
 
   useInterval(() => {
     getOrderbookData();
-  }, 1000);
+  }, 5000);
 
   switch (layouts) {
     case "split": {
