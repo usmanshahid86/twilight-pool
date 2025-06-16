@@ -39,6 +39,19 @@ const faucetSteps = [
   }
 ];
 
+const FAUCET_ENDPOINT = process.env.NEXT_PUBLIC_FAUCET_ENDPOINT as string;
+
+const generateRandomBtcTestnetAddress = (): string => {
+  // Generate a random 32-character hex string for the address
+  const randomHex = Array.from({ length: 32 }, () =>
+    Math.floor(Math.random() * 16).toString(16)
+  ).join('');
+
+  // Return a testnet bech32-style address (tb1 prefix for testnet)
+  return `tb1q${randomHex}`
+};
+
+
 const Page = () => {
   const { toast } = useToast();
   const twilightAddressRef = useRef<HTMLInputElement>(null);
@@ -61,7 +74,7 @@ const Page = () => {
       const {
         success,
         error
-      } = await wfetch("http://52.74.135.169:6969/faucet")
+      } = await wfetch(`${FAUCET_ENDPOINT}/faucet`)
         .post({
           body: JSON.stringify({ recipientAddress: address }),
         }).text()
@@ -79,7 +92,7 @@ const Page = () => {
 
   const callMintEndpoint = async (address: string): Promise<FaucetResponse> => {
     try {
-      const { success, data, error } = await wfetch("http://52.74.135.169:6969/mint")
+      const { success, data, error } = await wfetch(`${FAUCET_ENDPOINT}/mint`)
         .post({
           body: JSON.stringify({ recipientAddress: address }),
         })
@@ -188,7 +201,7 @@ const Page = () => {
         twilightproject.nyks.bridge.MessageComposer.withTypeUrl;
 
       const msg = registerBtcDepositAddress({
-        btcDepositAddress: `bc1qwhjk6eykgsh7pw44ypxwdcujwn2c2papy3cnfy`,
+        btcDepositAddress: generateRandomBtcTestnetAddress(),
         twilightAddress: twilightAddress,
         btcSatoshiTestAmount: Long.fromNumber(10000),
         twilightStakingAmount: Long.fromNumber(10000),
