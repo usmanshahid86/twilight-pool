@@ -23,6 +23,7 @@ type CandlestickData = {
   open: string;
   resolution: string;
   start: string;
+  updated_at: string;
   trades: number;
 };
 
@@ -35,39 +36,39 @@ const TIME_INTERVALS: {
   id: CandleInterval;
   offset: { unit: ManipulateType; amount: number };
 }[] = [
-  {
-    id: CandleInterval.ONE_MINUTE,
-    name: "1m",
-    offset: {
-      unit: "minute",
-      amount: 120,
+    {
+      id: CandleInterval.ONE_MINUTE,
+      name: "1m",
+      offset: {
+        unit: "minute",
+        amount: 120,
+      },
     },
-  },
-  {
-    id: CandleInterval.FIFTEEN_MINUTE,
-    name: "15m",
-    offset: {
-      unit: "minute",
-      amount: 120,
+    {
+      id: CandleInterval.FIFTEEN_MINUTE,
+      name: "15m",
+      offset: {
+        unit: "minute",
+        amount: 120,
+      },
     },
-  },
-  {
-    id: CandleInterval.FOUR_HOUR,
-    name: "4h",
-    offset: {
-      unit: "hour",
-      amount: 20,
+    {
+      id: CandleInterval.FOUR_HOUR,
+      name: "4h",
+      offset: {
+        unit: "hour",
+        amount: 20,
+      },
     },
-  },
-  {
-    id: CandleInterval.ONE_DAY,
-    name: "24h",
-    offset: {
-      unit: "day",
-      amount: 30,
+    {
+      id: CandleInterval.ONE_DAY,
+      name: "24h",
+      offset: {
+        unit: "day",
+        amount: 30,
+      },
     },
-  },
-];
+  ];
 
 const ChartWrapper = ({ candleData }: Props) => {
   const { addPrice } = usePriceFeed();
@@ -117,10 +118,13 @@ const ChartWrapper = ({ candleData }: Props) => {
 
       const candleStickData = candleStickDataArr[0];
 
-      const currentMinuteInMs = dayjs
+
+      const time = dayjs
         .utc(candleStickData.end)
-        .startOf("m")
         .unix();
+
+      const localTimezoneOffset = new Date().getTimezoneOffset() * 60;
+      const currentMinuteInMs = (time - localTimezoneOffset) as UTCTimestamp;
 
       const { close, open, high, low } = {
         close: parseFloat(candleStickData.close),
@@ -129,17 +133,18 @@ const ChartWrapper = ({ candleData }: Props) => {
         low: parseFloat(candleStickData.low),
       };
 
-      addPrice(close);
-
-      seriesRef.current.update({
+      const dataToUpdate = {
         close: close,
         open: open,
         high: high,
         low: low,
         time: currentMinuteInMs as UTCTimestamp,
-      });
+      }
+
+      addPrice(close);
+      seriesRef.current.update(dataToUpdate)
     } catch (err) {
-      console.error(err);
+      console.error(err)
     }
   }
 

@@ -7,7 +7,7 @@ import React, {
   useRef,
 } from "react";
 import { chartContext } from "./chart.client";
-import { ISeriesApi, UTCTimestamp } from "lightweight-charts";
+import { CandlestickSeries, ISeriesApi, UTCTimestamp } from "lightweight-charts";
 import { CandleData } from "@/lib/api/rest";
 
 type Props = {
@@ -38,7 +38,7 @@ const Series = forwardRef<ISeriesApi<"Candlestick"> | void, Props>(
 
           console.log("series calling parent._api", parent._api);
 
-          this._api = parent._api?.addCandlestickSeries({
+          this._api = parent._api?.addSeries(CandlestickSeries, {
             upColor: "#5FDB66",
             downColor: "#F84952",
             wickUpColor: "#5FDB66",
