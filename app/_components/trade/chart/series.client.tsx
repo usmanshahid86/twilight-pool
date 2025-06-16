@@ -48,9 +48,13 @@ const Series = forwardRef<ISeriesApi<"Candlestick"> | void, Props>(
           parent._api?.timeScale().fitContent();
 
           const chartData = data.map((candleData) => {
-            const time = Math.floor(
+            const unixTime = Math.floor(
               Date.parse(candleData.start) / 1000
-            ) as UTCTimestamp;
+            );
+
+            const localTimezoneOffset = new Date().getTimezoneOffset() * 60;
+            const time = (unixTime - localTimezoneOffset) as UTCTimestamp;
+
             return {
               close: parseFloat(candleData.close),
               open: parseFloat(candleData.open),
