@@ -357,7 +357,7 @@ async function createZkLendOrder({
   const orderString = await createZkOSLendOrder({
     inputString,
     scalar,
-    scriptAddress: "1860eef63edee1078178b3adb63e9f86921caa16b5",
+    scriptAddress: "1822726d4be3c6b33b1f344c7432cbe042038af1b8",
     signature,
     deposit,
   });

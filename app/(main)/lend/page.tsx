@@ -115,7 +115,7 @@ const Page = () => {
           2500,
           (txHash) => {
             const found = txHash.result.find(
-              (tx) => tx.order_status === "SETTLED"
+              (tx) => tx.order_status === "FILLED"
             );
 
             return found ? true : false;
@@ -132,7 +132,7 @@ const Page = () => {
 
         console.log(lendOrders);
         const lendOrderData = lendOrders.result.find(
-          (tx) => tx.order_status === "SETTLED"
+          (tx) => tx.order_status === "FILLED"
         );
         if (!lendOrderData) {
           setIsRedeemLoading(false);
