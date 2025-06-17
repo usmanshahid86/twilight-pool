@@ -6,6 +6,7 @@ import { queryTransactionHashes } from "@/lib/api/rest";
 import cn from "@/lib/cn";
 import { retry } from "@/lib/helpers";
 import { useToast } from "@/lib/hooks/useToast";
+import { useOrderbookData } from "@/lib/hooks/useOrderbookData";
 import { useSessionStore } from "@/lib/providers/session";
 import { useTwilightStore } from "@/lib/providers/store";
 import BTC from "@/lib/twilight/denoms";
@@ -18,6 +19,9 @@ import React from "react";
 const OrderMyTrades = () => {
   const { toast } = useToast();
 
+  // Access orderbook data
+  const { data: orderbookData } = useOrderbookData();
+
   const privateKey = useSessionStore((state) => state.privateKey);
   const addTradeHistory = useSessionStore((state) => state.trade.addTrade);
 
@@ -25,6 +29,7 @@ const OrderMyTrades = () => {
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount);
   const tradeOrders = useTwilightStore((state) => state.trade.trades);
   const removeTrade = useTwilightStore((state) => state.trade.removeTrade);
+
 
   async function settleOrder(tradeOrder: TradeOrder) {
     if (!tradeOrder.output) {
@@ -386,16 +391,20 @@ const OrderMyTrades = () => {
                 </Text>
                 <Text>{trade.orderType}</Text>
               </div>
-              <Button
-                onClick={async (e) => {
-                  e.preventDefault();
-                  await cancelOrder(trade);
-                }}
-                variant="ui"
-                size="small"
-              >
-                Cancel
-              </Button>
+              {
+                trade.orderType === "LIMIT" && (
+                  <Button
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      await cancelOrder(trade);
+                    }}
+                    variant="ui"
+                    size="small"
+                  >
+                    Cancel
+                  </Button>
+                )
+              }
               <Button
                 onClick={async (e) => {
                   e.preventDefault();

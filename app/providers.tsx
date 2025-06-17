@@ -6,6 +6,7 @@ import { wallets as keplr } from "@cosmos-kit/keplr";
 import { wallets as cosmos } from "@cosmos-kit/cosmostation-extension";
 import { wallets as leap } from "@cosmos-kit/leap-extension";
 import { wallets as leapMetamaskCosmosSnap } from "@cosmos-kit/leap-metamask-cosmos-snap";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import React from "react";
 import {
@@ -20,42 +21,54 @@ import { PriceFeedProvider } from "@/lib/providers/feed";
 import { TwilightStoreProvider } from "@/lib/providers/store";
 import { SessionStoreProvider } from "@/lib/providers/session";
 
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider defaultTheme="dark" attribute="class">
-      <ChainProvider
-        chains={[twilightTestnet]}
-        assetLists={[twilightTestnetAssets]}
-        wallets={
-          [
-            ...keplr,
-            ...cosmos,
-            ...leap,
-            ...leapMetamaskCosmosSnap,
-          ] as unknown as MainWalletBase[]
-        }
-        endpointOptions={{
-          endpoints: {
-            nyks: {
-              rpc: [process.env.TWILIGHT_API_RPC as string],
-              rest: [process.env.TWILIGHT_API_REST as string],
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="dark" attribute="class">
+        <ChainProvider
+          chains={[twilightTestnet]}
+          assetLists={[twilightTestnetAssets]}
+          wallets={
+            [
+              ...keplr,
+              ...cosmos,
+              ...leap,
+              ...leapMetamaskCosmosSnap,
+            ] as unknown as MainWalletBase[]
+          }
+          endpointOptions={{
+            endpoints: {
+              nyks: {
+                rpc: [process.env.TWILIGHT_API_RPC as string],
+                rest: [process.env.TWILIGHT_API_REST as string],
+              },
             },
-          },
-        }}
-        signerOptions={signerOptions}
+          }}
+          signerOptions={signerOptions}
         // walletConnectOptions={{ // todo: implement for keplr wallet
         //   signClient:
         // }}
-      >
-        <TwilightProvider>
-          <SessionStoreProvider>
-            <TwilightStoreProvider>
-              <PriceFeedProvider>{children}</PriceFeedProvider>
-            </TwilightStoreProvider>
-          </SessionStoreProvider>
-          <Toaster />
-        </TwilightProvider>
-      </ChainProvider>
-    </ThemeProvider>
+        >
+          <TwilightProvider>
+            <SessionStoreProvider>
+              <TwilightStoreProvider>
+                <PriceFeedProvider>{children}</PriceFeedProvider>
+              </TwilightStoreProvider>
+            </SessionStoreProvider>
+            <Toaster />
+          </TwilightProvider>
+        </ChainProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }

@@ -73,9 +73,9 @@ function OrderRecentTradesTable({
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                   </th>
                 );
               })}
@@ -95,11 +95,10 @@ function OrderRecentTradesTable({
                     className={cn(
                       "w-1/3",
                       index === 0
-                        ? `text-start text-${
-                            cell.row.original.side === "SHORT"
-                              ? "red"
-                              : "green-medium"
-                          }`
+                        ? `text-start text-${cell.row.original.side === "SHORT"
+                          ? "red"
+                          : "green-medium"
+                        }`
                         : "text-end"
                     )}
                     key={cell.id}
