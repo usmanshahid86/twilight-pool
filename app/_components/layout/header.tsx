@@ -8,8 +8,13 @@ import ConnectWallet from "./connect-wallet.client";
 import Settings from "./settings.client";
 import SubaccountSelect from "./subaccount/subaccount-select.client";
 import MobileNav from "./mobile-navigation.client";
+import { usePathname } from 'next/navigation';
 
 const marketSubLinks = [
+  {
+    href: "/",
+    title: "Trade"
+  },
   {
     href: "/lend",
     title: "Lend",
@@ -37,10 +42,6 @@ const btcSubLinks = [
 
 const SetupGuideLinks = [
   {
-    href: "/btc-deposit-flow",
-    title: "BTC Deposit Flow",
-  },
-  {
     href: "/dex-operations",
     title: "DEX Operations",
   },
@@ -51,6 +52,7 @@ const SetupGuideLinks = [
 ];
 
 const Header = () => {
+
   return (
     <nav className="border-b">
       <div className="mx-auto px-1 py-2 md:px-4 md:py-4">
@@ -60,11 +62,25 @@ const Header = () => {
               <Logo className="hover:opacity-80" />
             </Link>
             <div className="hidden items-center lg:flex">
-              <div className="flex items-center space-x-1">
-                <MultiLink title="Trade" subLinks={marketSubLinks} />
-                {/* <MultiLink title="Funds" subLinks={btcSubLinks} /> */}
+              <div className="flex items-center space-x-4">
+                {
+                  marketSubLinks.map((link) => (
+                    <Link
+                      className="flex dark:text-gray-400 dark:hover:text-primary"
+                      href={link.href} key={link.href}>
+                      {link.title}
+                    </Link>
+                  ))
+                }
+
+                <Link
+                  href="/faucet"
+                  className="flex dark:text-gray-400 dark:hover:text-primary"
+                >
+                  Faucet
+                </Link>
               </div>
-              <Separator className="mr-6 h-5" orientation="vertical" />
+              <Separator className="mx-4 h-5" orientation="vertical" />
               <div className="flex items-center space-x-4">
                 <MultiLink
                   className={"min-w-[200px] justify-between"}
@@ -72,12 +88,6 @@ const Header = () => {
                   title="Setup Guides"
                   subLinks={SetupGuideLinks}
                 />
-                <Link
-                  href="/faucet"
-                  className="flex dark:text-gray-400 dark:hover:text-primary"
-                >
-                  Faucet <ArrowUpRight className="h-4 w-4" />
-                </Link>
                 <Link
                   href="https://docs.twilight.org/"
                   className="flex dark:text-gray-400 dark:hover:text-primary"

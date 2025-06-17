@@ -46,7 +46,7 @@ async function sendLendOrder(lendData: string) {
     return {};
   }
 
-  console.log("success sent trader order", data);
+  console.log("success sent lend order", data);
   return data;
 }
 

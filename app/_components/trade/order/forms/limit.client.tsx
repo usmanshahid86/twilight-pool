@@ -74,8 +74,7 @@ const OrderLimitForm = () => {
       const currentAccountValue = currentZkAccount.value || 0;
 
       if (btcAmountInSats > currentAccountValue) {
-        throw `Insufficient balance to place order for ${
-          btcAmountRef.current?.value || 0
+        throw `Insufficient balance to place order for ${btcAmountRef.current?.value || 0
         } BTC`;
       }
 
@@ -125,6 +124,7 @@ const OrderLimitForm = () => {
           let txResult = false;
 
           transactionHashes.forEach((result) => {
+            console.log(`limit order transaction hashes result`, result)
             if (result.tx_hash.includes("Error")) {
               return;
             }
@@ -311,25 +311,25 @@ const OrderLimitForm = () => {
               disabled={isSubmitting}
               type={"submit"}
               value={"buy"}
-              // onClick={async () => {
-              //   const { success, msg } = await createZkOrder({
-              //     zkAccount: currentZkAccount,
-              //     signature: privateKey,
-              //     value: 100,
-              //     positionType: "LONG",
-              //     leverage: 1,
-              //     orderType: "MARKET",
-              //     timebounds: 0,
-              //     entryPrice: 0,
-              //   });
+            // onClick={async () => {
+            //   const { success, msg } = await createZkOrder({
+            //     zkAccount: currentZkAccount,
+            //     signature: privateKey,
+            //     value: 100,
+            //     positionType: "LONG",
+            //     leverage: 1,
+            //     orderType: "MARKET",
+            //     timebounds: 0,
+            //     entryPrice: 0,
+            //   });
 
-              //   if (!success || !msg)
-              //     return console.error("error creating zk order");
+            //   if (!success || !msg)
+            //     return console.error("error creating zk order");
 
-              //   console.log("txString", msg);
-              //   const data = await sendTradeOrder(msg);
-              //   console.log(data);
-              // }}
+            //   console.log("txString", msg);
+            //   const data = await sendTradeOrder(msg);
+            //   console.log(data);
+            // }}
             >
               {isSubmitting ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
