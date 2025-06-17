@@ -181,6 +181,7 @@ const OrderMarketForm = () => {
           uuid: orderData.order_id,
           value: satsValue,
           output: orderData.output,
+          entryPrice: currentPrice,
         });
 
         addTradeHistory({
@@ -193,6 +194,7 @@ const OrderMarketForm = () => {
           value: satsValue,
           output: orderData.output,
           date: new Date(),
+          entryPrice: currentPrice,
         });
       } else {
         toast({

@@ -202,6 +202,7 @@ const OrderMyTrades = () => {
         uuid: tradeOrder.uuid,
         value: tradeOrder.value,
         output: tradeOrder.output,
+        entryPrice: tradeOrder.entryPrice,
       });
     } catch (err) {
       console.error(err);
@@ -213,151 +214,151 @@ const OrderMyTrades = () => {
     }
   }
 
-  async function cancelOrder(tradeOrder: TradeOrder) {
-    const currentAccount = zkAccounts.find(
-      (account) => account.address === tradeOrder.accountAddress
-    );
+  // async function cancelOrder(tradeOrder: TradeOrder) {
+  //   const currentAccount = zkAccounts.find(
+  //     (account) => account.address === tradeOrder.accountAddress
+  //   );
 
-    if (!currentAccount) {
-      toast({
-        variant: "error",
-        title: "Error",
-        description: "Error account associated with this order is missing",
-      });
+  //   if (!currentAccount) {
+  //     toast({
+  //       variant: "error",
+  //       title: "Error",
+  //       description: "Error account associated with this order is missing",
+  //     });
 
-      removeTrade(tradeOrder);
-      return;
-    }
+  //     removeTrade(tradeOrder);
+  //     return;
+  //   }
 
-    try {
-      const result = await cancelTradeOrder({
-        accountId: currentAccount.address,
-        uuid: tradeOrder.uuid,
-        orderType: tradeOrder.orderType,
-        orderStatus: tradeOrder.orderStatus,
-      });
+  //   try {
+  //     const result = await cancelTradeOrder({
+  //       accountId: currentAccount.address,
+  //       uuid: tradeOrder.uuid,
+  //       orderType: tradeOrder.orderType,
+  //       orderStatus: tradeOrder.orderStatus,
+  //     });
 
-      console.log("cancel result", result);
+  //     console.log("cancel result", result);
 
-      const transactionHashCondition = (
-        txHashResult: Awaited<ReturnType<typeof queryTransactionHashes>>
-      ) => {
-        if (txHashResult.result) {
-          const transactionHashes = txHashResult.result;
+  //     const transactionHashCondition = (
+  //       txHashResult: Awaited<ReturnType<typeof queryTransactionHashes>>
+  //     ) => {
+  //       if (txHashResult.result) {
+  //         const transactionHashes = txHashResult.result;
 
-          let hasSettled = false;
-          transactionHashes.forEach((result) => {
-            if (result.order_status !== "SETTLED") {
-              return;
-            }
+  //         let hasSettled = false;
+  //         transactionHashes.forEach((result) => {
+  //           if (result.order_status !== "SETTLED") {
+  //             return;
+  //           }
 
-            hasSettled =
-              result.order_id === tradeOrder.uuid &&
-              !result.tx_hash.includes("Error");
-          });
+  //           hasSettled =
+  //             result.order_id === tradeOrder.uuid &&
+  //             !result.tx_hash.includes("Error");
+  //         });
 
-          return hasSettled;
-        }
-        return false;
-      };
+  //         return hasSettled;
+  //       }
+  //       return false;
+  //     };
 
-      const transactionHashRes = await retry<
-        ReturnType<typeof queryTransactionHashes>,
-        string
-      >(
-        queryTransactionHashes,
-        9,
-        tradeOrder.accountAddress,
-        2500,
-        transactionHashCondition
-      );
+  //     const transactionHashRes = await retry<
+  //       ReturnType<typeof queryTransactionHashes>,
+  //       string
+  //     >(
+  //       queryTransactionHashes,
+  //       9,
+  //       tradeOrder.accountAddress,
+  //       2500,
+  //       transactionHashCondition
+  //     );
 
-      if (!transactionHashRes.success) {
-        console.error("cancel order failed to get transaction_hashes");
-        toast({
-          variant: "error",
-          title: "Error",
-          description: "Error with cancelling trade order",
-        });
-        return;
-      }
+  //     if (!transactionHashRes.success) {
+  //       console.error("cancel order failed to get transaction_hashes");
+  //       toast({
+  //         variant: "error",
+  //         title: "Error",
+  //         description: "Error with cancelling trade order",
+  //       });
+  //       return;
+  //     }
 
-      toast({
-        title: "Success",
-        description: `Successfully cancelled ${tradeOrder.orderType.toLowerCase()} order`,
-      });
+  //     toast({
+  //       title: "Success",
+  //       description: `Successfully cancelled ${tradeOrder.orderType.toLowerCase()} order`,
+  //     });
 
-      const getZkAccountBalanceResult = await retry<
-        ReturnType<typeof getZkAccountBalance>,
-        {
-          zkAccountAddress: string;
-          signature: string;
-        }
-      >(
-        getZkAccountBalance,
-        9,
-        {
-          zkAccountAddress: tradeOrder.accountAddress,
-          signature: privateKey,
-        },
-        2500,
-        (result) => {
-          if (result.value) return true;
+  //     const getZkAccountBalanceResult = await retry<
+  //       ReturnType<typeof getZkAccountBalance>,
+  //       {
+  //         zkAccountAddress: string;
+  //         signature: string;
+  //       }
+  //     >(
+  //       getZkAccountBalance,
+  //       9,
+  //       {
+  //         zkAccountAddress: tradeOrder.accountAddress,
+  //         signature: privateKey,
+  //       },
+  //       2500,
+  //       (result) => {
+  //         if (result.value) return true;
 
-          return false;
-        }
-      );
+  //         return false;
+  //       }
+  //     );
 
-      if (!getZkAccountBalanceResult.success) {
-        console.error("cancel order failed to get balance");
-        toast({
-          variant: "error",
-          title: "Error",
-          description: "Error with getting balance after cancelling order.",
-        });
-        return;
-      }
+  //     if (!getZkAccountBalanceResult.success) {
+  //       console.error("cancel order failed to get balance");
+  //       toast({
+  //         variant: "error",
+  //         title: "Error",
+  //         description: "Error with getting balance after cancelling order.",
+  //       });
+  //       return;
+  //     }
 
-      const { value: newAccountBalance } = getZkAccountBalanceResult.data;
+  //     const { value: newAccountBalance } = getZkAccountBalanceResult.data;
 
-      if (!newAccountBalance) {
-        toast({
-          variant: "error",
-          title: "Error",
-          description: "Error with cancelling trade order",
-        });
-        return;
-      }
+  //     if (!newAccountBalance) {
+  //       toast({
+  //         variant: "error",
+  //         title: "Error",
+  //         description: "Error with cancelling trade order",
+  //       });
+  //       return;
+  //     }
 
-      console.log("cancel account balance", newAccountBalance);
+  //     console.log("cancel account balance", newAccountBalance);
 
-      updateZkAccount(tradeOrder.accountAddress, {
-        ...currentAccount,
-        value: newAccountBalance,
-      });
+  //     updateZkAccount(tradeOrder.accountAddress, {
+  //       ...currentAccount,
+  //       value: newAccountBalance,
+  //     });
 
-      removeTrade(tradeOrder);
+  //     removeTrade(tradeOrder);
 
-      addTradeHistory({
-        accountAddress: tradeOrder.accountAddress,
-        date: new Date(),
-        orderStatus: "CANCELLED",
-        orderType: tradeOrder.orderType,
-        positionType: tradeOrder.positionType,
-        tx_hash: tradeOrder.tx_hash,
-        uuid: tradeOrder.uuid,
-        value: tradeOrder.value,
-        output: tradeOrder.output,
-      });
-    } catch (err) {
-      console.error(err);
-      toast({
-        variant: "error",
-        title: "Error",
-        description: "Error with cancelling trade order",
-      });
-    }
-  }
+  //     addTradeHistory({
+  //       accountAddress: tradeOrder.accountAddress,
+  //       date: new Date(),
+  //       orderStatus: "CANCELLED",
+  //       orderType: tradeOrder.orderType,
+  //       positionType: tradeOrder.positionType,
+  //       tx_hash: tradeOrder.tx_hash,
+  //       uuid: tradeOrder.uuid,
+  //       value: tradeOrder.value,
+  //       output: tradeOrder.output,
+  //     });
+  //   } catch (err) {
+  //     console.error(err);
+  //     toast({
+  //       variant: "error",
+  //       title: "Error",
+  //       description: "Error with cancelling trade order",
+  //     });
+  //   }
+  // }
 
   return (
     <div className="space-y-2">
@@ -396,25 +397,28 @@ const OrderMyTrades = () => {
                   <Button
                     onClick={async (e) => {
                       e.preventDefault();
-                      await cancelOrder(trade);
+                      // await cancelOrder(trade);
                     }}
                     variant="ui"
                     size="small"
+                    disabled
                   >
                     Cancel
                   </Button>
                 )
               }
-              <Button
-                onClick={async (e) => {
-                  e.preventDefault();
-                  await settleOrder(trade);
-                }}
-                variant="ui"
-                size="small"
-              >
-                Close
-              </Button>
+              {
+                (trade.orderType === "LIMIT" && trade.orderStatus === "FILLED") || (trade.orderType === "MARKET") && <Button
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    await settleOrder(trade);
+                  }}
+                  variant="ui"
+                  size="small"
+                >
+                  Close
+                </Button>
+              }
             </div>
           );
         })}

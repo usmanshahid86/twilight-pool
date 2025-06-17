@@ -32,11 +32,26 @@ export const createTwilightStore = () => {
         name: "twilight-",
         storage: createJSONStorage(() => localStorage),
         skipHydration: true,
-        version: 0.2,
+        version: 0.3,
         migrate: (persistedState, version) => {
           if (version === 0) {
             const newState = persistedState as AccountSlices;
-            newState.zk.blockHeight = 0;
+            if (newState.zk) {
+              newState.zk.blockHeight = 0;
+            }
+
+            return newState;
+          }
+          if (version === 0.2) {
+            const newState = persistedState as AccountSlices;
+            if (newState.trade && Array.isArray(newState.trade.trades)) {
+              newState.trade.trades = newState.trade.trades.map((trade) => {
+                return {
+                  ...trade,
+                  entryPrice: 0,
+                };
+              });
+            }
 
             return newState;
           }
@@ -96,7 +111,7 @@ export const createSessionStore = () => {
         name: "twilight-session-",
         storage: createJSONStorage(() => sessionStorage),
         skipHydration: true,
-        // note: merge only triggers when there is saved data
+        version: 0.1,
         merge: (persistedState, currentState) => {
           const mergedData = deepMerge(
             {
@@ -109,9 +124,27 @@ export const createSessionStore = () => {
               privateKey: "",
               price: currentState.price,
             },
-            persistedState as AccountSlices
+            persistedState as SessionSlices
           );
           return mergedData;
+        },
+        migrate: (persistedState, version) => {
+          if (version === 0) {
+            const newState = persistedState as SessionSlices;
+
+            if (newState.trade && Array.isArray(newState.trade.trades)) {
+              newState.trade.trades = newState.trade.trades.map((trade) => {
+                return {
+                  ...trade,
+                  entryPrice: 0,
+                };
+              });
+            }
+
+            return newState;
+          }
+
+          return persistedState as SessionSlices;
         },
       }
     )

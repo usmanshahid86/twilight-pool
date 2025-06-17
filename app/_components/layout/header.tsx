@@ -1,3 +1,5 @@
+"use client";
+
 import Logo from "@/components/logo";
 import { Separator } from "@/components/seperator";
 import Link from "next/link";
@@ -9,6 +11,7 @@ import Settings from "./settings.client";
 import SubaccountSelect from "./subaccount/subaccount-select.client";
 import MobileNav from "./mobile-navigation.client";
 import { usePathname } from 'next/navigation';
+import cn from '@/lib/cn';
 
 const marketSubLinks = [
   {
@@ -52,6 +55,7 @@ const SetupGuideLinks = [
 ];
 
 const Header = () => {
+  const pathname = usePathname();
 
   return (
     <nav className="border-b">
@@ -66,7 +70,7 @@ const Header = () => {
                 {
                   marketSubLinks.map((link) => (
                     <Link
-                      className="flex dark:text-gray-400 dark:hover:text-primary"
+                      className={cn("flex dark:text-gray-400 dark:hover:text-primary", pathname === link.href && "text-primary dark:text-primary underline")}
                       href={link.href} key={link.href}>
                       {link.title}
                     </Link>
@@ -94,6 +98,13 @@ const Header = () => {
                   target="_blank"
                 >
                   Specs <ArrowUpRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="https://docs.twilight.test/#introduction"
+                  className="flex dark:text-gray-400 dark:hover:text-primary"
+                  target="_blank"
+                >
+                  Developer Docs<ArrowUpRight className="h-4 w-4" />
                 </Link>
               </div>
             </div>

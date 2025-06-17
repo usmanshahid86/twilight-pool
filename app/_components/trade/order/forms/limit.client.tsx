@@ -129,7 +129,7 @@ const OrderLimitForm = () => {
               return;
             }
 
-            txResult = !!result.tx_hash && result.order_status === "PENDING";
+            txResult = !!result.tx_hash;
           });
 
           return txResult;
@@ -167,6 +167,7 @@ const OrderLimitForm = () => {
         uuid: orderData.order_id,
         value: btcAmountInSats,
         output: orderData.output,
+        entryPrice: orderPrice,
       });
 
       addTradeHistory({
@@ -179,6 +180,7 @@ const OrderLimitForm = () => {
         value: btcAmountInSats,
         output: orderData.output,
         date: new Date(),
+        entryPrice: orderPrice,
       });
 
       console.log("success limit order");

@@ -17,6 +17,7 @@ export const TradeOrderSchema = z.object({
   output: z.string().optional(),
   tx_hash: z.string(),
   positionType: z.string(),
+  entryPrice: z.number(),
 });
 
 export const LendOrderSchema = z.object({

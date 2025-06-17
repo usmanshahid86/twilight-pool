@@ -7,7 +7,7 @@ type Props = {
 };
 
 export function OrderbookLayouts({ layouts }: Props) {
-  const { bids, asks, isLoading, error } = useOrderbookData();
+  const { bids, asks, error } = useOrderbookData();
 
   if (error) {
     console.error("Orderbook error:", error);

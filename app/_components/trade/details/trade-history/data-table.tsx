@@ -1,6 +1,8 @@
 "use client";
 
 import cn from "@/lib/cn";
+import { useUserTrades } from '@/lib/hooks/useUserTrades';
+import { TradeOrder } from '@/lib/types';
 import {
   ColumnDef,
   SortingState,
@@ -24,8 +26,30 @@ export function TradeHistoryDataTable<TData, TValue>({
     { id: "date", desc: true },
   ]);
 
+
+  const zkTrades = data as TradeOrder[];
+
+  const {
+    data: userTrades,
+  } = useUserTrades(zkTrades.map((item) => item.accountAddress))
+
+  const userData = zkTrades.map((item) => {
+    const address = item.accountAddress
+    const userCurrentTrades = userTrades?.[address];
+    if (!userCurrentTrades) return item;
+
+    const userTrade = userCurrentTrades.find((trade) => trade.account_id === item.accountAddress);
+
+    const orderStatus = userTrade?.order_status || item.orderStatus;
+
+    return {
+      ...item,
+      orderStatus
+    }
+
+  })
   const table = useReactTable({
-    data,
+    data: userData as TData[],
     columns,
     getCoreRowModel: getCoreRowModel(),
     initialState: {
@@ -52,9 +76,9 @@ export function TradeHistoryDataTable<TData, TValue>({
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                   </th>
                 );
               })}
