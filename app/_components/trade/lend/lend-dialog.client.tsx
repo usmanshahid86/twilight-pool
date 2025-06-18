@@ -17,6 +17,8 @@ import {
 } from "@/components/select";
 import { Text } from "@/components/typography";
 import { sendLendOrder } from "@/lib/api/client";
+import { queryTransactionHashByRequestId, queryTransactionHashes } from '@/lib/api/rest';
+import { retry } from '@/lib/helpers';
 import { useToast } from "@/lib/hooks/useToast";
 import { useSessionStore } from "@/lib/providers/session";
 import { useTwilightStore } from "@/lib/providers/store";
@@ -88,7 +90,50 @@ const LendDialog = ({ children }: Props) => {
     const data = await sendLendOrder(msg);
 
     if (data.result && data.result.id_key) {
-      console.log(data);
+      const lendOrderRes = await retry<
+        ReturnType<typeof queryTransactionHashes>,
+        string
+      >(
+        queryTransactionHashByRequestId,
+        9,
+        data.result.id_key,
+        2500,
+        (txHash) => {
+          const found = txHash.result.find(
+            (tx) => tx.order_status === "FILLED"
+          );
+
+          return found ? true : false;
+        }
+      );
+
+      if (!lendOrderRes.success) {
+        console.error("lend order redeem not successful");
+        toast({
+          variant: "error",
+          title: "Unable to submit lend order",
+          description: "An error has occurred, try again later.",
+        });
+        setIsSubmitLoading(false);
+        return;
+      }
+
+      const lendOrderData = lendOrderRes.data.result.find(
+        (tx) => tx.order_status === "FILLED"
+      )
+
+      const tx_hash = lendOrderData?.tx_hash;
+
+      if (!tx_hash) {
+        toast({
+          variant: "error",
+          title: "Unable to submit lend order",
+          description: "An error has occurred, try again later.",
+        });
+        setIsSubmitLoading(false);
+        return;
+      }
+
       toast({
         title: "Success",
         description: "Successfully submitted lend order",
@@ -101,13 +146,14 @@ const LendDialog = ({ children }: Props) => {
         value: depositAmount,
       });
 
+
       addTransactionHistory({
         date: new Date(),
         from: selectedZkAccount.address,
         fromTag: selectedZkAccount.tag,
         to: selectedZkAccount.address,
         toTag: selectedZkAccount.tag,
-        tx_hash: data.result.id_key as string,
+        tx_hash: tx_hash,
         type: "Lend",
         value: depositAmount,
       });

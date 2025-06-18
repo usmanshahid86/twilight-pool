@@ -261,6 +261,28 @@ async function queryTransactionHashes(
   return data;
 }
 
+async function queryTransactionHashByRequestId(requestId: string) {
+  const body = JSON.stringify({
+    jsonrpc: "2.0",
+    method: "transaction_hashes",
+    params: {
+      RequestId: { id: requestId },
+    },
+    id: 1,
+  });
+
+  const { success, data, error } = await wfetch(priceURL)
+    .post({ body })
+    .json<TwilightApiResponse<TransactionHash[]>>();
+
+  if (!success) {
+    console.error(error);
+    return {};
+  }
+
+  return data;
+}
+
 export {
   getBTCDepositAddress,
   getReserveData,
@@ -270,4 +292,5 @@ export {
   getFundingRate,
   getOpenLimitOrders,
   getRecentLimitOrders,
+  queryTransactionHashByRequestId,
 };

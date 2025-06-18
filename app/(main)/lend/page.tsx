@@ -130,10 +130,10 @@ const Page = () => {
 
         const lendOrders = lendOrderRes.data;
 
-        console.log(lendOrders);
         const lendOrderData = lendOrders.result.find(
           (tx) => tx.order_status === "FILLED"
         );
+
         if (!lendOrderData) {
           setIsRedeemLoading(false);
           continue;
