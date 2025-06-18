@@ -2,6 +2,8 @@
 
 import cn from "@/lib/cn";
 import { useUserTrades } from '@/lib/hooks/useUserTrades';
+import { usePriceFeed } from '@/lib/providers/feed';
+import { useSessionStore } from '@/lib/providers/session';
 import { TradeOrder } from '@/lib/types';
 import {
   ColumnDef,
@@ -11,12 +13,29 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
 }
+
+const calculateUpnl = (entryPrice: number, currentPrice: number, positionType: string, positionSize: number) => {
+  if (currentPrice === 0 || entryPrice === 0) {
+    return 0;
+  }
+
+  switch (positionType.toUpperCase()) {
+    case 'LONG':
+      return (positionSize * (currentPrice - entryPrice)) / (entryPrice * currentPrice);
+
+    case 'SHORT':
+      return (positionSize * (entryPrice - currentPrice)) / (entryPrice * currentPrice);
+
+    default:
+      return 0;
+  }
+};
 
 export function TradeHistoryDataTable<TData, TValue>({
   columns,
@@ -26,6 +45,13 @@ export function TradeHistoryDataTable<TData, TValue>({
     { id: "date", desc: true },
   ]);
 
+  // Use both the live price feed and the session store btcPrice as fallback
+  const { feed } = usePriceFeed();
+  const btcPrice = useSessionStore((state) => state.price.btcPrice);
+
+  // Prioritize live feed price over stored price, following the same pattern as other components
+  const liveFeedPrice = feed.length > 1 ? feed[feed.length - 1] : 0;
+  const currentPrice = liveFeedPrice || btcPrice;
 
   const zkTrades = data as TradeOrder[];
 
@@ -33,21 +59,28 @@ export function TradeHistoryDataTable<TData, TValue>({
     data: userTrades,
   } = useUserTrades(zkTrades.map((item) => item.accountAddress))
 
-  const userData = zkTrades.map((item) => {
-    const address = item.accountAddress
-    const userCurrentTrades = userTrades?.[address];
-    if (!userCurrentTrades) return item;
+  const userData = useMemo(() => {
+    return zkTrades.map((item) => {
+      const address = item.accountAddress
+      const userCurrentTrades = userTrades?.[address];
 
-    const userTrade = userCurrentTrades.find((trade) => trade.account_id === item.accountAddress);
+      let orderStatus = item.orderStatus;
+      if (userCurrentTrades) {
+        const userTrade = userCurrentTrades.find((trade) => trade.account_id === item.accountAddress);
 
-    const orderStatus = userTrade?.order_status || item.orderStatus;
+        orderStatus = userTrade?.order_status || item.orderStatus;
+      }
 
-    return {
-      ...item,
-      orderStatus
-    }
+      const unrealizedPnl = calculateUpnl(item.entryPrice, currentPrice, item.positionType, item.value);
+      console.log("unrealizedPnl", unrealizedPnl)
+      return {
+        ...item,
+        orderStatus,
+        unrealizedPnl,
+      }
+    })
+  }, [zkTrades, userTrades, currentPrice]);
 
-  })
   const table = useReactTable({
     data: userData as TData[],
     columns,

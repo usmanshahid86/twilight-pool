@@ -4,7 +4,7 @@ import { convertDate } from "@/app/(main)/wallet/transaction-history/columns";
 import Button from "@/components/button";
 import cn from "@/lib/cn";
 import BTC from "@/lib/twilight/denoms";
-import { ColumnDef, createColumnHelper } from "@tanstack/react-table";
+import { ColumnDef } from "@tanstack/react-table";
 import Big from "big.js";
 import Link from "next/link";
 
@@ -15,22 +15,13 @@ type Trade = {
   positionType: string;
   tx_hash: string;
   date: Date;
+  entryPrice: number;
+  unrealizedPnl?: number;
 };
 
 function capitaliseFirstLetter(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
-// todo: remove or replace with library
-const formatDate = (date: Date) =>
-  `${date.getDate().toString().padStart(2, "0")}:${(date.getMonth() + 1)
-    .toString()
-    .padStart(2, "0")}:${date.getFullYear()} ${date
-      .getHours()
-      .toString()
-      .padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}:${date
-        .getSeconds()
-        .toString()
-        .padStart(2, "0")}`;
 
 export const tradeHistoryColumns: ColumnDef<Trade, any>[] = [
   {
@@ -59,6 +50,25 @@ export const tradeHistoryColumns: ColumnDef<Trade, any>[] = [
   {
     accessorKey: "orderStatus",
     header: "Status",
+  },
+  {
+    accessorKey: "upnl",
+    header: "PNL",
+    cell: (row) => {
+      const trade = row.row.original;
+      if (!trade.unrealizedPnl || trade.orderStatus === "PENDING") return <span className="text-gray-medium">0</span>;
+      const isPositive = trade.unrealizedPnl >= 0;
+
+      return (
+        <span
+          className={cn(
+            isPositive ? "text-green-medium" : "text-red"
+          )}
+        >
+          {isPositive ? '+' : ''}{`${trade.unrealizedPnl}`}
+        </span>
+      );
+    },
   },
   {
     accessorKey: "tx_hash",

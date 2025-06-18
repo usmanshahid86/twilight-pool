@@ -12,7 +12,7 @@ type UsePriceFeedProps = {
 
 const defaultContext: UsePriceFeedProps = {
   feed: [],
-  addPrice: () => {},
+  addPrice: () => { },
 };
 
 const feedContext = createContext<UsePriceFeedProps | undefined>(undefined);
