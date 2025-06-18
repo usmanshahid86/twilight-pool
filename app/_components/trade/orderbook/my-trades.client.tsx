@@ -2,7 +2,7 @@
 import Button from "@/components/button";
 import { Text } from "@/components/typography";
 import { cancelTradeOrder, executeTradeOrder } from "@/lib/api/client";
-import { queryTransactionHashes } from "@/lib/api/rest";
+import { queryTransactionHashByRequestId, queryTransactionHashes } from "@/lib/api/rest";
 import cn from "@/lib/cn";
 import { retry } from "@/lib/helpers";
 import { useToast } from "@/lib/hooks/useToast";
@@ -15,6 +15,7 @@ import { executeTradeLendOrderMsg } from "@/lib/twilight/zkos";
 import { TradeOrder } from "@/lib/types";
 import Big from "big.js";
 import React from "react";
+import dayjs from 'dayjs';
 
 const OrderMyTrades = () => {
   const { toast } = useToast();
@@ -88,6 +89,7 @@ const OrderMyTrades = () => {
       const executeTradeRes = await executeTradeOrder(msg);
 
       console.log("executeTradeRes", executeTradeRes);
+      const requestId = executeTradeRes.result.id_key;
 
       const transactionHashCondition = (
         txHashResult: Awaited<ReturnType<typeof queryTransactionHashes>>
@@ -115,9 +117,9 @@ const OrderMyTrades = () => {
         ReturnType<typeof queryTransactionHashes>,
         string
       >(
-        queryTransactionHashes,
+        queryTransactionHashByRequestId,
         9,
-        tradeOrder.accountAddress,
+        requestId,
         2500,
         transactionHashCondition
       );
@@ -140,6 +142,10 @@ const OrderMyTrades = () => {
       console.log("tx_hashes return", transactionHashRes.data.result);
       // note: we have to make sure chain has settled before requesting balance
       // as input is memo and not yet coin
+
+      const settledTx = transactionHashRes.data.result.find(
+        (tx) => tx.order_status === "SETTLED"
+      )
 
       const getZkAccountBalanceResult = await retry<
         ReturnType<typeof getZkAccountBalance>,
@@ -194,16 +200,18 @@ const OrderMyTrades = () => {
 
       addTradeHistory({
         accountAddress: tradeOrder.accountAddress,
-        date: new Date(),
-        orderStatus: "CLOSED",
+        date: dayjs(settledTx?.datetime).toDate() || new Date(),
+        orderStatus: "SETTLED",
         orderType: tradeOrder.orderType,
         positionType: tradeOrder.positionType,
-        tx_hash: tradeOrder.tx_hash,
+        tx_hash: settledTx?.tx_hash || "",
         uuid: tradeOrder.uuid,
         value: tradeOrder.value,
         output: tradeOrder.output,
         entryPrice: tradeOrder.entryPrice,
       });
+
+      console.log("trade order settled", settledTx?.tx_hash);
     } catch (err) {
       console.error(err);
       toast({

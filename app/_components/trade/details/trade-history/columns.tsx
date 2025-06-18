@@ -65,7 +65,7 @@ export const tradeHistoryColumns: ColumnDef<Trade, any>[] = [
             isPositive ? "text-green-medium" : "text-red"
           )}
         >
-          {isPositive ? '+' : ''}{`${trade.unrealizedPnl}`}
+          {isPositive ? '+' : ''}{`${trade.unrealizedPnl.toFixed(8)}`}
         </span>
       );
     },
