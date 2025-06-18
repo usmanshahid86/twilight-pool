@@ -100,7 +100,7 @@ const Header = () => {
                   Specs <ArrowUpRight className="h-4 w-4" />
                 </Link>
                 <Link
-                  href="https://docs.twilight.test/#introduction"
+                  href="https://docs.twilight.rest/#introduction"
                   className="flex dark:text-gray-400 dark:hover:text-primary"
                   target="_blank"
                 >
