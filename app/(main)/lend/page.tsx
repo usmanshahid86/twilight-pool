@@ -8,7 +8,7 @@ import { Separator } from "@/components/seperator";
 import Skeleton from "@/components/skeleton";
 import { Text } from "@/components/typography";
 import { executeLendOrder } from "@/lib/api/client";
-import { queryTransactionHashes } from "@/lib/api/rest";
+import { queryTransactionHashByRequestId, queryTransactionHashes } from "@/lib/api/rest";
 import { retry } from "@/lib/helpers";
 import useGetTwilightBTCBalance from "@/lib/hooks/useGetTwilightBtcBalance";
 import useRedirectUnconnected from "@/lib/hooks/useRedirectUnconnected";
@@ -155,6 +155,39 @@ const Page = () => {
         const executeLendRes = await executeLendOrder(msg);
         console.log("executeLendRes", executeLendRes);
 
+        const requestId = executeLendRes.result.id_key;
+
+        const requestIdRes = await retry<
+          ReturnType<typeof queryTransactionHashes>,
+          string
+        >(
+          queryTransactionHashByRequestId,
+          9,
+          requestId,
+          2500,
+          (txHash) => {
+            const found = txHash.result.find(
+              (tx) => tx.order_status === "SETTLED"
+            );
+
+            return found ? true : false;
+          }
+        );
+
+        if (!requestIdRes.success) {
+          console.error("lend order redeem not successful");
+          setIsRedeemLoading(false);
+          continue;
+        }
+
+        const requestIdData = requestIdRes.data.result.find(
+          (tx) => tx.order_status === "SETTLED"
+        )
+
+        const tx_hash = requestIdData?.tx_hash;
+
+        console.log("requestIdData", requestIdData);
+
         removeLend(lendOrder);
 
         const selectedZkAccount = zKAccounts.find(
@@ -167,7 +200,7 @@ const Page = () => {
           fromTag: selectedZkAccount?.tag || "",
           to: lendOrder.accountAddress,
           toTag: selectedZkAccount?.tag || "",
-          tx_hash: executeLendRes.transactionHash,
+          tx_hash: tx_hash || "",
           type: "Redeem Lend",
           value: lendOrder.value,
         });
