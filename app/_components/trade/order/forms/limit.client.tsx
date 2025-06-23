@@ -168,19 +168,9 @@ const OrderLimitForm = () => {
         value: btcAmountInSats,
         output: orderData.output,
         entryPrice: orderPrice,
-      });
-
-      addTradeHistory({
-        accountAddress: currentZkAccount.address,
-        orderStatus: orderData.order_status,
-        orderType: orderData.order_type,
-        positionType,
-        tx_hash: orderData.order_status === "PENDING" ? "" : orderData.tx_hash,
-        uuid: orderData.order_id,
-        value: btcAmountInSats,
-        output: orderData.output,
+        leverage: leverage,
         date: new Date(),
-        entryPrice: orderPrice,
+        isOpen: true,
       });
 
       console.log("success limit order");

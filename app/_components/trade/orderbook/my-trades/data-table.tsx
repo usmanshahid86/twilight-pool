@@ -6,6 +6,7 @@ import {
   SortingState,
   flexRender,
   getCoreRowModel,
+  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 import { useState } from "react";
@@ -15,44 +16,47 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
 }
 
-export function MyTradeDataTable<TData, TValue>({
+export function MyTradesDataTable<TData, TValue>({
   columns,
   data,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: "date", desc: false },
-  ]);
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    initialState: {
-      sorting: sorting,
+    onSortingChange: setSorting,
+    getSortedRowModel: getSortedRowModel(),
+    state: {
+      sorting,
     },
   });
 
   return (
-    <div className="w-full px-3">
+    <div className="w-full">
       <table cellSpacing={0} className="relative w-full overflow-auto">
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <tr
-              className="text-xs font-normal text-primary-accent"
+              className="border-b border-primary-accent/10 text-xs font-normal text-primary-accent"
               key={headerGroup.id}
             >
               {headerGroup.headers.map((header, index) => {
                 return (
                   <th
-                    className={cn(index === 0 ? "text-start" : "text-end")}
+                    className={cn(
+                      "py-3 px-2 font-medium",
+                      index === 0 ? "text-start" : "text-end"
+                    )}
                     key={header.id}
                   >
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                   </th>
                 );
               })}
@@ -63,13 +67,15 @@ export function MyTradeDataTable<TData, TValue>({
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
               <tr
-                className="cursor-pointer text-xs hover:bg-theme/20 data-[state=selected]:bg-theme"
+                className="border-b border-primary-accent/5 text-xs transition-colors hover:bg-theme/20"
                 key={row.id}
-                data-state={row.getIsSelected() && "selected"}
               >
                 {row.getVisibleCells().map((cell, index) => (
                   <td
-                    className={cn(index === 0 ? `text-start` : "text-end")}
+                    className={cn(
+                      "py-3 px-2",
+                      index === 0 ? "text-start" : "text-end"
+                    )}
                     key={cell.id}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -79,8 +85,11 @@ export function MyTradeDataTable<TData, TValue>({
             ))
           ) : (
             <tr>
-              <td colSpan={columns.length} className="h-24 text-center">
-                No results.
+              <td
+                colSpan={columns.length}
+                className="h-24 text-center text-primary-accent/50"
+              >
+                No active trades
               </td>
             </tr>
           )}

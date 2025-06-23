@@ -14,7 +14,7 @@ import {
   initialSessionTradeData,
 } from "./session/trade";
 import { createHistorySlice, initialHistorySliceState } from "./local/history";
-import { createPriceSlice, initialPriceSliceState } from "./session/price";
+import { createPriceSlice } from "./session/price";
 
 export const createTwilightStore = () => {
   return createStore<

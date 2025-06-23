@@ -4,11 +4,12 @@ import { TradeHistoryDataTable } from "./trade-history/data-table";
 import { tradeHistoryColumns } from "./trade-history/columns";
 import { useSessionStore } from "@/lib/providers/session";
 import OrderMyTrades from "../orderbook/my-trades.client";
+import { useTwilightStore } from '@/lib/providers/store';
 
 const DetailsPanel = () => {
-  const [currentTab, setCurrentTab] = useState<"history" | "trades">("history");
+  const [currentTab, setCurrentTab] = useState<"history" | "trades">("trades");
 
-  const trade = useSessionStore((state) => state.trade.trades);
+  const trade = useTwilightStore((state) => state.trade.trades);
 
   function RenderTabs() {
     switch (currentTab) {
@@ -24,17 +25,10 @@ const DetailsPanel = () => {
   }
 
   return (
-    <div className="flex h-full w-full flex-col space-y-2 overflow-auto py-2">
-      <div className="flex w-full items-center border-b pl-3">
+    <div className="flex h-full w-full flex-col overflow-auto">
+      <div className="sticky top-0 z-10 flex w-full items-center border-b bg-background pl-3 py-2">
         <Tabs defaultValue={currentTab}>
           <TabsList className="flex w-full border-b-0" variant="underline">
-            <TabsTrigger
-              onClick={() => setCurrentTab("history")}
-              value={"history"}
-              variant="underline"
-            >
-              Trade History
-            </TabsTrigger>
             <TabsTrigger
               onClick={() => setCurrentTab("trades")}
               value={"trades"}
@@ -42,10 +36,19 @@ const DetailsPanel = () => {
             >
               My Trades
             </TabsTrigger>
+            <TabsTrigger
+              onClick={() => setCurrentTab("history")}
+              value={"history"}
+              variant="underline"
+            >
+              Trade History
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
-      <RenderTabs />
+      <div className="flex-1 px-2 pb-2">
+        <RenderTabs />
+      </div>
     </div>
   );
 };

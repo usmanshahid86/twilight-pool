@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useCallback, useContext, useMemo, useRef } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 
 type PriceFeedProviderProps = {
   children: React.ReactNode;
@@ -24,22 +24,27 @@ export const PriceFeedProvider: React.FC<PriceFeedProviderProps> = (props) => {
 };
 
 const PriceFeed: React.FC<PriceFeedProviderProps> = ({ children }) => {
-  const feed = useRef<number[]>([]);
+  const [feed, setFeed] = useState<number[]>([]);
 
   const addPrice = useCallback<(price: number) => void>(
     (price) => {
-      feed.current.push(price);
+      setFeed((currentFeed) => {
+        const newFeed = [...currentFeed, price];
 
-      if (feed.current.length > 2) {
-        feed.current.shift();
-      }
+        // Keep only the last 2 prices
+        if (newFeed.length > 2) {
+          newFeed.shift();
+        }
+
+        return newFeed;
+      });
     },
-    [feed.current.length]
+    []
   );
 
   const value = useMemo(() => {
     return {
-      feed: feed.current,
+      feed,
       addPrice,
     };
   }, [feed, addPrice]);

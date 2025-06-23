@@ -1,7 +1,6 @@
 "use client";
 
 import cn from "@/lib/cn";
-import { useUserTrades } from '@/lib/hooks/useUserTrades';
 import { usePriceFeed } from '@/lib/providers/feed';
 import { useSessionStore } from '@/lib/providers/session';
 import { TradeOrder } from '@/lib/types';
@@ -45,44 +44,8 @@ export function TradeHistoryDataTable<TData, TValue>({
     { id: "date", desc: true },
   ]);
 
-  // Use both the live price feed and the session store btcPrice as fallback
-  const { feed } = usePriceFeed();
-  const btcPrice = useSessionStore((state) => state.price.btcPrice);
-
-  // Prioritize live feed price over stored price, following the same pattern as other components
-  const liveFeedPrice = feed.length > 1 ? feed[feed.length - 1] : 0;
-  const currentPrice = liveFeedPrice || btcPrice;
-
-  const zkTrades = data as TradeOrder[];
-
-  const {
-    data: userTrades,
-  } = useUserTrades(zkTrades.map((item) => item.accountAddress))
-
-  const userData = useMemo(() => {
-    return zkTrades.map((item) => {
-      const address = item.accountAddress
-      const userCurrentTrades = userTrades?.[address];
-
-      let orderStatus = item.orderStatus;
-      if (userCurrentTrades) {
-        const userTrade = userCurrentTrades.find((trade) => trade.account_id === item.accountAddress);
-
-        orderStatus = userTrade?.order_status || item.orderStatus;
-      }
-
-      const unrealizedPnl = calculateUpnl(item.entryPrice, currentPrice, item.positionType, item.value);
-      console.log("unrealizedPnl", unrealizedPnl)
-      return {
-        ...item,
-        orderStatus,
-        unrealizedPnl,
-      }
-    })
-  }, [zkTrades, userTrades, currentPrice]);
-
   const table = useReactTable({
-    data: userData as TData[],
+    data: data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     initialState: {

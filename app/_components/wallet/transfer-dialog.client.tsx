@@ -211,6 +211,7 @@ const TransferDialog = ({
           scalar: newTradingAccount.scalar,
           isOnChain: true,
           value: transferAmount,
+          type: "Coin",
         });
 
         addTransactionHistory({
@@ -440,6 +441,7 @@ const TransferDialog = ({
               scalar: updatedTransientScalar,
               tag: "transient",
               value: transferAmount,
+              type: "Coin",
             },
           });
 
@@ -474,6 +476,7 @@ const TransferDialog = ({
               scalar: updatedTransientScalar,
               isOnChain: true,
               value: transferAmount,
+              type: "Coin",
             },
             initZkAccountAddress: transientZkAccount.address,
           });

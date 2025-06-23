@@ -3,6 +3,7 @@ import ExchangeResource from "@/components/exchange-resource";
 import { Input, NumberInput } from "@/components/input";
 import { Text } from "@/components/typography";
 import { sendTradeOrder } from "@/lib/api/client";
+import { queryTradeOrder } from '@/lib/api/relayer';
 import { TransactionHash, queryTransactionHashes } from "@/lib/api/rest";
 import cn from "@/lib/cn";
 import { useToast } from "@/lib/hooks/useToast";
@@ -13,6 +14,7 @@ import { useTwilightStore } from "@/lib/providers/store";
 import { useTwilight } from "@/lib/providers/twilight";
 import BTC from "@/lib/twilight/denoms";
 import { createZkOrder } from "@/lib/twilight/zk";
+import { createQueryTradeOrderMsg } from '@/lib/twilight/zkos';
 import { WalletStatus } from "@cosmos-kit/core";
 import { useWallet } from "@cosmos-kit/react-lite";
 import Big from "big.js";
@@ -43,7 +45,7 @@ const OrderMarketForm = () => {
   );
 
   const addTrade = useTwilightStore((state) => state.trade.addTrade);
-  const addTradeHistory = useSessionStore((state) => state.trade.addTrade);
+  const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount)
 
   const currentZkAccount = zKAccounts[selectedZkAccount];
 
@@ -105,17 +107,6 @@ const OrderMarketForm = () => {
           title: "Submitting order",
           description: "Order is being submitted...",
         });
-
-        // note: currently broken
-        // const queryTradeOrderMsg = await createQueryTradeOrderMsg({
-        //   address: currentZkAccount.address,
-        //   orderStatus: "PENDING",
-        //   signature: privateKey,
-        // });
-
-        // console.log("queryTradeOrderMsg", queryTradeOrderMsg);
-        // const queryTradeOrderRes = await queryTradeOrder(queryTradeOrderMsg);
-        // console.log("queryTradeOrderRes", queryTradeOrderRes);
 
         let retries = 0;
         let orderData: TransactionHash | undefined = undefined;
@@ -182,20 +173,26 @@ const OrderMarketForm = () => {
           value: satsValue,
           output: orderData.output,
           entryPrice: currentPrice,
+          leverage: leverage,
+          isOpen: true,
+          date: new Date(),
         });
 
-        addTradeHistory({
-          accountAddress: currentZkAccount.address,
-          orderStatus: orderData.order_status,
-          orderType: orderData.order_type,
-          positionType,
-          tx_hash: orderData.tx_hash,
-          uuid: orderData.order_id,
-          value: satsValue,
-          output: orderData.output,
-          date: new Date(),
-          entryPrice: currentPrice,
+        updateZkAccount(currentZkAccount.address, {
+          ...currentZkAccount,
+          type: "Memo",
         });
+
+        const queryTradeOrderMsg = await createQueryTradeOrderMsg({
+          address: currentZkAccount.address,
+          orderStatus: orderData.order_status,
+          signature: privateKey,
+        });
+
+        console.log("queryTradeOrderMsg", queryTradeOrderMsg);
+        const queryTradeOrderRes = await queryTradeOrder(queryTradeOrderMsg);
+        console.log("queryTradeOrderRes", queryTradeOrderRes);
+
       } else {
         toast({
           variant: "error",

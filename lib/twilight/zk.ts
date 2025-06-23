@@ -43,6 +43,7 @@ async function createZkAccount({
     address: zkAccountAddress,
     scalar,
     tag,
+    type: "Coin",
   };
 }
 
@@ -81,6 +82,7 @@ async function createZkAccountWithBalance({
       tag,
       isOnChain: false,
       value: balance,
+      type: "Coin",
     },
     accountHex: newTradingAccountHex,
   };

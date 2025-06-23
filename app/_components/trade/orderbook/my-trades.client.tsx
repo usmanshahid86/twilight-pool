@@ -1,36 +1,33 @@
 "use client";
-import Button from "@/components/button";
-import { Text } from "@/components/typography";
 import { cancelTradeOrder, executeTradeOrder } from "@/lib/api/client";
 import { queryTransactionHashByRequestId, queryTransactionHashes } from "@/lib/api/rest";
-import cn from "@/lib/cn";
 import { retry } from "@/lib/helpers";
 import { useToast } from "@/lib/hooks/useToast";
-import { useOrderbookData } from "@/lib/hooks/useOrderbookData";
 import { useSessionStore } from "@/lib/providers/session";
 import { useTwilightStore } from "@/lib/providers/store";
-import BTC from "@/lib/twilight/denoms";
+import { usePriceFeed } from "@/lib/providers/feed";
 import { getZkAccountBalance } from "@/lib/twilight/zk";
 import { executeTradeLendOrderMsg } from "@/lib/twilight/zkos";
 import { TradeOrder } from "@/lib/types";
+import BTC from "@/lib/twilight/denoms";
 import Big from "big.js";
-import React from "react";
-import dayjs from 'dayjs';
+import React, { useMemo } from "react";
+import { MyTradesDataTable } from "./my-trades/data-table";
+import { myTradesColumns, calculateUpnl } from "./my-trades/columns";
 
 const OrderMyTrades = () => {
   const { toast } = useToast();
-
-  // Access orderbook data
-  const { data: orderbookData } = useOrderbookData();
+  const { feed } = usePriceFeed();
 
   const privateKey = useSessionStore((state) => state.privateKey);
-  const addTradeHistory = useSessionStore((state) => state.trade.addTrade);
 
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
+  const updateTrade = useTwilightStore((state) => state.trade.updateTrade);
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount);
   const tradeOrders = useTwilightStore((state) => state.trade.trades);
-  const removeTrade = useTwilightStore((state) => state.trade.removeTrade);
 
+  // Get the current price from the feed
+  const currentPrice = feed.length > 1 ? feed[feed.length - 1] : 0;
 
   async function settleOrder(tradeOrder: TradeOrder) {
     if (!tradeOrder.output) {
@@ -53,7 +50,6 @@ const OrderMyTrades = () => {
         description: "Error account associated with this order is missing",
       });
 
-      removeTrade(tradeOrder);
       return;
     }
 
@@ -134,11 +130,6 @@ const OrderMyTrades = () => {
         return;
       }
 
-      toast({
-        title: "Success",
-        description: `Successfully closed ${tradeOrder.orderType.toLowerCase()} order`,
-      });
-
       console.log("tx_hashes return", transactionHashRes.data.result);
       // note: we have to make sure chain has settled before requesting balance
       // as input is memo and not yet coin
@@ -194,21 +185,19 @@ const OrderMyTrades = () => {
       updateZkAccount(tradeOrder.accountAddress, {
         ...currentAccount,
         value: newAccountBalance,
+        type: "Coin",
       });
 
-      removeTrade(tradeOrder);
-
-      addTradeHistory({
-        accountAddress: tradeOrder.accountAddress,
-        date: dayjs(settledTx?.datetime).toDate() || new Date(),
+      updateTrade({
+        ...tradeOrder,
         orderStatus: "SETTLED",
-        orderType: tradeOrder.orderType,
-        positionType: tradeOrder.positionType,
-        tx_hash: settledTx?.tx_hash || "",
-        uuid: tradeOrder.uuid,
-        value: tradeOrder.value,
-        output: tradeOrder.output,
-        entryPrice: tradeOrder.entryPrice,
+        tx_hash: settledTx?.tx_hash || tradeOrder.tx_hash,
+        isOpen: false,
+      })
+
+      toast({
+        title: "Success",
+        description: `Successfully closed ${tradeOrder.orderType.toLowerCase()} order`,
       });
 
       console.log("trade order settled", settledTx?.tx_hash);
@@ -368,69 +357,38 @@ const OrderMyTrades = () => {
   //   }
   // }
 
+  const tableData = useMemo(() => {
+    return tradeOrders.filter((trade) => trade.isOpen).map((trade) => {
+      // Calculate unrealized PnL
+      let calculatedUnrealizedPnl: number | undefined;
+
+      if (trade.unrealizedPnl !== undefined) {
+        // Use existing unrealized PnL if available
+        calculatedUnrealizedPnl = trade.unrealizedPnl;
+      } else if (currentPrice && trade.entryPrice) {
+        // Calculate PnL if current price and entry price are available
+        const positionSize = trade.value * trade.entryPrice * trade.leverage;
+        calculatedUnrealizedPnl = calculateUpnl(trade.entryPrice, currentPrice, trade.positionType, positionSize);
+      }
+
+      return {
+        ...trade,
+        currentPrice: currentPrice,
+        calculatedUnrealizedPnl: calculatedUnrealizedPnl,
+        onSettle: settleOrder,
+        onCancel: () => {
+          // await cancelOrder(trade);
+        },
+      };
+    });
+  }, [tradeOrders, currentPrice]);
+
   return (
-    <div className="space-y-2">
-      <div className="flex space-x-2 px-2">
-        <Text className="select-none text-xs text-primary-accent">
-          Contracts
-        </Text>
-        <Text className="select-none text-xs text-primary-accent">Qty</Text>
-        <Text className="select-none text-xs text-primary-accent">Type</Text>
-      </div>
-      <div>
-        {tradeOrders.map((trade) => {
-          const quantity = new BTC("sats", Big(trade.value))
-            .convert("BTC")
-            .toString();
-          return (
-            <div
-              className="flex items-center space-x-2 px-2 font-ui text-xs"
-              key={trade.accountAddress}
-            >
-              <div className="flex space-x-2">
-                <Text>BTCUSD</Text>
-                <Text
-                  className={cn(
-                    trade.positionType === "LONG"
-                      ? "text-green-medium"
-                      : "text-red"
-                  )}
-                >
-                  {quantity}
-                </Text>
-                <Text>{trade.orderType}</Text>
-              </div>
-              {
-                trade.orderType === "LIMIT" && (
-                  <Button
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      // await cancelOrder(trade);
-                    }}
-                    variant="ui"
-                    size="small"
-                    disabled
-                  >
-                    Cancel
-                  </Button>
-                )
-              }
-              {
-                (trade.orderType === "LIMIT" && trade.orderStatus === "FILLED") || (trade.orderType === "MARKET") && <Button
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    await settleOrder(trade);
-                  }}
-                  variant="ui"
-                  size="small"
-                >
-                  Close
-                </Button>
-              }
-            </div>
-          );
-        })}
-      </div>
+    <div className="w-full px-3">
+      <MyTradesDataTable
+        columns={myTradesColumns}
+        data={tableData}
+      />
     </div>
   );
 };

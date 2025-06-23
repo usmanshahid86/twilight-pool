@@ -23,7 +23,7 @@ export const orderbookColumns: ColumnDef<DisplayLimitOrderData>[] = [
     accessorKey: "size",
     header: "Size (USD)",
     accessorFn: (row) => {
-      return new BTC("sats", Big(row.size)).convert("BTC").toFixed(5);
+      return new BTC("sats", Big(row.size)).convert("BTC").toString()
     },
   },
 ];
