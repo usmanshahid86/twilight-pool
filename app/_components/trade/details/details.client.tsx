@@ -1,21 +1,48 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/tabs";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { TradeHistoryDataTable } from "./trade-history/data-table";
 import { tradeHistoryColumns } from "./trade-history/columns";
-import { useSessionStore } from "@/lib/providers/session";
 import OrderMyTrades from "../orderbook/my-trades.client";
 import { useTwilightStore } from '@/lib/providers/store';
+import { usePriceFeed } from "@/lib/providers/feed";
+import { calculateUpnl } from "../orderbook/my-trades/columns";
 
 const DetailsPanel = () => {
   const [currentTab, setCurrentTab] = useState<"history" | "trades">("trades");
 
-  const trade = useTwilightStore((state) => state.trade.trades);
+  const { feed } = usePriceFeed();
+  const tradeOrders = useTwilightStore((state) => state.trade.trades);
+
+  // Get the current price from the feed
+  const currentPrice = feed.length > 1 ? feed[feed.length - 1] : 0;
+
+  const tradeHistoryData = useMemo(() => {
+    return tradeOrders
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .map((trade) => {
+        let calculatedUnrealizedPnl: number | undefined;
+
+        if (trade.orderStatus === "SETTLED") {
+          calculatedUnrealizedPnl = trade.realizedPnl || trade.unrealizedPnl;
+        }
+        else {
+          const positionSize = trade.positionSize;
+          calculatedUnrealizedPnl = calculateUpnl(trade.entryPrice, currentPrice || trade.entryPrice, trade.positionType, positionSize);
+        }
+
+        return {
+          ...trade,
+          currentPrice: trade.settlementPrice || currentPrice,
+          unrealizedPnl: calculatedUnrealizedPnl || trade.realizedPnl || trade.unrealizedPnl,
+        };
+      });
+  }, [tradeOrders, currentPrice]);
 
   function RenderTabs() {
     switch (currentTab) {
       case "history": {
         return (
-          <TradeHistoryDataTable columns={tradeHistoryColumns} data={trade} />
+          <TradeHistoryDataTable columns={tradeHistoryColumns} data={tradeHistoryData} />
         );
       }
       case "trades": {

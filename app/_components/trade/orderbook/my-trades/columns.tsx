@@ -37,38 +37,140 @@ export const calculateUpnl = (entryPrice: number, currentPrice: number, position
 
 export const myTradesColumns: ColumnDef<MyTradeOrder, any>[] = [
   {
-    accessorKey: "pair",
-    header: "Pair",
-    cell: () => (
-      <span className="font-medium">BTCUSD</span>
-    ),
-  },
-  {
-    accessorKey: "value",
-    header: "Quantity",
+    accessorKey: "positionSize",
+    header: "Position Size (USD)",
     cell: (row) => {
       const trade = row.row.original;
-      const quantity = new BTC("sats", Big(trade.value))
+      const positionSize = new BTC("sats", Big(trade.positionSize))
         .convert("BTC")
-        .toString();
+        .toFixed(2)
+
+      return (
+        <span className="font-medium">
+          ${positionSize}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: "positionValue",
+    header: "Position Value (BTC)",
+    cell: (row) => {
+      const trade = row.row.original;
+      const markPrice = trade.entryPrice;
+      const positionValue = new BTC("sats", Big(Math.abs(trade.positionSize / markPrice)))
+        .convert("BTC")
+
+      return (
+        <span className="font-medium">
+          {BTC.format(positionValue, "BTC")} BTC
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: "entryPrice",
+    header: "Entry Price (USD)",
+    cell: (row) => {
+      const trade = row.row.original;
+      return (
+        <span className="font-medium">
+          ${trade.entryPrice.toFixed(2)}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: "markPrice",
+    header: "Mark Price (USD)",
+    cell: (row) => {
+      const trade = row.row.original;
+      const markPrice = trade.currentPrice || trade.entryPrice;
+
+      return (
+        <span className="font-medium">
+          ${markPrice.toFixed(2)}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: "calculatedUnrealizedPnl",
+    header: "uPnL",
+    cell: (row) => {
+      const trade = row.row.original;
+
+      const upnl = trade.calculatedUnrealizedPnl
+
+      if (upnl === undefined || upnl === null) {
+        return <span className="text-xs text-gray-500">—</span>;
+      }
+
+      const isPositive = upnl > 0;
+      const isNegative = upnl < 0;
+
+      const displayupnl = BTC.format(new BTC("sats", Big(upnl)).convert("BTC"), "BTC");
 
       return (
         <span
           className={cn(
-            "font-medium",
-            trade.positionType === "LONG"
-              ? "text-green-medium"
-              : "text-red"
+            "text-xs font-medium",
+            isPositive && "text-green-medium",
+            isNegative && "text-red",
+            !isPositive && !isNegative && "text-gray-500"
           )}
         >
-          {quantity} BTC
+          {isPositive ? "+" : ""}{displayupnl} BTC
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: "liquidationPrice",
+    header: "Liq. Price (USD)",
+    cell: (row) => {
+      const trade = row.row.original;
+      return (
+        <span className="font-medium">
+          ${trade.liquidationPrice.toFixed(2)}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: "availableMargin",
+    header: "A. Margin (BTC)",
+    cell: (row) => {
+      const trade = row.row.original;
+      const availableMargin = new BTC("sats", Big(trade.availableMargin))
+        .convert("BTC")
+
+      return (
+        <span className="font-medium">
+          {BTC.format(availableMargin, "BTC")} BTC
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: "funding",
+    header: "Funding (BTC)",
+    cell: (row) => {
+      const trade = row.row.original;
+      const funding = trade.initialMargin - trade.availableMargin;
+      const fundingBTC = new BTC("sats", Big(funding))
+        .convert("BTC")
+
+      return (
+        <span className="font-medium">
+          {BTC.format(fundingBTC, "BTC")} BTC
         </span>
       );
     },
   },
   {
     accessorKey: "positionType",
-    header: "Side",
+    header: "Type",
     cell: (row) => {
       const positionType = row.getValue() as string;
       return (
@@ -86,69 +188,8 @@ export const myTradesColumns: ColumnDef<MyTradeOrder, any>[] = [
     },
   },
   {
-    accessorKey: "orderType",
-    header: "Type",
-    cell: (row) => (
-      <span className="text-xs font-medium">
-        {row.getValue() as string}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "orderStatus",
-    header: "Status",
-    cell: (row) => {
-      const status = row.getValue() as string;
-      return (
-        <span
-          className={cn(
-            "px-2 py-1 rounded text-xs font-medium",
-            status === "FILLED"
-              ? "bg-green-medium/10 text-green-medium"
-              : status === "PENDING"
-                ? "bg-yellow-500/10 text-yellow-500"
-                : "bg-gray-500/10 text-gray-500"
-          )}
-        >
-          {capitaliseFirstLetter(status)}
-        </span>
-      );
-    },
-  },
-  {
-    accessorKey: "calculatedUnrealizedPnl",
-    header: "Unrealized PnL (BTC)",
-    cell: (row) => {
-      const trade = row.row.original;
-
-      const upnl = trade.calculatedUnrealizedPnl ?? trade.unrealizedPnl;
-
-      if (upnl === undefined || upnl === null) {
-        return <span className="text-xs text-gray-500">—</span>;
-      }
-
-      const isPositive = upnl > 0;
-      const isNegative = upnl < 0;
-
-      const displayupnl = new BTC("sats", Big(upnl)).convert("BTC").toFixed(8);
-
-      return (
-        <span
-          className={cn(
-            "text-xs font-medium",
-            isPositive && "text-green-medium",
-            isNegative && "text-red",
-            !isPositive && !isNegative && "text-gray-500"
-          )}
-        >
-          {isPositive ? "+" : ""}{displayupnl} BTC
-        </span>
-      );
-    },
-  },
-  {
     accessorKey: "actions",
-    header: "Actions",
+    header: "Action",
     cell: (row) => {
       const trade = row.row.original;
 

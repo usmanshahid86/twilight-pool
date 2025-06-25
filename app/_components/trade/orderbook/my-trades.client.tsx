@@ -7,13 +7,15 @@ import { useSessionStore } from "@/lib/providers/session";
 import { useTwilightStore } from "@/lib/providers/store";
 import { usePriceFeed } from "@/lib/providers/feed";
 import { getZkAccountBalance } from "@/lib/twilight/zk";
-import { executeTradeLendOrderMsg } from "@/lib/twilight/zkos";
+import { createQueryTradeOrderMsg, executeTradeLendOrderMsg } from "@/lib/twilight/zkos";
 import { TradeOrder } from "@/lib/types";
 import BTC from "@/lib/twilight/denoms";
 import Big from "big.js";
 import React, { useMemo } from "react";
 import { MyTradesDataTable } from "./my-trades/data-table";
 import { myTradesColumns, calculateUpnl } from "./my-trades/columns";
+import { queryTradeOrder } from '@/lib/api/relayer';
+import dayjs from 'dayjs';
 
 const OrderMyTrades = () => {
   const { toast } = useToast();
@@ -188,10 +190,39 @@ const OrderMyTrades = () => {
         type: "Coin",
       });
 
+      const queryTradeOrderMsg = await createQueryTradeOrderMsg({
+        address: tradeOrder.accountAddress,
+        orderStatus: "SETTLED",
+        signature: privateKey,
+      });
+
+      console.log("queryTradeOrderMsg", queryTradeOrderMsg);
+
+      const queryTradeOrderRes = await queryTradeOrder(queryTradeOrderMsg);
+
+      if (!queryTradeOrderRes) {
+        throw new Error("Failed to query trade order");
+      }
+
+      const traderOrderInfo = queryTradeOrderRes.result;
+
+      console.log("traderOrderInfo", traderOrderInfo);
+
       updateTrade({
         ...tradeOrder,
         orderStatus: "SETTLED",
         tx_hash: settledTx?.tx_hash || tradeOrder.tx_hash,
+        realizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
+        unrealizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
+        settlementPrice: new Big(traderOrderInfo.settlement_price).toNumber(),
+        positionSize: new Big(traderOrderInfo.positionsize).toNumber(),
+        entryNonce: traderOrderInfo.entry_nonce,
+        entrySequence: traderOrderInfo.entry_sequence,
+        executionPrice: new Big(traderOrderInfo.execution_price).toNumber(),
+        initialMargin: new Big(traderOrderInfo.initial_margin).toNumber(),
+        liquidationPrice: new Big(traderOrderInfo.liquidation_price).toNumber(),
+        exit_nonce: traderOrderInfo.exit_nonce,
+        date: dayjs(traderOrderInfo.timestamp).toDate(),
         isOpen: false,
       })
 
@@ -362,12 +393,9 @@ const OrderMyTrades = () => {
       // Calculate unrealized PnL
       let calculatedUnrealizedPnl: number | undefined;
 
-      if (trade.unrealizedPnl !== undefined) {
-        // Use existing unrealized PnL if available
-        calculatedUnrealizedPnl = trade.unrealizedPnl;
-      } else if (currentPrice && trade.entryPrice) {
+      if (currentPrice && trade.entryPrice) {
         // Calculate PnL if current price and entry price are available
-        const positionSize = trade.value * trade.entryPrice * trade.leverage;
+        const positionSize = trade.positionSize
         calculatedUnrealizedPnl = calculateUpnl(trade.entryPrice, currentPrice, trade.positionType, positionSize);
       }
 

@@ -1,9 +1,6 @@
 "use client";
 
 import cn from "@/lib/cn";
-import { usePriceFeed } from '@/lib/providers/feed';
-import { useSessionStore } from '@/lib/providers/session';
-import { TradeOrder } from '@/lib/types';
 import {
   ColumnDef,
   SortingState,
@@ -12,29 +9,12 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
 }
-
-const calculateUpnl = (entryPrice: number, currentPrice: number, positionType: string, positionSize: number) => {
-  if (currentPrice === 0 || entryPrice === 0) {
-    return 0;
-  }
-
-  switch (positionType.toUpperCase()) {
-    case 'LONG':
-      return (positionSize * (currentPrice - entryPrice)) / (entryPrice * currentPrice);
-
-    case 'SHORT':
-      return (positionSize * (entryPrice - currentPrice)) / (entryPrice * currentPrice);
-
-    default:
-      return 0;
-  }
-};
 
 export function TradeHistoryDataTable<TData, TValue>({
   columns,

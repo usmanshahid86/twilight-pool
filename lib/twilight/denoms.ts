@@ -54,4 +54,17 @@ export default class BTC {
 
     return this.value.mul(new Big(factor));
   }
+
+  static format(value: Big, unit?: BTCDenoms) {
+    switch (unit) {
+      case "sats":
+        return value.toFixed(0).replace(/\.?0+$/, "");
+      case "mBTC":
+        return value.toFixed(2).replace(/\.?0+$/, "");
+      case "BTC":
+        return value.toFixed(8).replace(/\.?0+$/, "");
+      default:
+        return value.toString();
+    }
+  }
 }

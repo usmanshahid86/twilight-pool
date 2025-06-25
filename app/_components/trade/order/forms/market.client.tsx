@@ -18,6 +18,7 @@ import { createQueryTradeOrderMsg } from '@/lib/twilight/zkos';
 import { WalletStatus } from "@cosmos-kit/core";
 import { useWallet } from "@cosmos-kit/react-lite";
 import Big from "big.js";
+import dayjs from 'dayjs';
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import React, { useRef, useState } from "react";
@@ -163,6 +164,22 @@ const OrderMarketForm = () => {
           ),
         });
 
+        const queryTradeOrderMsg = await createQueryTradeOrderMsg({
+          address: currentZkAccount.address,
+          orderStatus: orderData.order_status,
+          signature: privateKey,
+        });
+
+        console.log("queryTradeOrderMsg", queryTradeOrderMsg);
+
+        const queryTradeOrderRes = await queryTradeOrder(queryTradeOrderMsg);
+
+        if (!queryTradeOrderRes) {
+          throw new Error("Failed to query trade order");
+        }
+
+        const traderOrderInfo = queryTradeOrderRes.result;
+
         addTrade({
           accountAddress: currentZkAccount.address,
           orderStatus: orderData.order_status,
@@ -175,23 +192,25 @@ const OrderMarketForm = () => {
           entryPrice: currentPrice,
           leverage: leverage,
           isOpen: true,
-          date: new Date(),
+          date: dayjs(traderOrderInfo.timestamp).toDate(),
+          availableMargin: new Big(traderOrderInfo.available_margin).toNumber(),
+          bankruptcyPrice: new Big(traderOrderInfo.bankruptcy_price).toNumber(),
+          bankruptcyValue: new Big(traderOrderInfo.bankruptcy_value).toNumber(),
+          entryNonce: traderOrderInfo.entry_nonce,
+          entrySequence: traderOrderInfo.entry_sequence,
+          executionPrice: new Big(traderOrderInfo.execution_price).toNumber(),
+          initialMargin: new Big(traderOrderInfo.initial_margin).toNumber(),
+          liquidationPrice: new Big(traderOrderInfo.liquidation_price).toNumber(),
+          maintenanceMargin: new Big(traderOrderInfo.maintenance_margin).toNumber(),
+          positionSize: new Big(traderOrderInfo.positionsize).toNumber(),
+          settlementPrice: new Big(traderOrderInfo.settlement_price).toNumber(),
+          unrealizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
         });
 
         updateZkAccount(currentZkAccount.address, {
           ...currentZkAccount,
           type: "Memo",
         });
-
-        const queryTradeOrderMsg = await createQueryTradeOrderMsg({
-          address: currentZkAccount.address,
-          orderStatus: orderData.order_status,
-          signature: privateKey,
-        });
-
-        console.log("queryTradeOrderMsg", queryTradeOrderMsg);
-        const queryTradeOrderRes = await queryTradeOrder(queryTradeOrderMsg);
-        console.log("queryTradeOrderRes", queryTradeOrderRes);
 
       } else {
         toast({

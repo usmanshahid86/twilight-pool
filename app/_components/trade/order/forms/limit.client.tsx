@@ -11,6 +11,7 @@ import ExchangeResource from "@/components/exchange-resource";
 import { Input, NumberInput } from "@/components/input";
 import { Text } from "@/components/typography";
 import { sendTradeOrder } from "@/lib/api/client";
+import { queryTradeOrder } from '@/lib/api/relayer';
 import { queryTransactionHashes } from "@/lib/api/rest";
 import cn from "@/lib/cn";
 import { retry } from "@/lib/helpers";
@@ -20,8 +21,10 @@ import { useSessionStore } from "@/lib/providers/session";
 import { useTwilightStore } from "@/lib/providers/store";
 import BTC from "@/lib/twilight/denoms";
 import { createZkOrder } from "@/lib/twilight/zk";
+import { createQueryTradeOrderMsg } from '@/lib/twilight/zkos';
 import { useWallet } from "@cosmos-kit/react-lite";
 import Big from "big.js";
+import dayjs from 'dayjs';
 import { ChevronDown, Loader2 } from "lucide-react";
 import Link from "next/link";
 import React, { SyntheticEvent, useRef, useState } from "react";
@@ -158,6 +161,22 @@ const OrderLimitForm = () => {
 
       console.log("orderData", orderData);
 
+      const queryTradeOrderMsg = await createQueryTradeOrderMsg({
+        address: currentZkAccount.address,
+        orderStatus: orderData.order_status,
+        signature: privateKey,
+      });
+
+      console.log("queryTradeOrderMsg", queryTradeOrderMsg);
+
+      const queryTradeOrderRes = await queryTradeOrder(queryTradeOrderMsg);
+
+      if (!queryTradeOrderRes) {
+        throw new Error("Failed to query trade order");
+      }
+
+      const traderOrderInfo = queryTradeOrderRes.result;
+
       addTrade({
         accountAddress: currentZkAccount.address,
         orderStatus: orderData.order_status,
@@ -169,8 +188,20 @@ const OrderLimitForm = () => {
         output: orderData.output,
         entryPrice: orderPrice,
         leverage: leverage,
-        date: new Date(),
+        date: dayjs(traderOrderInfo.timestamp).toDate(),
         isOpen: true,
+        availableMargin: new Big(traderOrderInfo.available_margin).toNumber(),
+        bankruptcyPrice: new Big(traderOrderInfo.bankruptcy_price).toNumber(),
+        bankruptcyValue: new Big(traderOrderInfo.bankruptcy_value).toNumber(),
+        entryNonce: traderOrderInfo.entry_nonce,
+        entrySequence: traderOrderInfo.entry_sequence,
+        executionPrice: new Big(traderOrderInfo.execution_price).toNumber(),
+        initialMargin: new Big(traderOrderInfo.initial_margin).toNumber(),
+        liquidationPrice: new Big(traderOrderInfo.liquidation_price).toNumber(),
+        maintenanceMargin: new Big(traderOrderInfo.maintenance_margin).toNumber(),
+        positionSize: new Big(traderOrderInfo.positionsize).toNumber(),
+        settlementPrice: new Big(traderOrderInfo.settlement_price).toNumber(),
+        unrealizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
       });
 
       console.log("success limit order");

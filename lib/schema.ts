@@ -24,6 +24,18 @@ export const TradeOrderSchema = z.object({
   isOpen: z.boolean(),
   realizedPnl: z.number().optional(),
   unrealizedPnl: z.number().optional(),
+  availableMargin: z.number(),
+  bankruptcyPrice: z.number(),
+  bankruptcyValue: z.number(),
+  entryNonce: z.number(),
+  entrySequence: z.number(),
+  executionPrice: z.number(),
+  initialMargin: z.number(),
+  liquidationPrice: z.number(),
+  maintenanceMargin: z.number(),
+  positionSize: z.number(),
+  settlementPrice: z.number(),
+  exit_nonce: z.number().optional(),
 });
 
 export const LendOrderSchema = z.object({
