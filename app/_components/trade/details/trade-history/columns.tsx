@@ -152,16 +152,22 @@ export const tradeHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
   {
     accessorKey: "tx_hash",
     header: "Transaction Hash",
-    cell: (row) => (
-      <Button className="justify-end" asChild variant="link">
-        <Link
-          href={`https://explorer.twilight.rest/nyks/tx/${row.getValue()}`}
-          target="_blank"
-        >
-          {(row.getValue() as string).slice(0, 8)}...{(row.getValue() as string).slice(-8)}
-        </Link>
-      </Button>
-    ),
+    cell: (row) => {
+      const txHash = row.getValue() as string;
+
+      if (!txHash) return <span className="text-xs text-gray-500">—</span>;
+
+      return (
+        <Button className="justify-end" asChild variant="link">
+          <Link
+            href={`https://explorer.twilight.rest/nyks/tx/${row.getValue()}`}
+            target="_blank"
+          >
+            {(row.getValue() as string).slice(0, 8)}...{(row.getValue() as string).slice(-8)}
+          </Link>
+        </Button>
+      )
+    },
   },
   {
     accessorKey: "date",
