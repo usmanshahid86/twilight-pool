@@ -69,6 +69,19 @@ export const myTradesColumns: ColumnDef<MyTradeOrder, any>[] = [
     },
   },
   {
+    accessorKey: "leverage",
+    header: "Leverage",
+    cell: (row) => {
+      const trade = row.row.original;
+
+      return (
+        <span className="font-medium">
+          {trade.leverage.toFixed(2)}x
+        </span>
+      );
+    },
+  },
+  {
     accessorKey: "entryPrice",
     header: "Entry Price (USD)",
     cell: (row) => {
@@ -101,8 +114,9 @@ export const myTradesColumns: ColumnDef<MyTradeOrder, any>[] = [
       const trade = row.row.original;
 
       const upnl = trade.calculatedUnrealizedPnl
+      const isPendingLimit = trade.orderType === "LIMIT" && trade.orderStatus === "PENDING";
 
-      if (upnl === undefined || upnl === null) {
+      if (upnl === undefined || upnl === null || isPendingLimit) {
         return <span className="text-xs text-gray-500">—</span>;
       }
 
@@ -130,6 +144,13 @@ export const myTradesColumns: ColumnDef<MyTradeOrder, any>[] = [
     header: "Liq. Price (USD)",
     cell: (row) => {
       const trade = row.row.original;
+
+      const isPendingLimit = trade.orderType === "LIMIT" && trade.orderStatus === "PENDING";
+
+      if (isPendingLimit) {
+        return <span className="text-xs text-gray-500">—</span>;
+      }
+
       return (
         <span className="font-medium">
           ${trade.liquidationPrice.toFixed(2)}
@@ -142,6 +163,13 @@ export const myTradesColumns: ColumnDef<MyTradeOrder, any>[] = [
     header: "A. Margin (BTC)",
     cell: (row) => {
       const trade = row.row.original;
+
+      const isPendingLimit = trade.orderType === "LIMIT" && trade.orderStatus === "PENDING";
+
+      if (isPendingLimit) {
+        return <span className="text-xs text-gray-500">—</span>;
+      }
+
       const availableMargin = new BTC("sats", Big(trade.availableMargin))
         .convert("BTC")
 
@@ -157,6 +185,13 @@ export const myTradesColumns: ColumnDef<MyTradeOrder, any>[] = [
     header: "Funding (BTC)",
     cell: (row) => {
       const trade = row.row.original;
+
+      const isPendingLimit = trade.orderType === "LIMIT" && trade.orderStatus === "PENDING";
+
+      if (isPendingLimit) {
+        return <span className="text-xs text-gray-500">—</span>;
+      }
+
       const funding = trade.initialMargin - trade.availableMargin;
       const fundingBTC = new BTC("sats", Big(funding))
         .convert("BTC")
@@ -203,7 +238,6 @@ export const myTradesColumns: ColumnDef<MyTradeOrder, any>[] = [
               }}
               variant="ui"
               size="small"
-              disabled
             >
               Cancel
             </Button>

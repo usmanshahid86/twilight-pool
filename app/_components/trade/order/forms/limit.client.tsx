@@ -44,9 +44,8 @@ const OrderLimitForm = () => {
 
   const { status } = useWallet();
 
-  const addTradeHistory = useSessionStore((state) => state.trade.addTrade);
   const privateKey = useSessionStore((state) => state.privateKey);
-
+  const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount)
   const addTrade = useTwilightStore((state) => state.trade.addTrade);
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
   const selectedZkAccount = useTwilightStore(
@@ -176,6 +175,7 @@ const OrderLimitForm = () => {
       }
 
       const traderOrderInfo = queryTradeOrderRes.result;
+      console.log("traderOrderInfo", traderOrderInfo);
 
       addTrade({
         accountAddress: currentZkAccount.address,
@@ -205,6 +205,11 @@ const OrderLimitForm = () => {
       });
 
       console.log("success limit order");
+
+      updateZkAccount(currentZkAccount.address, {
+        ...currentZkAccount,
+        type: "Memo",
+      });
 
       toast({
         title: "Success",

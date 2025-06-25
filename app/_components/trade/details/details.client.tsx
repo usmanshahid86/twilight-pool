@@ -6,6 +6,7 @@ import OrderMyTrades from "../orderbook/my-trades.client";
 import { useTwilightStore } from '@/lib/providers/store';
 import { usePriceFeed } from "@/lib/providers/feed";
 import { calculateUpnl } from "../orderbook/my-trades/columns";
+import dayjs from 'dayjs';
 
 const DetailsPanel = () => {
   const [currentTab, setCurrentTab] = useState<"history" | "trades">("trades");
@@ -17,25 +18,26 @@ const DetailsPanel = () => {
   const currentPrice = feed.length > 1 ? feed[feed.length - 1] : 0;
 
   const tradeHistoryData = useMemo(() => {
-    return tradeOrders
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .map((trade) => {
-        let calculatedUnrealizedPnl: number | undefined;
+    return tradeOrders.length > 1
+      ? [...tradeOrders].sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf())
+      : tradeOrders
+        .map((trade) => {
+          let calculatedUnrealizedPnl: number | undefined;
 
-        if (trade.orderStatus === "SETTLED") {
-          calculatedUnrealizedPnl = trade.realizedPnl || trade.unrealizedPnl;
-        }
-        else {
-          const positionSize = trade.positionSize;
-          calculatedUnrealizedPnl = calculateUpnl(trade.entryPrice, currentPrice || trade.entryPrice, trade.positionType, positionSize);
-        }
+          if (trade.orderStatus === "SETTLED") {
+            calculatedUnrealizedPnl = trade.realizedPnl || trade.unrealizedPnl;
+          }
+          else {
+            const positionSize = trade.positionSize;
+            calculatedUnrealizedPnl = calculateUpnl(trade.entryPrice, currentPrice || trade.entryPrice, trade.positionType, positionSize);
+          }
 
-        return {
-          ...trade,
-          currentPrice: trade.settlementPrice || currentPrice,
-          unrealizedPnl: calculatedUnrealizedPnl || trade.realizedPnl || trade.unrealizedPnl,
-        };
-      });
+          return {
+            ...trade,
+            currentPrice: trade.settlementPrice || currentPrice,
+            unrealizedPnl: calculatedUnrealizedPnl || trade.realizedPnl || trade.unrealizedPnl,
+          };
+        });
   }, [tradeOrders, currentPrice]);
 
   function RenderTabs() {

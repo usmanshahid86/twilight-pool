@@ -51,6 +51,19 @@ export const tradeHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
     },
   },
   {
+    accessorKey: "leverage",
+    header: "Leverage",
+    cell: (row) => {
+      const trade = row.row.original;
+
+      return (
+        <span className="font-medium">
+          {trade.leverage.toFixed(2)}x
+        </span>
+      );
+    },
+  },
+  {
     accessorKey: "entryPrice",
     header: "Entry Price (USD)",
     cell: (row) => {

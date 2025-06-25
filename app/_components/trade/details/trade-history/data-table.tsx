@@ -46,7 +46,7 @@ export function TradeHistoryDataTable<TData, TValue>({
               {headerGroup.headers.map((header, index) => {
                 return (
                   <th
-                    className={cn(index === 0 ? "text-start" : "text-end")}
+                    className={cn("font-medium", index === 0 ? "text-start" : "text-end")}
                     key={header.id}
                   >
                     {header.isPlaceholder

@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 import wfetch from "../http";
+import { createCancelTraderOrderMsg } from "../twilight/zkos";
 
 const RELAYER_URL = process.env.NEXT_PUBLIC_RELAYER_ENDPOINT as string;
 const RELAYER_PUBLIC_URL = process.env
@@ -21,6 +22,42 @@ async function queryLendOrder(lendData: string) {
 
   if (!success) {
     console.error(error);
+    return {};
+  }
+
+  return data;
+}
+
+async function cancelTradeOrder({
+  address,
+  uuid,
+  signature,
+}: {
+  address: string;
+  uuid: string;
+  signature: string;
+}) {
+  const msg = await createCancelTraderOrderMsg({
+    address,
+    signature,
+    uuid,
+  });
+
+  const body = JSON.stringify({
+    jsonrpc: "2.0",
+    method: "CancelTraderOrder",
+    params: {
+      data: msg,
+    },
+    id: 1,
+  });
+
+  const { success, data, error } = await wfetch(RELAYER_PUBLIC_URL)
+    .post({ body })
+    .json<Record<string, any>>();
+
+  if (!success) {
+    console.error("cancel trade order error", error);
     return {};
   }
 
@@ -81,4 +118,4 @@ async function queryTradeOrder(msg: string) {
   };
 }
 
-export { queryLendOrder, queryTradeOrder };
+export { queryLendOrder, queryTradeOrder, cancelTradeOrder };

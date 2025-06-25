@@ -197,6 +197,20 @@ async function createTradingTxSingle({
   );
 }
 
+async function createCancelTraderOrderMsg({
+  address,
+  signature,
+  uuid,
+}: {
+  address: string;
+  signature: string;
+  uuid: string;
+}) {
+  const zkos = await import("@kenny019/zkos-wasm");
+  console.log(address, signature, uuid);
+  return zkos.cancelTraderOrderZkOS(address, signature, uuid);
+}
+
 async function createQueryTradeOrderMsg({
   address,
   signature,
@@ -372,4 +386,5 @@ export {
   createShuffleTransactionSingle,
   verifyQuisQuisTransaction,
   verifyAccount,
+  createCancelTraderOrderMsg,
 };
