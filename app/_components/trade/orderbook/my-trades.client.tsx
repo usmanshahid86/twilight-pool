@@ -11,15 +11,17 @@ import { createQueryTradeOrderMsg, executeTradeLendOrderMsg } from "@/lib/twilig
 import { TradeOrder } from "@/lib/types";
 import BTC from "@/lib/twilight/denoms";
 import Big from "big.js";
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { MyTradesDataTable } from "./my-trades/data-table";
 import { myTradesColumns, calculateUpnl } from "./my-trades/columns";
 import { cancelTradeOrder, queryTradeOrder } from '@/lib/api/relayer';
 import dayjs from 'dayjs';
+import cn from "@/lib/cn";
 
 const OrderMyTrades = () => {
   const { toast } = useToast();
-  const { feed } = usePriceFeed();
+  const { getCurrentPrice, subscribe } = usePriceFeed();
+  const [, forceUpdate] = useState({});
 
   const privateKey = useSessionStore((state) => state.privateKey);
 
@@ -28,12 +30,19 @@ const OrderMyTrades = () => {
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount);
   const tradeOrders = useTwilightStore((state) => state.trade.trades);
 
-  // Get the current price from the feed
-  const currentPrice = feed.length > 1 ? feed[feed.length - 1] : 0;
-
   const removeTrade = useTwilightStore((state) => state.trade.removeTrade);
 
-  async function settleOrder(tradeOrder: TradeOrder) {
+  // Subscribe to price updates to refresh price-dependent columns
+  useEffect(() => {
+    const unsubscribe = subscribe(() => {
+      forceUpdate({});
+    });
+
+    return unsubscribe;
+  }, [subscribe]);
+
+  // Memoize the callback functions to prevent unnecessary re-renders
+  const handleSettleOrder = useCallback(async (tradeOrder: TradeOrder) => {
     if (!tradeOrder.output) {
       toast({
         variant: "error",
@@ -242,9 +251,9 @@ const OrderMyTrades = () => {
         description: "Error with settling trade order",
       });
     }
-  }
+  }, [toast, zkAccounts, privateKey, updateZkAccount, updateTrade]);
 
-  async function cancelOrder(tradeOrder: TradeOrder) {
+  const handleCancelOrder = useCallback(async (tradeOrder: TradeOrder) => {
     const currentAccount = zkAccounts.find(
       (account) => account.address === tradeOrder.accountAddress
     );
@@ -389,33 +398,89 @@ const OrderMyTrades = () => {
         description: "Error with cancelling trade order",
       });
     }
-  }
+  }, [toast, zkAccounts, privateKey, removeTrade, updateZkAccount, updateTrade]);
 
-  const tableData = useMemo(() => {
-    return tradeOrders.filter((trade) => trade.isOpen).map((trade) => {
-      // Calculate unrealized PnL
-      let calculatedUnrealizedPnl: number | undefined;
+  // Create enhanced columns with current price access
+  const enhancedColumns = useMemo(() => {
+    return myTradesColumns.map(column => {
+      // For the Mark Price column, we need to pass the current price
+      if ('accessorKey' in column && column.accessorKey === 'markPrice') {
+        return {
+          ...column,
+          cell: (row: any) => {
+            const trade = row.row.original;
+            const currentPrice = getCurrentPrice();
+            const markPrice = currentPrice || trade.entryPrice;
 
-      if (currentPrice && trade.entryPrice) {
-        // Calculate PnL if current price and entry price are available
-        const positionSize = trade.positionSize
-        calculatedUnrealizedPnl = calculateUpnl(trade.entryPrice, currentPrice, trade.positionType, positionSize);
+            return (
+              <span className="font-medium">
+                ${markPrice.toFixed(2)}
+              </span>
+            );
+          },
+        };
       }
 
-      return {
-        ...trade,
-        currentPrice: currentPrice,
-        calculatedUnrealizedPnl: calculatedUnrealizedPnl,
-        onSettle: settleOrder,
-        onCancel: () => cancelOrder(trade),
-      };
+      // For the uPnL column, calculate it here using current price
+      if ('accessorKey' in column && column.accessorKey === 'calculatedUnrealizedPnl') {
+        return {
+          ...column,
+          cell: (row: any) => {
+            const trade = row.row.original;
+            const isPendingLimit = trade.orderType === "LIMIT" && trade.orderStatus === "PENDING";
+
+            if (isPendingLimit) {
+              return <span className="text-xs text-gray-500">—</span>;
+            }
+
+            let upnl: number | undefined;
+            const currentPrice = getCurrentPrice();
+            if (currentPrice && trade.entryPrice) {
+              const positionSize = trade.positionSize;
+              upnl = calculateUpnl(trade.entryPrice, currentPrice, trade.positionType, positionSize);
+            }
+
+            if (upnl === undefined || upnl === null) {
+              return <span className="text-xs text-gray-500">—</span>;
+            }
+
+            const isPositive = upnl > 0;
+            const isNegative = upnl < 0;
+            const displayupnl = BTC.format(new BTC("sats", Big(upnl)).convert("BTC"), "BTC");
+
+            return (
+              <span
+                className={cn(
+                  "text-xs font-medium",
+                  isPositive && "text-green-medium",
+                  isNegative && "text-red",
+                  !isPositive && !isNegative && "text-gray-500"
+                )}
+              >
+                {isPositive ? "+" : ""}{displayupnl} BTC
+              </span>
+            );
+          },
+        };
+      }
+
+      return column;
     });
-  }, [tradeOrders, currentPrice]);
+  }, [getCurrentPrice]);
+
+  // Memoize stable table data that doesn't change with price updates
+  const tableData = useMemo(() => {
+    return tradeOrders.filter((trade) => trade.isOpen).map((trade) => ({
+      ...trade,
+      onSettle: () => handleSettleOrder(trade),
+      onCancel: () => handleCancelOrder(trade),
+    }));
+  }, [tradeOrders, handleSettleOrder, handleCancelOrder]);
 
   return (
     <div className="w-full px-3">
       <MyTradesDataTable
-        columns={myTradesColumns}
+        columns={enhancedColumns}
         data={tableData}
       />
     </div>

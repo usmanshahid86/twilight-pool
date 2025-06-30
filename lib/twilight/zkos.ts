@@ -208,7 +208,7 @@ async function createCancelTraderOrderMsg({
 }) {
   const zkos = await import("@kenny019/zkos-wasm");
   console.log(address, signature, uuid);
-  return zkos.cancelTraderOrderZkOS(address, signature, uuid);
+  return zkos.cancelTraderOrderZkOS(address, signature, JSON.stringify(uuid));
 }
 
 async function createQueryTradeOrderMsg({

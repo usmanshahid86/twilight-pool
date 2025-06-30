@@ -45,7 +45,7 @@ async function cancelTradeOrder({
 
   const body = JSON.stringify({
     jsonrpc: "2.0",
-    method: "CancelTraderOrder",
+    method: "cancel_trader_order",
     params: {
       data: msg,
     },

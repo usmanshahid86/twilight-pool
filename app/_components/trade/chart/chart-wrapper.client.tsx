@@ -81,14 +81,7 @@ const ChartWrapper = ({ candleData }: Props) => {
 
   const seriesRef = useRef<ISeriesApi<"Candlestick">>(null);
 
-  const { reconnect } = useWebSocket({
-    url: process.env.NEXT_PUBLIC_TWILIGHT_PRICE_WS as string,
-    onOpen: onOpen,
-    onMessage: onMessage,
-    onClose: onClose,
-  });
-
-  function onOpen(ws: WebSocket) {
+  const onOpen = useCallback((ws: WebSocket) => {
     ws.send(
       JSON.stringify({
         jsonrpc: "2.0",
@@ -99,9 +92,9 @@ const ChartWrapper = ({ candleData }: Props) => {
         },
       })
     );
-  }
+  }, [timeInterval]);
 
-  function onMessage(message: any) {
+  const onMessage = useCallback((message: any) => {
     try {
       const parsedMessage = JSON.parse(message.data);
 
@@ -146,11 +139,18 @@ const ChartWrapper = ({ candleData }: Props) => {
     } catch (err) {
       console.error(err)
     }
-  }
+  }, [addPrice]);
 
-  function onClose(ws: WebSocket) {
+  const onClose = useCallback((ws: WebSocket) => {
     console.log("candle feed closed");
-  }
+  }, []);
+
+  const { reconnect } = useWebSocket({
+    url: process.env.NEXT_PUBLIC_TWILIGHT_PRICE_WS as string,
+    onOpen,
+    onMessage,
+    onClose,
+  });
 
   return (
     <div>

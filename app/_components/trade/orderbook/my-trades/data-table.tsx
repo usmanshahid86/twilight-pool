@@ -31,6 +31,8 @@ export function MyTradesDataTable<TData, TValue>({
     state: {
       sorting,
     },
+    autoResetPageIndex: false,
+    autoResetExpanded: false,
   });
 
   return (
