@@ -139,6 +139,14 @@ const TransferDialog = ({
       .convert("sats")
       .toNumber();
 
+    if (transferAmount < 1) {
+      toast({
+        title: "Unable to transfer",
+        description: "Transfer amount must be greater than 0",
+      });
+      return;
+    }
+
     try {
       // todo: cleanup into seperate function
       if (fromAccountValue === "funding") {
