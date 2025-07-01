@@ -404,6 +404,7 @@ const OrderMyTrades = () => {
       updateZkAccount(tradeOrder.accountAddress, {
         ...currentAccount,
         value: newAccountBalance,
+        type: "Coin",
       });
 
       updateTrade({

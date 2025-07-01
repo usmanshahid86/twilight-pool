@@ -175,7 +175,7 @@ const Page = () => {
                   tradingAccountAddress={tradingAccountAddress}
                   defaultAccount="funding"
                 >
-                  <Button disabled={twilightSats < 1} variant="ui" size="icon">
+                  <Button disabled={totalSatsBalance.lt(1)} variant="ui" size="icon">
                     <ArrowLeftRight className="h-4 w-4" />
                   </Button>
                 </TransferDialog>
@@ -213,7 +213,7 @@ const Page = () => {
                   tradingAccountAddress={tradingAccountAddress}
                   defaultAccount="trading"
                 >
-                  <Button disabled={twilightSats < 1} variant="ui" size="icon">
+                  <Button disabled={totalSatsBalance.lt(1)} variant="ui" size="icon">
                     <ArrowLeftRight className="h-4 w-4" />
                   </Button>
                 </TransferDialog>
