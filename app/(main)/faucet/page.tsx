@@ -35,7 +35,7 @@ const faucetSteps = [
   {
     id: 4,
     title: "Get BTC Tokens",
-    description: "Receive 10,000 sats from the mint endpoint"
+    description: "Receive 50,000 sats from the mint endpoint"
   }
 ];
 
@@ -111,7 +111,7 @@ const Page = () => {
         return { success: false, error: error?.toString() || "Request failed" };
       }
 
-      return { success: true, message: "Successfully received 10,000 sats" };
+      return { success: true, message: "Successfully received 50,000 sats" };
     } catch (error) {
       return { success: false, error: error?.toString() || "Network error" };
     }
@@ -393,7 +393,7 @@ const Page = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Text className="text-sm text-primary-accent opacity-80">
-                Ready to receive BTC tokens. This will mint 10,000 sats to your address.
+                Ready to receive BTC tokens. This will mint 50,000 sats to your address.
               </Text>
             </div>
             <Button
@@ -492,7 +492,7 @@ const Page = () => {
             <Text className="text-primary opacity-80 text-sm" asChild>
               <div className="flex items-start space-x-2">
                 <AlertCircle size={16} className="flex-shrink-0 mt-0.5 text-primary-accent" />
-                <span>The faucet provides 100,000 NYKS tokens and 10,000 sats for testing purposes.</span>
+                <span>The faucet provides 100,000 NYKS tokens and 50,000 sats for testing purposes.</span>
               </div>
             </Text>
             <Text className="text-primary opacity-80 text-sm" asChild>
