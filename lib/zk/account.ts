@@ -5,6 +5,7 @@ import {
   queryUtxoForOutput,
 } from "../api/zkos";
 import { retry } from "../helpers";
+import { getZkAccountBalance } from "../twilight/zk";
 
 import {
   createBurnMessageTx,
@@ -291,32 +292,21 @@ export class ZkPrivateAccount {
     SuccessResult<number> | FailureResult
   > {
     try {
-      const coinOutputResult = await getCoinOutputFromAddress(this.address);
+      const balanceResult = await getZkAccountBalance({
+        zkAccountAddress: this.address,
+        signature: this.signature,
+      });
 
-      if (!coinOutputResult.success) {
+      if (balanceResult.value === undefined) {
         return {
           success: false,
-          message: coinOutputResult.message,
+          message: "Error getting balance",
         };
       }
 
-      const outputString = JSON.stringify(coinOutputResult.data);
-
-      const zkAccountHex = await getZKAccountHexFromOutputString({
-        outputString,
-      });
-
-      const accountValue = await decryptZKAccountHexValue({
-        signature: this.signature,
-        zkAccountHex,
-      });
-
-      this.updateStatus(true);
-
-      this.value = Number(accountValue);
       return {
         success: true,
-        data: this.value,
+        data: balanceResult.value,
       };
     } catch (err) {
       this.updateStatus(false);
@@ -496,7 +486,6 @@ export class ZkPrivateAccount {
       });
 
       const updatedAddress = JSON.parse(updatedAddressStringified) as string[];
-
       this.address = updatedAddress[0];
       this.value = updatedBalance;
       this.updateStatus(true);

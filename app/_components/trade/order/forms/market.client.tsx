@@ -126,6 +126,7 @@ const OrderMarketForm = () => {
 
             orderData = txHashesRes.result[0] as TransactionHash;
           } catch (err) {
+            console.error(err)
             break;
           }
         }

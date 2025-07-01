@@ -59,7 +59,6 @@ const TransferDialog = ({
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
 
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount);
-  const removeZkAccount = useTwilightStore((state) => state.zk.removeZkAccount);
 
   const addTransactionHistory = useTwilightStore(
     (state) => state.history.addTransaction
@@ -155,6 +154,16 @@ const TransferDialog = ({
             title: "An error has occurred",
             description: "Please try again later.",
           });
+          setIsSubmitLoading(false);
+          return;
+        }
+
+        if (depositZkAccount.value && depositZkAccount.value > 0) {
+          toast({
+            title: "Unable to transfer",
+            description: "Unable to transfer to an account with balance",
+          });
+          setIsSubmitLoading(false);
           return;
         }
 
@@ -269,9 +278,17 @@ const TransferDialog = ({
 
           if (depositZkAccount.value && depositZkAccount.value > 0) {
             toast({
-              variant: "error",
-              title: "An error has occurred",
-              description: "Unable to transfer account with balance",
+              title: "Unable to transfer",
+              description: "Unable to transfer to an account with balance",
+            });
+            setIsSubmitLoading(false);
+            return;
+          }
+
+          if (depositZkAccount.type === "Memo" || senderZkAccount.type === "Memo") {
+            toast({
+              title: "Unable to transfer",
+              description: depositZkAccount.type === "Memo" ? "Unable to transfer to a memo account" : "Unable to transfer from a memo account",
             });
             setIsSubmitLoading(false);
             return;
@@ -283,6 +300,7 @@ const TransferDialog = ({
           });
 
           if (senderZkPrivateAccount.get().value - transferAmount !== 0) {
+            console.log("senderZkPrivateAccount.get().value", senderZkPrivateAccount.get());
             toast({
               variant: "error",
               title: "An error has occurred",
@@ -370,6 +388,7 @@ const TransferDialog = ({
           });
 
           const rawDepositZkAccountData = depositZkPrivateAccount.get();
+          console.log("rawDepositZkAccountData", rawDepositZkAccountData);
 
           updateZkAccount(depositZkAccount.address, {
             ...depositZkAccount,
@@ -394,6 +413,15 @@ const TransferDialog = ({
               variant: "error",
               title: "An error has occurred",
               description: "Account does not have enough value to send",
+            });
+            setIsSubmitLoading(false);
+            return;
+          }
+
+          if (senderZkAccount.type === "Memo") {
+            toast({
+              title: "Unable to transfer",
+              description: "Unable to transfer from a memo account",
             });
             setIsSubmitLoading(false);
             return;
