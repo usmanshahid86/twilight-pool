@@ -9,7 +9,7 @@ import { TradeOrder } from "../types";
 import { useWallet } from "@cosmos-kit/react-lite";
 import { WalletStatus } from "@cosmos-kit/core";
 
-const statusToSkip = ["CANCELLED", "SETTLED"];
+const statusToSkip = ["CANCELLED", "SETTLED", "LIQUIDATE"];
 
 export const useSyncTrades = () => {
   const tradeOrders = useTwilightStore((state) => state.trade.trades);
@@ -72,8 +72,9 @@ export const useSyncTrades = () => {
           feeFilled: new Big(traderOrderInfo.fee_filled).toNumber(),
           feeSettled: new Big(traderOrderInfo.fee_settled).toNumber(),
           isOpen:
-            traderOrderInfo.order_status === "SETTLED" ||
-            traderOrderInfo.order_status === "CANCELLED"
+            traderOrderInfo.order_status === "CANCELLED" ||
+            traderOrderInfo.order_status === "LIQUIDATE" ||
+            traderOrderInfo.order_status === "SETTLED"
               ? false
               : true,
         };
