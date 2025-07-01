@@ -27,7 +27,7 @@ import Big from "big.js";
 import dayjs from 'dayjs';
 import { ChevronDown, Loader2 } from "lucide-react";
 import Link from "next/link";
-import React, { SyntheticEvent, useRef, useState } from "react";
+import React, { SyntheticEvent, useEffect, useRef, useState } from "react";
 
 const limitQtyOptions = [25, 50, 75, 100];
 
@@ -53,6 +53,20 @@ const OrderLimitForm = () => {
   );
 
   const currentZkAccount = zkAccounts[selectedZkAccount];
+
+  useEffect(() => {
+    if (!selectedZkAccount || !currentZkAccount ||
+      !currentZkAccount.value ||
+      !btcAmountRef.current ||
+      !leverageRef.current) return;
+
+    const userBtcBalance = new BTC("sats", Big(currentZkAccount.value)).convert("BTC")
+    const btcValue = BTC.format(userBtcBalance);
+
+    btcAmountRef.current.value = btcValue;
+
+    leverageRef.current.value = "1";
+  }, [selectedZkAccount, currentZkAccount])
 
   async function submitLimitOrder(
     e: SyntheticEvent<HTMLFormElement, SubmitEvent>
