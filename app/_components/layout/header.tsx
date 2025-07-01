@@ -43,7 +43,7 @@ const btcSubLinks = [
   },
 ] as const;
 
-const SetupGuideLinks = [
+const UserGuideLinks = [
   {
     href: "/dex-operations",
     title: "DEX Operations",
@@ -89,8 +89,8 @@ const Header = () => {
                 <MultiLink
                   className={"min-w-[200px] justify-between"}
                   target={"_blank"}
-                  title="Setup Guides"
-                  subLinks={SetupGuideLinks}
+                  title="User Guides"
+                  subLinks={UserGuideLinks}
                 />
                 <Link
                   href="https://docs.twilight.org/"
