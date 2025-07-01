@@ -237,6 +237,10 @@ const OrderMyTrades = () => {
         isOpen: false,
         feeFilled: new Big(traderOrderInfo.fee_filled).toNumber(),
         feeSettled: new Big(traderOrderInfo.fee_settled).toNumber(),
+        availableMargin: new Big(traderOrderInfo.available_margin).toNumber(),
+        bankruptcyPrice: new Big(traderOrderInfo.bankruptcy_price).toNumber(),
+        bankruptcyValue: new Big(traderOrderInfo.bankruptcy_value).toNumber(),
+        maintenanceMargin: new Big(traderOrderInfo.maintenance_margin).toNumber(),
       })
 
       toast({

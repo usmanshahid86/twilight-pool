@@ -510,7 +510,7 @@ const Page = () => {
             <Text className="text-primary opacity-80 text-sm" asChild>
               <div className="flex items-start space-x-2">
                 <AlertCircle size={16} className="flex-shrink-0 mt-0.5 text-primary-accent" />
-                <span>This is for testnet use only. Do not use real funds.</span>
+                <span>This is for testnet use only</span>
               </div>
             </Text>
           </div>
