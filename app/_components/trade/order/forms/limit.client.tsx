@@ -202,6 +202,8 @@ const OrderLimitForm = () => {
         positionSize: new Big(traderOrderInfo.positionsize).toNumber(),
         settlementPrice: new Big(traderOrderInfo.settlement_price).toNumber(),
         unrealizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
+        feeFilled: new Big(traderOrderInfo.fee_filled).toNumber(),
+        feeSettled: new Big(traderOrderInfo.fee_settled).toNumber(),
       });
 
       console.log("success limit order");

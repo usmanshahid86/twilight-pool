@@ -25,6 +25,8 @@ export const TradeOrderSchema = z.object({
   realizedPnl: z.number().optional(),
   unrealizedPnl: z.number().optional(),
   availableMargin: z.number(),
+  feeFilled: z.number(),
+  feeSettled: z.number(),
   bankruptcyPrice: z.number(),
   bankruptcyValue: z.number(),
   entryNonce: z.number(),

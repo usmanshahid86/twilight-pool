@@ -113,6 +113,8 @@ async function queryTradeOrder(msg: string) {
       timestamp: string;
       unrealized_pnl: string;
       uuid: string;
+      fee_filled: string;
+      fee_settled: string;
     };
     id: number;
   };

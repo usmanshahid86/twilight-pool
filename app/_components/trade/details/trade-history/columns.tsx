@@ -83,7 +83,7 @@ export const tradeHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
 
       const upnl = trade.unrealizedPnl;
 
-      if (upnl === undefined || upnl === null || trade.orderStatus === "PENDING") {
+      if (upnl === undefined || upnl === null || trade.orderStatus !== "SETTLED") {
         return <span className="text-xs text-gray-500">—</span>;
       }
 
@@ -145,6 +145,51 @@ export const tradeHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
       return (
         <span className="font-medium">
           {capitaliseFirstLetter(status)}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: "funding",
+    header: "Funding (BTC)",
+    cell: (row) => {
+      const trade = row.row.original;
+
+      if (trade.orderStatus !== "SETTLED") {
+        return <span className="text-xs text-gray-500">—</span>;
+      }
+
+      const fee = trade.feeFilled + trade.feeSettled;
+
+      const funding = trade.initialMargin - trade.availableMargin - fee;
+      const fundingBTC = new BTC("sats", Big(funding))
+        .convert("BTC")
+
+      return (
+        <span className={cn("font-medium",
+          funding > 0 ? "text-green-medium" :
+            funding < 0 ? "text-red" :
+              ""
+        )}>
+          {BTC.format(fundingBTC, "BTC")} BTC
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: "feeSettled",
+    header: "Fee (BTC)",
+    cell: (row) => {
+      const trade = row.row.original;
+      const fee = trade.feeSettled + trade.feeFilled;
+
+      if (fee === undefined || fee === null) {
+        return <span className="text-xs text-gray-500">—</span>;
+      }
+
+      return (
+        <span className="font-medium">
+          {BTC.format(new BTC("sats", Big(fee)).convert("BTC"), "BTC")} BTC
         </span>
       );
     },

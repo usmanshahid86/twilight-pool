@@ -186,19 +186,37 @@ export const myTradesColumns: ColumnDef<MyTradeOrder, any>[] = [
     cell: (row) => {
       const trade = row.row.original;
 
-      const isPendingLimit = trade.orderType === "LIMIT" && trade.orderStatus === "PENDING";
-
-      if (isPendingLimit) {
+      if (trade.orderStatus !== "FILLED") {
         return <span className="text-xs text-gray-500">—</span>;
       }
 
-      const funding = trade.initialMargin - trade.availableMargin;
+      const fee = trade.feeFilled;
+
+      const funding = trade.initialMargin - trade.availableMargin - fee;
       const fundingBTC = new BTC("sats", Big(funding))
         .convert("BTC")
 
       return (
-        <span className="font-medium">
+        <span className={cn("font-medium",
+          funding > 0 ? "text-green-medium" :
+            funding < 0 ? "text-red" :
+              ""
+        )}>
           {BTC.format(fundingBTC, "BTC")} BTC
+        </span>
+
+      );
+    },
+  },
+  {
+    accessorKey: "fee",
+    header: "Fee (BTC)",
+    cell: (row) => {
+      const fee = row.getValue() as number;
+
+      return (
+        <span className="font-medium">
+          {BTC.format(new BTC("sats", Big(fee)).convert("BTC"), "BTC")} BTC
         </span>
       );
     },

@@ -17,6 +17,8 @@ import { createZkAccount, syncOnChainZkAccounts } from "../twilight/zk";
 import { ZK_ACCOUNT_INDEX } from "../constants";
 import { useSessionStore } from "./session";
 import { getBlockHeight } from "../twilight/chain";
+import { useQuery } from '@tanstack/react-query';
+import { useSyncTrades } from '../hooks/useSyncTrades';
 
 export const twilightStoreContext =
   createContext<StoreApi<AccountSlices> | null>(null);

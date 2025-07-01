@@ -70,7 +70,7 @@ const DetailsPanel = () => {
               value={"history"}
               variant="underline"
             >
-              Trade History
+              Order History
             </TabsTrigger>
           </TabsList>
         </Tabs>

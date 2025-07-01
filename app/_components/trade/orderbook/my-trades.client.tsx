@@ -235,6 +235,8 @@ const OrderMyTrades = () => {
         exit_nonce: traderOrderInfo.exit_nonce,
         date: dayjs(traderOrderInfo.timestamp).toDate(),
         isOpen: false,
+        feeFilled: new Big(traderOrderInfo.fee_filled).toNumber(),
+        feeSettled: new Big(traderOrderInfo.fee_settled).toNumber(),
       })
 
       toast({
@@ -277,6 +279,15 @@ const OrderMyTrades = () => {
         uuid: tradeOrder.uuid,
         signature: privateKey,
       });
+
+      if (result.result.includes("not cancelable")) {
+        toast({
+          variant: "error",
+          title: "Error",
+          description: "You cannot cancel this order",
+        });
+        return;
+      }
 
       console.log("cancel result", result);
 
@@ -373,12 +384,28 @@ const OrderMyTrades = () => {
 
       console.log("cancel account balance", newAccountBalance);
 
+      const queryTradeOrderMsg = await createQueryTradeOrderMsg({
+        address: tradeOrder.accountAddress,
+        orderStatus: "CANCELLED",
+        signature: privateKey,
+      });
+
+      console.log("queryTradeOrderMsg", queryTradeOrderMsg);
+
+      const queryTradeOrderRes = await queryTradeOrder(queryTradeOrderMsg);
+
+      if (!queryTradeOrderRes) {
+        throw new Error("Failed to query trade order");
+      }
+
+      const traderOrderInfo = queryTradeOrderRes.result;
+
+      console.log("traderOrderInfo", traderOrderInfo);
+
       updateZkAccount(tradeOrder.accountAddress, {
         ...currentAccount,
         value: newAccountBalance,
       });
-
-      removeTrade(tradeOrder);
 
       updateTrade({
         ...tradeOrder,
@@ -388,8 +415,20 @@ const OrderMyTrades = () => {
         tx_hash: tradeOrder.tx_hash,
         uuid: tradeOrder.uuid,
         output: tradeOrder.output,
-        date: dayjs(tradeOrder.date).toDate(),
+        realizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
+        unrealizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
+        settlementPrice: new Big(traderOrderInfo.settlement_price).toNumber(),
+        positionSize: new Big(traderOrderInfo.positionsize).toNumber(),
+        entryNonce: traderOrderInfo.entry_nonce,
+        entrySequence: traderOrderInfo.entry_sequence,
+        executionPrice: new Big(traderOrderInfo.execution_price).toNumber(),
+        initialMargin: new Big(traderOrderInfo.initial_margin).toNumber(),
+        liquidationPrice: new Big(traderOrderInfo.liquidation_price).toNumber(),
+        exit_nonce: traderOrderInfo.exit_nonce,
+        date: dayjs(traderOrderInfo.timestamp).toDate(),
         isOpen: false,
+        feeFilled: new Big(traderOrderInfo.fee_filled).toNumber(),
+        feeSettled: new Big(traderOrderInfo.fee_settled).toNumber(),
       });
     } catch (err) {
       console.error(err);
@@ -404,7 +443,6 @@ const OrderMyTrades = () => {
   // Create enhanced columns with current price access
   const enhancedColumns = useMemo(() => {
     return myTradesColumns.map(column => {
-      // For the Mark Price column, we need to pass the current price
       if ('accessorKey' in column && column.accessorKey === 'markPrice') {
         return {
           ...column,
@@ -422,7 +460,22 @@ const OrderMyTrades = () => {
         };
       }
 
-      // For the uPnL column, calculate it here using current price
+      if ('accessorKey' in column && column.accessorKey === 'fee') {
+        return {
+          ...column,
+          cell: (row: any) => {
+            const trade = row.row.original;
+            const fee = trade.feeFilled + trade.feeSettled;
+
+            return (
+              <span className="font-medium">
+                {BTC.format(new BTC("sats", Big(fee)).convert("BTC"), "BTC")} BTC
+              </span>
+            );
+          },
+        }
+      }
+
       if ('accessorKey' in column && column.accessorKey === 'calculatedUnrealizedPnl') {
         return {
           ...column,

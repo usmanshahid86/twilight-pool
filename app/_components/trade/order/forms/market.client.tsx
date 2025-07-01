@@ -180,6 +180,7 @@ const OrderMarketForm = () => {
 
         const traderOrderInfo = queryTradeOrderRes.result;
 
+        console.log("traderOrderInfo", traderOrderInfo)
         addTrade({
           accountAddress: currentZkAccount.address,
           orderStatus: orderData.order_status,
@@ -205,6 +206,8 @@ const OrderMarketForm = () => {
           positionSize: new Big(traderOrderInfo.positionsize).toNumber(),
           settlementPrice: new Big(traderOrderInfo.settlement_price).toNumber(),
           unrealizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
+          feeFilled: new Big(traderOrderInfo.fee_filled).toNumber(),
+          feeSettled: new Big(traderOrderInfo.fee_settled).toNumber(),
         });
 
         updateZkAccount(currentZkAccount.address, {
