@@ -21,7 +21,7 @@ import Big from "big.js";
 import dayjs from 'dayjs';
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 const OrderMarketForm = () => {
   const { width } = useGrid();
@@ -49,6 +49,31 @@ const OrderMarketForm = () => {
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount)
 
   const currentZkAccount = zKAccounts[selectedZkAccount];
+
+  useEffect(() => {
+    if (!selectedZkAccount || !currentZkAccount ||
+      !currentZkAccount.value ||
+      !btcRef.current ||
+      !usdRef.current ||
+      !leverageRef.current) return;
+
+    const userBtcBalance = new BTC("sats", Big(currentZkAccount.value)).convert("BTC")
+    const btcValue = BTC.format(userBtcBalance);
+
+    btcRef.current.value = btcValue;
+
+    // Manually trigger the USD calculation that would happen in onChange
+    if (btcValue && Big(btcValue).gt(0)) {
+      Big.DP = 2;
+      usdRef.current.value = Big(currentPrice)
+        .mul(btcValue)
+        .toFixed(2);
+    } else {
+      usdRef.current.value = "";
+    }
+
+    leverageRef.current.value = "1";
+  }, [selectedZkAccount, currentPrice, currentZkAccount])
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -274,6 +299,8 @@ const OrderMarketForm = () => {
 
               let value = e.currentTarget.value;
 
+              console.log(value)
+
               // Remove any non-numeric characters except decimal point
               value = value.replace(/[^0-9.]/g, '');
 
@@ -307,7 +334,7 @@ const OrderMarketForm = () => {
 
               usdRef.current.value = Big(currentPrice)
                 .mul(value)
-                .toString();
+                .toFixed(2)
             }}
           />
         </div>
