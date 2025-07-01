@@ -213,6 +213,11 @@ export const myTradesColumns: ColumnDef<MyTradeOrder, any>[] = [
     header: "Fee (BTC)",
     cell: (row) => {
       const fee = row.getValue() as number;
+      const trade = row.row.original;
+
+      if (trade.orderStatus === "PENDING") {
+        return <span className="text-xs text-gray-500">—</span>;
+      }
 
       return (
         <span className="font-medium">
@@ -248,7 +253,7 @@ export const myTradesColumns: ColumnDef<MyTradeOrder, any>[] = [
 
       return (
         <div className="flex space-x-2 justify-end">
-          {trade.orderType === "LIMIT" && (
+          {trade.orderType === "LIMIT" && trade.orderStatus === "PENDING" && (
             <Button
               onClick={async (e) => {
                 e.preventDefault();

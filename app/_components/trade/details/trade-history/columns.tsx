@@ -161,7 +161,8 @@ export const tradeHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
 
       const fee = trade.feeFilled + trade.feeSettled;
 
-      const funding = trade.initialMargin - trade.availableMargin - fee;
+      const upnl = trade.unrealizedPnl || 0;
+      const funding = trade.initialMargin - trade.availableMargin - fee - upnl;
       const fundingBTC = new BTC("sats", Big(funding))
         .convert("BTC")
 
@@ -183,7 +184,7 @@ export const tradeHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
       const trade = row.row.original;
       const fee = trade.feeSettled + trade.feeFilled;
 
-      if (fee === undefined || fee === null) {
+      if (trade.orderStatus === "PENDING" || trade.orderStatus === "CANCELLED") {
         return <span className="text-xs text-gray-500">—</span>;
       }
 

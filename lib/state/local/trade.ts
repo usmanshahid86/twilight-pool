@@ -24,7 +24,7 @@ export const createTradeSlice: StateImmerCreator<AccountSlices, TradeSlice> = (
   removeTrade: (tradeOrder) =>
     set((state) => {
       state.trade.trades = state.trade.trades.map((trade) => {
-        if (trade.accountAddress === tradeOrder.accountAddress) {
+        if (trade.uuid === tradeOrder.uuid) {
           return {
             ...trade,
             isOpen: false,
@@ -35,12 +35,21 @@ export const createTradeSlice: StateImmerCreator<AccountSlices, TradeSlice> = (
     }),
   updateTrade: (tradeOrder) =>
     set((state) => {
-      state.trade.trades = state.trade.trades.map((trade) => {
-        if (trade.accountAddress === tradeOrder.accountAddress) {
-          return tradeOrder;
-        }
-        return trade;
-      });
+      const tradeExists = state.trade.trades.some(
+        (trade) => trade.uuid === tradeOrder.uuid
+      );
+
+      if (tradeExists) {
+        state.trade.trades = state.trade.trades.map((trade) => {
+          if (trade.uuid === tradeOrder.uuid) {
+            return {
+              ...trade,
+              ...tradeOrder,
+            };
+          }
+          return trade;
+        });
+      }
     }),
   resetState: () => {
     set((state) => {

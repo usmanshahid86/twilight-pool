@@ -280,7 +280,8 @@ const OrderMyTrades = () => {
         signature: privateKey,
       });
 
-      if (result.result.includes("not cancelable")) {
+      console.log("cancelResult", result)
+      if (typeof (result.result) === "string" && result.result.includes("not cancelable")) {
         toast({
           variant: "error",
           title: "Error",
@@ -288,8 +289,6 @@ const OrderMyTrades = () => {
         });
         return;
       }
-
-      console.log("cancel result", result);
 
       const transactionHashCondition = (
         txHashResult: Awaited<ReturnType<typeof queryTransactionHashes>>
