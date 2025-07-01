@@ -198,7 +198,7 @@ const OrderMyTrades = () => {
       updateZkAccount(tradeOrder.accountAddress, {
         ...currentAccount,
         value: newAccountBalance,
-        type: "Coin",
+        type: "CoinSettled",
       });
 
       const queryTradeOrderMsg = await createQueryTradeOrderMsg({

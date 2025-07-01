@@ -106,7 +106,7 @@ const WalletRegistrationForm = () => {
       toast({
         title: "Submitting Bitcoin address",
         description:
-          "Please wait while your Bitcoin address is being submitted...",
+          "Please do not close this page while your Bitcoin address is being submitted...",
       });
 
       setTimeout(() => {

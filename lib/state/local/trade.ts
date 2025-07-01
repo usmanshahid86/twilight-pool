@@ -62,7 +62,16 @@ export const createTradeSlice: StateImmerCreator<AccountSlices, TradeSlice> = (
   },
   setNewTrades: (trades) => {
     set((state) => {
-      state.trade.trades = trades;
+      const currentTrades = state.trade.trades;
+
+      const newLocalTrades = currentTrades.filter(
+        (currentTrade) =>
+          !trades.some(
+            (incomingTrade) => incomingTrade.uuid === currentTrade.uuid
+          )
+      );
+
+      state.trade.trades = [...trades, ...newLocalTrades];
     });
   },
 });

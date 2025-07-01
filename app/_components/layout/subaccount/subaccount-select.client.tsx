@@ -144,7 +144,7 @@ const SubaccountSelect = () => {
                   return null;
                 }
 
-                if (account.value === 0 || account.type === "Memo") {
+                if (account.value === 0 || account.type !== "Coin") {
                   return null;
                 }
 

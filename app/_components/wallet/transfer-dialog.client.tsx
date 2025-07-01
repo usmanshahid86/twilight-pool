@@ -580,7 +580,7 @@ const TransferDialog = ({
           toast({
             title: "Broadcasting transfer",
             description:
-              "Please wait while your transfer is being submitted...",
+              "Please do not close this page while your transfer is being submitted...",
           });
 
           const txValidMessage = await verifyQuisQuisTransaction({

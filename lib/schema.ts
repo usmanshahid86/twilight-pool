@@ -4,7 +4,7 @@ export const ZkAccountSchema = z.object({
   tag: z.string(),
   address: z.string(),
   scalar: z.string(),
-  type: z.literal("Coin").or(z.literal("Memo")),
+  type: z.literal("Coin").or(z.literal("Memo")).or(z.literal("CoinSettled")),
   isOnChain: z.boolean().optional(),
   value: z.number().optional(), // note: sats value
 });

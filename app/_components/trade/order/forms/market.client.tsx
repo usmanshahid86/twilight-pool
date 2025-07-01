@@ -55,6 +55,17 @@ const OrderMarketForm = () => {
   async function submitMarket(type: "SELL" | "BUY") {
     const positionType = type === "BUY" ? "LONG" : "SHORT";
 
+    if (currentZkAccount.type !== "Coin") {
+      toast({
+        variant: "error",
+        title: "Unable to submit trade order",
+        description: currentZkAccount.type === "Memo" ?
+          "Account is locked for trading, please use a new account to trade" :
+          "Account has been used for trading, please transfer funds to a new trading account to trade",
+      });
+      return;
+    }
+
     try {
       if (!hasRegisteredBTC) return;
 
@@ -245,14 +256,40 @@ const OrderMarketForm = () => {
             <label htmlFor="input-market-amount-btc">Amount (BTC)</label>
           </Text>
           <Input
-            type="number"
+            type="text"
             id="input-market-amount-btc"
             placeholder="0.000"
             ref={btcRef}
             onChange={(e) => {
               if (!usdRef.current) return;
 
-              if (!e.currentTarget.value || Big(e.currentTarget.value).lt(0)) {
+              let value = e.currentTarget.value;
+
+              // Remove any non-numeric characters except decimal point
+              value = value.replace(/[^0-9.]/g, '');
+
+              // Prevent multiple decimal points
+              const decimalCount = (value.match(/\./g) || []).length;
+              if (decimalCount > 1) {
+                const firstDecimalIndex = value.indexOf('.');
+                value = value.substring(0, firstDecimalIndex + 1) + value.substring(firstDecimalIndex + 1).replace(/\./g, '');
+              }
+
+              // Limit to 8 decimal places (BTC precision)
+              const decimalIndex = value.indexOf('.');
+              if (decimalIndex !== -1 && value.substring(decimalIndex + 1).length > 8) {
+                value = value.substring(0, decimalIndex + 9);
+              }
+
+              // Prevent leading zeros except for decimal values
+              if (value.length > 1 && value[0] === '0' && value[1] !== '.') {
+                value = value.substring(1);
+              }
+
+              // Update the input field value
+              e.currentTarget.value = value;
+
+              if (!value || Big(value).lte(0)) {
                 usdRef.current.value = "";
                 return;
               }
@@ -260,7 +297,7 @@ const OrderMarketForm = () => {
               Big.DP = 2;
 
               usdRef.current.value = Big(currentPrice)
-                .mul(e.currentTarget.value)
+                .mul(value)
                 .toString();
             }}
           />

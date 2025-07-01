@@ -217,7 +217,7 @@ const Page = () => {
 
         updateZkAccount(selectedZkAccount.address, {
           ...selectedZkAccount,
-          type: "Coin",
+          type: "CoinSettled",
         });
 
       }

@@ -61,6 +61,17 @@ const OrderLimitForm = () => {
 
     if (!currentZkAccount) return;
 
+    if (currentZkAccount.type !== "Coin") {
+      toast({
+        variant: "error",
+        title: "Unable to submit trade order",
+        description: currentZkAccount.type === "Memo" ?
+          "Account is locked for trading, please use a new account to trade" :
+          "Account has been used for trading, please transfer funds to a new trading account to trade",
+      });
+      return;
+    }
+
     try {
       const submitter = e.nativeEvent.submitter as HTMLButtonElement;
 

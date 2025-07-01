@@ -217,7 +217,7 @@ const Page = () => {
       toast({
         title: "Submitting address",
         description:
-          "Please wait while your address is being registered...",
+          "Please do not close this page while your address is being registered...",
       });
 
       const stargateClient = await chainWallet.getSigningStargateClient();
