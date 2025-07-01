@@ -24,7 +24,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { GasPrice, calculateFee } from "@cosmjs/stargate";
 import Resource from "@/components/resource";
 import { Loader2 } from "lucide-react";
-import { ZkAccount } from "@/lib/types";
 import { createFundingToTradingTransferMsg } from "@/lib/twilight/wallet";
 import {
   createZkAccount,
@@ -40,6 +39,8 @@ import useGetTwilightBTCBalance from "@/lib/hooks/useGetTwilightBtcBalance";
 import { twilightproject } from "twilightjs";
 import { ZkPrivateAccount } from "@/lib/zk/account";
 import { safeJSONParse } from "@/lib/helpers";
+
+const renameTag = (tag: string) => tag === "main" ? "Trading Account" : tag;
 
 type Props = {
   children: React.ReactNode;
@@ -240,7 +241,7 @@ const TransferDialog = ({
             <div className="flex space-x-1 opacity-90">
               {`Successfully sent ${new BTC("sats", Big(transferAmount))
                 .convert("BTC")
-                .toString()} BTC to ${depositZkAccount.tag}. `}
+                .toString()} BTC to ${renameTag(depositZkAccount.tag)}. `}
               <Button
                 variant="link"
                 className="inline-flex text-sm opacity-90 hover:opacity-100"
@@ -405,7 +406,7 @@ const TransferDialog = ({
               Big(transferAmount)
             )
               .convert("BTC")
-              .toString()} BTC to ${depositZkAccount.tag}`,
+              .toString()} BTC to ${renameTag(depositZkAccount.tag)}`,
           });
         } else {
           if (!senderZkAccount.value) {
@@ -745,9 +746,7 @@ const TransferDialog = ({
                             value={subAccount.address}
                             key={subAccount.address}
                           >
-                            {subAccount.tag === "main"
-                              ? "Trading Account"
-                              : subAccount.tag}
+                            {renameTag(subAccount.tag)}
                           </SelectItem>
                         );
                       })}
@@ -875,9 +874,7 @@ const TransferDialog = ({
                             value={subAccount.address}
                             key={subAccount.address}
                           >
-                            {subAccount.tag === "main"
-                              ? "Trading Account"
-                              : subAccount.tag}
+                            {renameTag(subAccount.tag)}
                           </SelectItem>
                         );
                       })}
