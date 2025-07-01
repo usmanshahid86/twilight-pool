@@ -154,14 +154,12 @@ const TransferDialog = ({
           (account) => account.address === selectedTradingAccountTo
         )[0];
 
-        console.log("depositZkAccount", depositZkAccount.tag);
-
         if (!depositZkAccount) {
           console.error("error cant find depositZkAccount", depositZkAccount);
           toast({
             variant: "error",
-            title: "An error has occurred",
-            description: "Please try again later.",
+            title: "Please select a valid account",
+            description: "Please select a valid account to transfer to",
           });
           setIsSubmitLoading(false);
           return;
@@ -279,16 +277,26 @@ const TransferDialog = ({
           (account) => account.address === selectedTradingAccountFrom
         )[0];
 
+        if (!senderZkAccount) {
+          toast({
+            variant: "error",
+            title: "Please select a valid account",
+            description: "Please select a valid account to transfer from",
+          });
+          setIsSubmitLoading(false);
+          return;
+        }
+
+        if (!senderZkAccount.value) {
+          toast({
+            variant: "error",
+            title: "An error has occurred",
+            description: "Account does not have enough balance to send",
+          });
+          setIsSubmitLoading(false);
+          return;
+        }
         if (toAccountValue === "trading") {
-          if (!senderZkAccount.value) {
-            toast({
-              variant: "error",
-              title: "An error has occurred",
-              description: "Account does not have enough value to send",
-            });
-            setIsSubmitLoading(false);
-            return;
-          }
 
           const depositZkAccount = zkAccounts.find(
             (account) => account.address === selectedTradingAccountTo
@@ -297,8 +305,8 @@ const TransferDialog = ({
           if (!depositZkAccount) {
             toast({
               variant: "error",
-              title: "An error has occurred",
-              description: "Unable to transfer to invalid address",
+              title: "Please select a valid account",
+              description: "Please select a valid account to transfer to",
             });
             setIsSubmitLoading(false);
             return;
