@@ -297,7 +297,6 @@ const TransferDialog = ({
         }
 
         if (toAccountValue === "trading") {
-
           const depositZkAccount = zkAccounts.find(
             (account) => account.address === selectedTradingAccountTo
           );
@@ -422,7 +421,6 @@ const TransferDialog = ({
             ...senderZkAccount,
             value: updatedSenderAccount.value,
             isOnChain: updatedSenderAccount.isOnChain,
-            type: "Coin",
           });
 
           const rawDepositZkAccountData = depositZkPrivateAccount.get();
@@ -644,7 +642,6 @@ const TransferDialog = ({
             ...senderZkAccount,
             isOnChain: false,
             value: 0,
-            type: "Coin",
           });
 
           addTransactionHistory({
