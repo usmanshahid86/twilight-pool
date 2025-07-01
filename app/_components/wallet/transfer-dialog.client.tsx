@@ -57,7 +57,9 @@ const TransferDialog = ({
 
   const { mainWallet } = useWallet();
 
-  const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
+  const zkAccountsRaw = useTwilightStore((state) => state.zk.zkAccounts);
+
+  const zkAccounts = zkAccountsRaw.filter((account) => account.type !== "Memo");
 
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount);
 
@@ -83,6 +85,7 @@ const TransferDialog = ({
 
   const [depositDenom, setDepositDenom] = useState<string>("BTC");
   const depositRef = useRef<HTMLInputElement>(null);
+  const [depositAmount, setDepositAmount] = useState<string>("");
 
   const [isSubmitLoading, setIsSubmitLoading] = useState(false);
 
@@ -103,14 +106,17 @@ const TransferDialog = ({
       )
         return;
 
-      depositRef.current.value = new BTC(
+      const amountString = new BTC(
         "sats",
         Big(selectedTradingAccount.value)
       )
         .convert(depositDenom as BTCDenoms)
         .toString();
+
+      depositRef.current.value = amountString;
+      setDepositAmount(amountString);
     }
-  }, [toAccountValue, fromAccountValue, selectedTradingAccountFrom]);
+  }, [toAccountValue, fromAccountValue, selectedTradingAccountFrom, depositDenom]);
 
   async function submitTransfer(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -253,22 +259,17 @@ const TransferDialog = ({
         toast({
           title: "Success",
           description: (
-            <div className="flex space-x-1 opacity-90">
+            <div className="opacity-90">
               {`Successfully sent ${new BTC("sats", Big(transferAmount))
                 .convert("BTC")
                 .toString()} BTC to ${renameTag(depositZkAccount.tag)}. `}
-              <Button
-                variant="link"
-                className="inline-flex text-sm opacity-90 hover:opacity-100"
-                asChild
+              <Link
+                href={`https://explorer.twilight.rest/nyks/tx/${res.transactionHash}`}
+                target={"_blank"}
+                className="text-sm underline hover:opacity-100"
               >
-                <Link
-                  href={`https://explorer.twilight.rest/nyks/tx/${res.transactionHash}`}
-                  target={"_blank"}
-                >
-                  Explorer link
-                </Link>
-              </Button>
+                Explorer link
+              </Link>
             </div>
           ),
         });
@@ -664,22 +665,17 @@ const TransferDialog = ({
           toast({
             title: "Success",
             description: (
-              <div className="flex space-x-1 opacity-90">
+              <div className="opacity-90">
                 {`Successfully sent ${new BTC("sats", Big(transferAmount))
                   .convert("BTC")
                   .toString()} BTC to Funding Account. `}
-                <Button
-                  variant="link"
-                  className="inline-flex text-sm opacity-90 hover:opacity-100"
-                  asChild
+                <Link
+                  href={`https://explorer.twilight.rest/nyks/tx/${mintBurnRes.transactionHash}`}
+                  target={"_blank"}
+                  className="text-sm underline hover:opacity-100"
                 >
-                  <Link
-                    href={`https://explorer.twilight.rest/nyks/tx/${mintBurnRes.transactionHash}`}
-                    target={"_blank"}
-                  >
-                    Explorer link
-                  </Link>
-                </Button>
+                  Explorer link
+                </Link>
               </div>
             ),
           });
@@ -903,7 +899,7 @@ const TransferDialog = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {zkAccounts.map((subAccount) => {
+                      {zkAccounts.filter((account) => !account.value).map((subAccount) => {
                         return (
                           <SelectItem
                             disabled={
@@ -954,6 +950,7 @@ const TransferDialog = ({
             <PopoverInput
               id="input-btc-amount"
               name="depositValue"
+              onChange={(e) => setDepositAmount(e.target.value)}
               onClickPopover={(e) => {
                 e.preventDefault();
                 if (!depositRef.current?.value) return;
@@ -965,9 +962,12 @@ const TransferDialog = ({
                   Big(depositRef.current.value)
                 );
 
-                depositRef.current.value = currentValue
+                const convertedAmount = currentValue
                   .convert(toDenom)
                   .toString();
+
+                depositRef.current.value = convertedAmount;
+                setDepositAmount(convertedAmount);
               }}
               type="number"
               step="any"
@@ -981,7 +981,17 @@ const TransferDialog = ({
           </div>
 
           <div className="pt-2">
-            <Button disabled={isSubmitLoading || (!selectedTradingAccountFrom && !selectedTradingAccountTo)} type="submit" size="small">
+            <Button
+              disabled={
+                isSubmitLoading ||
+                !depositAmount ||
+                depositAmount === "0" ||
+                (fromAccountValue === "trading" && !selectedTradingAccountFrom) ||
+                (toAccountValue === "trading" && !selectedTradingAccountTo)
+              }
+              type="submit"
+              size="small"
+            >
               <Resource
                 isLoaded={!isSubmitLoading}
                 placeholder={<Loader2 className="animate-spin" />}

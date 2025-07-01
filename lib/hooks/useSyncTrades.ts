@@ -45,8 +45,14 @@ export const useSyncTrades = () => {
 
         const traderOrderInfo = queryTradeOrderRes.result;
 
-        const updatedTrade = {
+        const updatedTrade: TradeOrder = {
           ...trade,
+          bankruptcyPrice: new Big(traderOrderInfo.bankruptcy_price).toNumber(),
+          bankruptcyValue: new Big(traderOrderInfo.bankruptcy_value).toNumber(),
+          maintenanceMargin: new Big(
+            traderOrderInfo.maintenance_margin
+          ).toNumber(),
+          entryPrice: new Big(traderOrderInfo.entryprice).toNumber(),
           orderStatus: traderOrderInfo.order_status,
           uuid: traderOrderInfo.uuid,
           realizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
