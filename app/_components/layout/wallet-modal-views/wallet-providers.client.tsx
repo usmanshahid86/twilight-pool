@@ -11,24 +11,24 @@ const availableWallets = [
     name: "Keplr",
     src: "/images/keplr-logo.png",
   },
-  {
-    id: "cosmostation-extension",
-    name: "Cosmos Station",
-    src: "/images/cosmostation-logo.png",
-  },
-  {
-    id: "leap-extension",
-    name: "Leap",
-    src: "/images/leap-logo.png",
-  },
-  {
-    id: "leap-metamask-cosmos-snap",
-    name: "Metamask",
-    src: "/images/metamask-logo.png",
-  },
+  // {
+  //   id: "cosmostation-extension",
+  //   name: "Cosmos Station",
+  //   src: "/images/cosmostation-logo.png",
+  // },
+  // {
+  //   id: "leap-extension",
+  //   name: "Leap",
+  //   src: "/images/leap-logo.png",
+  // },
+  // {
+  //   id: "leap-metamask-cosmos-snap",
+  //   name: "Metamask",
+  //   src: "/images/metamask-logo.png",
+  // },
 ] as const;
 
-const WalletProvidersView = ({}: WalletViewProps) => {
+const WalletProvidersView = ({ }: WalletViewProps) => {
   return (
     <>
       <DialogTitle>Connect wallet</DialogTitle>
@@ -44,7 +44,7 @@ const WalletProvidersView = ({}: WalletViewProps) => {
             <WalletProviderButton
               className={cn(
                 index === 0 && "rounded-t-md",
-                index % 2 === 0 && "border-b-0",
+                // index % 2 === 0 && "border-b-0",
                 index === availableWallets.length - 1 && "rounded-b-md border-t"
               )}
               wallet={wallet}
