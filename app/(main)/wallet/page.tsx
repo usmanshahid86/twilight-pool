@@ -64,9 +64,10 @@ const Page = () => {
     useGetTwilightBTCBalance();
 
   const { status, mainWallet } = useWallet();
+
   const twilightAddress = mainWallet?.getChainWallet("nyks")?.address || "";
 
-  useRedirectUnconnected();
+  // useRedirectUnconnected();
   useGetTradingBTCBalance();
 
   const twilightBTCBalanceString = new BTC("sats", Big(twilightSats))
@@ -149,7 +150,7 @@ const Page = () => {
               <div className="min-w-[140px]">
                 <Resource
                   isLoaded={
-                    status === WalletStatus.Connected && !twilightSatsLoading
+                    status === WalletStatus.Connected
                   }
                   placeholder={<Skeleton className="h-5 w-[140px]" />}
                 >
@@ -160,8 +161,7 @@ const Page = () => {
                 <Resource
                   isLoaded={
                     status === WalletStatus.Connected &&
-                    finalPrice !== 0 &&
-                    !twilightSatsLoading
+                    finalPrice !== 0
                   }
                   placeholder={<Skeleton className="mt-1 h-4 w-[80px]" />}
                 >

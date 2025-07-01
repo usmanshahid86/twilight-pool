@@ -25,6 +25,8 @@ import { useTwilightStore } from "@/lib/providers/store";
 import { useTwilight } from "@/lib/providers/twilight";
 import BTC, { BTCDenoms } from "@/lib/twilight/denoms";
 import { createZkLendOrder } from "@/lib/twilight/zk";
+import { WalletStatus } from '@cosmos-kit/core';
+import { useWallet } from '@cosmos-kit/react-lite';
 import Big from "big.js";
 import { Loader2 } from "lucide-react";
 import React, { useRef, useState } from "react";
@@ -36,6 +38,9 @@ type Props = {
 const LendDialog = ({ children }: Props) => {
   const { toast } = useToast();
   const privateKey = useSessionStore((state) => state.privateKey);
+
+
+  const { status } = useWallet();
 
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
   const addLendOrder = useTwilightStore((state) => state.lend.addLend);
@@ -171,7 +176,7 @@ const LendDialog = ({ children }: Props) => {
 
   return (
     <Dialog>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger disabled={status !== WalletStatus.Connected} asChild>{children}</DialogTrigger>
       <DialogContent className="left-auto right-0 min-h-screen max-w-2xl translate-x-0 rounded-none border-r-0">
         <DialogTitle>Lend</DialogTitle>
         <form onSubmit={submitForm} className="max-w-sm space-y-4">

@@ -374,6 +374,7 @@ const Page = () => {
                     await submitRedeemLentSats();
                   }}
                   size="small"
+                  disabled={totalLentSats === 0 || status !== WalletStatus.Connected}
                 >
                   {isRedeemLoading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />

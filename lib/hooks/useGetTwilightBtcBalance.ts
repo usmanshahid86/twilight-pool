@@ -1,3 +1,4 @@
+import { WalletStatus } from "@cosmos-kit/core";
 import { useWallet } from "@cosmos-kit/react-lite";
 import { useEffect, useMemo, useState } from "react";
 
@@ -8,7 +9,10 @@ export default function useGetTwilightBTCBalance() {
   const { status, mainWallet } = useWallet();
 
   useEffect(() => {
-    if (status !== "Connected") return;
+    if (status !== WalletStatus.Connected) {
+      setTwilightSats(0);
+      return;
+    }
 
     async function fetchData() {
       const chainWallet = mainWallet?.getChainWallet("nyks");
