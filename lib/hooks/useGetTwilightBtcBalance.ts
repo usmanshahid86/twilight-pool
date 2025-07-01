@@ -24,7 +24,6 @@ export default function useGetTwilightBTCBalance() {
       "sats"
     );
 
-    console.log(satsBalance);
     const { amount } = satsBalance;
     return parseInt(amount);
   };
