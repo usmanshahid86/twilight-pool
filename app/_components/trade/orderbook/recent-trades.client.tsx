@@ -132,8 +132,9 @@ function OrderRecentTrades() {
 
     const sorted = result.data.result.sort(
       (left, right) =>
-        dayjs(left.timestamp).unix() - dayjs(right.timestamp).unix()
+        dayjs(right.timestamp).unix() - dayjs(left.timestamp).unix()
     );
+
     setRecentTradeData(sorted);
   }
 

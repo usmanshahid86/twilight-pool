@@ -45,7 +45,7 @@ export function OrderbookLayouts({ layouts }: Props) {
       return (
         <OrderBookDataTable
           columns={orderbookColumns}
-          data={bids.slice().reverse()}
+          data={bids}
           type="bids"
           header
         />

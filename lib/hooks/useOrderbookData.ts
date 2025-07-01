@@ -75,7 +75,7 @@ export function useOrderbookData() {
         bids: convertDisplayLimitData(
           query.data.bid,
           previousBidsRef.current,
-          true
+          false
         ),
         asks: convertDisplayLimitData(
           query.data.ask,
