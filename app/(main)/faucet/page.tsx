@@ -101,7 +101,7 @@ const Page = () => {
 
   const callMintEndpoint = async (address: string): Promise<FaucetResponse> => {
     try {
-      const { success, data, error } = await wfetch(`${FAUCET_ENDPOINT}/mint`)
+      const { success, error } = await wfetch(`${FAUCET_ENDPOINT}/mint`)
         .post({
           body: JSON.stringify({ recipientAddress: address }),
         })
@@ -228,8 +228,8 @@ const Page = () => {
       const msg = registerBtcDepositAddress({
         btcDepositAddress: generateRandomBtcTestnetAddress(),
         twilightAddress: twilightAddress,
-        btcSatoshiTestAmount: Long.fromNumber(10000),
-        twilightStakingAmount: Long.fromNumber(10000),
+        btcSatoshiTestAmount: Long.fromNumber(50_000),
+        twilightStakingAmount: Long.fromNumber(50_000),
       });
 
       try {

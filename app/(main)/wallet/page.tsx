@@ -60,7 +60,7 @@ const Page = () => {
     }, [privateKey]);
   }
 
-  const { twilightSats, isLoading: twilightSatsLoading } =
+  const { twilightSats } =
     useGetTwilightBTCBalance();
 
   const { status, mainWallet } = useWallet();

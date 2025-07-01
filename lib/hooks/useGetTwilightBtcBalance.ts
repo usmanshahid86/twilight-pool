@@ -1,63 +1,53 @@
 import { WalletStatus } from "@cosmos-kit/core";
 import { useWallet } from "@cosmos-kit/react-lite";
-import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 export default function useGetTwilightBTCBalance() {
-  const [twilightSats, setTwilightSats] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-
   const { status, mainWallet } = useWallet();
 
-  useEffect(() => {
-    if (status !== WalletStatus.Connected) {
-      setTwilightSats(0);
-      return;
+  const fetchTwilightBalance = async () => {
+    const chainWallet = mainWallet?.getChainWallet("nyks");
+
+    if (!chainWallet) {
+      throw new Error("no chainWallet");
     }
 
-    async function fetchData() {
-      const chainWallet = mainWallet?.getChainWallet("nyks");
+    const twilightAddress = chainWallet.address;
 
-      if (!chainWallet) {
-        console.error("no chainWallet");
-        return;
-      }
-
-      const twilightAddress = chainWallet.address;
-
-      if (!twilightAddress) {
-        console.error("no twilightAddress");
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        const stargateClient = await chainWallet.getSigningStargateClient();
-        const satsBalance = await stargateClient.getBalance(
-          twilightAddress,
-          "sats"
-        );
-        setIsLoading(false);
-
-        const { amount } = satsBalance;
-
-        setTwilightSats(parseInt(amount));
-      } catch (err) {
-        console.error(err);
-      }
+    if (!twilightAddress) {
+      throw new Error("no twilightAddress");
     }
 
-    fetchData();
+    const stargateClient = await chainWallet.getSigningStargateClient();
+    const satsBalance = await stargateClient.getBalance(
+      twilightAddress,
+      "sats"
+    );
 
-    const intervalId = setInterval(async () => {
-      await fetchData();
-    }, 15000);
+    console.log(satsBalance);
+    const { amount } = satsBalance;
+    return parseInt(amount);
+  };
 
-    return () => clearInterval(intervalId);
-  }, [status, mainWallet]);
+  const {
+    data: twilightSats = 0,
+    isLoading,
+    refetch,
+    error,
+  } = useQuery({
+    queryKey: ["twilightBtcBalance", mainWallet?.walletName, status],
+    queryFn: fetchTwilightBalance,
+    enabled: status === WalletStatus.Connected,
+    refetchInterval: 5000,
+    staleTime: 5000, // Consider data stale after 10 seconds
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
 
   return {
     twilightSats,
-    setTwilightSats,
     isLoading,
+    refetch,
+    error,
   };
 }
