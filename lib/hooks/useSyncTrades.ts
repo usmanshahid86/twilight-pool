@@ -54,6 +54,7 @@ export const useSyncTrades = () => {
           entrySequence: traderOrderInfo.entry_sequence,
           executionPrice: new Big(traderOrderInfo.execution_price).toNumber(),
           initialMargin: new Big(traderOrderInfo.initial_margin).toNumber(),
+          availableMargin: new Big(traderOrderInfo.available_margin).toNumber(),
           liquidationPrice: new Big(
             traderOrderInfo.liquidation_price
           ).toNumber(),
