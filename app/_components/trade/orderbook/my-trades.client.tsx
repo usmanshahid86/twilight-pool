@@ -522,7 +522,6 @@ const OrderMyTrades = () => {
     });
   }, [getCurrentPrice]);
 
-  // Memoize stable table data that doesn't change with price updates
   const tableData = useMemo(() => {
     return tradeOrders.filter((trade) => trade.isOpen).map((trade) => ({
       ...trade,

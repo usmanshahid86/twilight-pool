@@ -179,6 +179,28 @@ export const tradeHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
     },
   },
   {
+    accessorKey: "availableMargin",
+    header: "A. Margin (BTC)",
+    cell: (row) => {
+      const trade = row.row.original;
+
+      const isPendingLimit = trade.orderType === "LIMIT" && trade.orderStatus === "PENDING";
+
+      if (isPendingLimit) {
+        return <span className="text-xs text-gray-500">—</span>;
+      }
+
+      const availableMargin = new BTC("sats", Big(trade.availableMargin))
+        .convert("BTC")
+
+      return (
+        <span className="font-medium">
+          {BTC.format(availableMargin, "BTC")} BTC
+        </span>
+      );
+    },
+  },
+  {
     accessorKey: "feeSettled",
     header: "Fee (BTC)",
     cell: (row) => {
