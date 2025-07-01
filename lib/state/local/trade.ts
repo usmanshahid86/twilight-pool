@@ -6,6 +6,7 @@ export interface TradeSlice {
   addTrade: (tradeOrder: TradeOrder) => void;
   removeTrade: (tradeOrder: TradeOrder) => void;
   updateTrade: (tradeOrder: TradeOrder) => void;
+  setNewTrades: (trades: TradeOrder[]) => void;
   resetState: () => void;
 }
 
@@ -57,6 +58,11 @@ export const createTradeSlice: StateImmerCreator<AccountSlices, TradeSlice> = (
         ...state.trade,
         ...initialTradeSliceState,
       };
+    });
+  },
+  setNewTrades: (trades) => {
+    set((state) => {
+      state.trade.trades = trades;
     });
   },
 });

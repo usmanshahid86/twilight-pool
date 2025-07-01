@@ -5,31 +5,28 @@ import { useSessionStore } from "../providers/session";
 import { queryTradeOrder } from "../api/relayer";
 import Big from "big.js";
 import dayjs from "dayjs";
+import { TradeOrder } from "../types";
 
 const statusToSkip = ["CANCELLED", "SETTLED"];
 
 export const useSyncTrades = () => {
   const tradeOrders = useTwilightStore((state) => state.trade.trades);
-  const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
-  const selectedZkAccount = useTwilightStore(
-    (state) => state.zk.selectedZkAccount
-  );
-  const updateTrade = useTwilightStore((state) => state.trade.updateTrade);
+  const setNewTrades = useTwilightStore((state) => state.trade.setNewTrades);
 
   const privateKey = useSessionStore((state) => state.privateKey);
-
-  const currentZkAccount = zkAccounts[selectedZkAccount];
 
   useQuery({
     queryKey: ["sync-trades"],
     queryFn: async () => {
       if (tradeOrders.length === 0) return true;
 
+      const updated: TradeOrder[] = [];
+
       for (const trade of tradeOrders) {
         if (statusToSkip.includes(trade.orderStatus)) continue;
 
         const queryTradeOrderMsg = await createQueryTradeOrderMsg({
-          address: currentZkAccount.address,
+          address: trade.accountAddress,
           orderStatus: trade.orderStatus,
           signature: privateKey,
         });
@@ -42,7 +39,7 @@ export const useSyncTrades = () => {
 
         const traderOrderInfo = queryTradeOrderRes.result;
 
-        updateTrade({
+        const updatedTrade = {
           ...trade,
           orderStatus: traderOrderInfo.order_status,
           uuid: traderOrderInfo.uuid,
@@ -67,8 +64,22 @@ export const useSyncTrades = () => {
             traderOrderInfo.order_status === "CANCELLED"
               ? false
               : true,
-        });
+        };
+
+        updated.push(updatedTrade);
       }
+
+      const mergedTrades = tradeOrders.map((trade) => {
+        const updatedTrade = updated.find((t) => t.uuid === trade.uuid);
+
+        if (updatedTrade) {
+          return updatedTrade;
+        }
+
+        return trade;
+      });
+
+      setNewTrades(mergedTrades);
 
       return true;
     },
