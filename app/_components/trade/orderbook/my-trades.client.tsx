@@ -288,7 +288,8 @@ const OrderMyTrades = () => {
 
           let hasSettled = false;
           transactionHashes.forEach((result) => {
-            if (result.order_status !== "SETTLED") {
+            if (result.order_status !== "CANCELLED") {
+              console.log(result.order_status)
               return;
             }
 
@@ -446,7 +447,7 @@ const OrderMyTrades = () => {
 
             const isPositive = upnl > 0;
             const isNegative = upnl < 0;
-            const displayupnl = BTC.format(new BTC("sats", Big(upnl)).convert("BTC"), "BTC");
+            const displayupnl = BTC.format(new BTC("sats", Big(upnl)).convert("BTC"), "BTC")
 
             return (
               <span

@@ -14,17 +14,14 @@ import { useSessionStore } from "@/lib/providers/session";
 import dayjs from "dayjs";
 
 const TickerWrapper = () => {
-  const { feed } = usePriceFeed();
+  const { getCurrentPrice } = usePriceFeed();
 
-  const currentPrice = feed.length > 1 ? feed[feed.length - 1] : 0;
-
+  const currentPrice = getCurrentPrice();
   const btcPrice = useSessionStore((state) => state.price.btcPrice);
 
-  const priceDelta = feed[feed.length - 2]
-    ? currentPrice - feed[feed.length - 2]
-    : 0;
+  const priceDelta = 0;
 
-  const finalPrice = currentPrice ? currentPrice : btcPrice;
+  const finalPrice = currentPrice || btcPrice;
 
   const { priceTickerData, fundingTickerData, resetFunding, hasInit } =
     usePriceTickerData(finalPrice);
@@ -124,8 +121,8 @@ const TickerWrapper = () => {
           {change === 0
             ? change.toFixed(2)
             : change > 0
-            ? `+ ${change.toFixed(2)}`
-            : `- ${Math.abs(change).toFixed(2)}`}
+              ? `+ ${change.toFixed(2)}`
+              : `- ${Math.abs(change).toFixed(2)}`}
           {"%"}
         </Resource>
       </TickerItem>
@@ -172,8 +169,8 @@ const TickerWrapper = () => {
                   parseFloat(fundingRate) === 0
                     ? "text-primary"
                     : parseFloat(fundingRate) > 0
-                    ? "text-green-medium"
-                    : "text-red"
+                      ? "text-green-medium"
+                      : "text-red"
                 )}
               >
                 {`${fundingRate}`}%

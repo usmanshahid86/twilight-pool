@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useCallback, useContext, useMemo, useRef } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 
 type PriceFeedProviderProps = {
   children: React.ReactNode;
@@ -12,6 +12,7 @@ type UsePriceFeedProps = {
   addPrice: (price: number) => void;
   getCurrentPrice: () => number;
   subscribe: (callback: PriceUpdateCallback) => () => void;
+  lastPrice: number;
 };
 
 const defaultContext: UsePriceFeedProps = {
@@ -19,6 +20,7 @@ const defaultContext: UsePriceFeedProps = {
   addPrice: () => { },
   getCurrentPrice: () => 0,
   subscribe: () => () => { },
+  lastPrice: 0,
 };
 
 const feedContext = createContext<UsePriceFeedProps | undefined>(undefined);
@@ -31,10 +33,16 @@ export const PriceFeedProvider: React.FC<PriceFeedProviderProps> = (props) => {
 
 const PriceFeed: React.FC<PriceFeedProviderProps> = ({ children }) => {
   const feedRef = useRef<number[]>([]);
+  const [lastPrice, setLastPrice] = useState(0);
   const subscribersRef = useRef<Set<PriceUpdateCallback>>(new Set());
 
   const addPrice = useCallback<(price: number) => void>(
     (price) => {
+      // Save the current last price as the previous price
+      const currentLastPrice = feedRef.current.length > 0
+        ? feedRef.current[feedRef.current.length - 1]
+        : 0;
+
       const newFeed = [...feedRef.current, price];
 
       // Keep only the last 2 prices
@@ -43,6 +51,9 @@ const PriceFeed: React.FC<PriceFeedProviderProps> = ({ children }) => {
       }
 
       feedRef.current = newFeed;
+
+      // Update lastPrice to the previous price for delta calculation
+      setLastPrice(currentLastPrice);
 
       // Notify all subscribers
       subscribersRef.current.forEach(callback => callback());
@@ -69,6 +80,7 @@ const PriceFeed: React.FC<PriceFeedProviderProps> = ({ children }) => {
       addPrice,
       getCurrentPrice,
       subscribe,
+      lastPrice,
     };
   }, [addPrice, getCurrentPrice, subscribe]);
 

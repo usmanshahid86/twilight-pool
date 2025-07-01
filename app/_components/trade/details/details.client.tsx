@@ -11,11 +11,11 @@ import dayjs from 'dayjs';
 const DetailsPanel = () => {
   const [currentTab, setCurrentTab] = useState<"history" | "trades">("trades");
 
-  const { feed } = usePriceFeed();
+  const { getCurrentPrice } = usePriceFeed();
   const tradeOrders = useTwilightStore((state) => state.trade.trades);
 
   // Get the current price from the feed
-  const currentPrice = feed.length > 1 ? feed[feed.length - 1] : 0;
+  const currentPrice = getCurrentPrice();
 
   const tradeHistoryData = useMemo(() => {
     return tradeOrders.length > 1

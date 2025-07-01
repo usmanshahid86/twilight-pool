@@ -111,7 +111,6 @@ const ChartWrapper = ({ candleData }: Props) => {
 
       const candleStickData = candleStickDataArr[0];
 
-
       const time = dayjs
         .utc(candleStickData.end)
         .unix();

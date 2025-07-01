@@ -57,7 +57,7 @@ export const myTradesColumns: ColumnDef<MyTradeOrder, any>[] = [
     header: "Position Value (BTC)",
     cell: (row) => {
       const trade = row.row.original;
-      const markPrice = trade.entryPrice;
+      const markPrice = trade.entryPrice || 1;
       const positionValue = new BTC("sats", Big(Math.abs(trade.positionSize / markPrice)))
         .convert("BTC")
 

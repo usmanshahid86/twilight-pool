@@ -41,11 +41,9 @@ const Page = () => {
 
   const tradingAccountAddress = tradingAccount ? tradingAccount.address : "";
 
-  const { feed } = usePriceFeed();
+  const { getCurrentPrice } = usePriceFeed();
 
-  const currentPrice = feed.length > 1 ? feed[feed.length - 1] : 0;
-
-  const finalPrice = currentPrice ? currentPrice : btcPrice;
+  const finalPrice = getCurrentPrice() || btcPrice;
 
   // note: incomplete
   function useGetTradingBTCBalance() {
