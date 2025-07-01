@@ -144,6 +144,10 @@ const SubaccountSelect = () => {
                   return null;
                 }
 
+                if (account.value === 0 || account.type === "Memo") {
+                  return null;
+                }
+
                 return (
                   <SelectItem
                     className="flex-col items-start"

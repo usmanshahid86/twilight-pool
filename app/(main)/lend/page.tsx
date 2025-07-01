@@ -35,6 +35,7 @@ const Page = () => {
   const privateKey = useSessionStore((state) => state.privateKey);
   const zKAccounts = useTwilightStore((state) => state.zk.zkAccounts);
   const lendOrders = useTwilightStore((state) => state.lend.lends);
+  const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount);
 
   const addTransactionHistory = useTwilightStore(
     (state) => state.history.addTransaction
@@ -150,8 +151,6 @@ const Page = () => {
           executionPricePoolshare: 1,
         });
 
-        console.log(msg);
-
         const executeLendRes = await executeLendOrder(msg);
         console.log("executeLendRes", executeLendRes);
 
@@ -194,6 +193,11 @@ const Page = () => {
           (account) => account.address === lendOrder.accountAddress
         );
 
+        if (!selectedZkAccount) {
+          console.error("selectedZkAccount not found");
+          continue;
+        }
+
         addTransactionHistory({
           date: new Date(),
           from: selectedZkAccount?.address || "",
@@ -209,6 +213,11 @@ const Page = () => {
         toast({
           title: "Success",
           description: "Redeemed lend sats successfully",
+        });
+
+        updateZkAccount(selectedZkAccount.address, {
+          ...selectedZkAccount,
+          type: "Coin",
         });
 
       }
