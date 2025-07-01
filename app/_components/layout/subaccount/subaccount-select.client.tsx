@@ -119,25 +119,28 @@ const SubaccountSelect = () => {
             </>
           ) : (
             <>
-              <SelectItem
-                className="flex-col items-start"
-                value={ZK_ACCOUNT_INDEX.MAIN.toString()}
-                isNotSpan
-              >
-                Trading Account
-                <span className="text-xs text-primary-accent">
-                  {new BTC(
-                    "sats",
-                    Big(
-                      zkAccounts.filter((account) => account.tag === "main")[0]
-                        .value || 0
-                    )
-                  )
-                    .convert("BTC")
-                    .toString()}{" "}
-                  BTC
-                </span>
-              </SelectItem>
+              {
+                zkAccounts[ZK_ACCOUNT_INDEX.MAIN].type === "Coin" && (
+                  <SelectItem
+                    className="flex-col items-start"
+                    value={ZK_ACCOUNT_INDEX.MAIN.toString()}
+                    isNotSpan
+                  >
+                    Trading Account
+                    <span className="text-xs text-primary-accent">
+                      {new BTC(
+                        "sats",
+                        Big(
+                          zkAccounts.filter((account) => account.tag === "main")[0]
+                            .value || 0
+                        )
+                      )
+                        .convert("BTC")
+                        .toString()}{" "}
+                      BTC
+                    </span>
+                  </SelectItem>)
+              }
               {zkAccounts.map((account, index) => {
                 if (index === ZK_ACCOUNT_INDEX.MAIN) {
                   // todo: replace key tag with actual address

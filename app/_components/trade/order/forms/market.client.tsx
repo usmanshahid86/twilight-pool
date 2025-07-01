@@ -84,6 +84,15 @@ const OrderMarketForm = () => {
         .convert("sats")
         .toNumber();
 
+      if (!currentZkAccount.value || currentZkAccount.value < satsValue) {
+        toast({
+          variant: "error",
+          title: "Insufficient funds",
+          description: "You do not have enough funds to submit this trade order",
+        });
+        return;
+      }
+
       setIsSubmitting(true);
 
       const leverage = parseInt(leverageRef.current?.value || "1");
@@ -310,7 +319,7 @@ const OrderMarketForm = () => {
             <label htmlFor="input-market-amount-usd">Amount (USD)</label>
           </Text>
           <Input
-            type="number"
+            type="text"
             id="input-market-amount-usd"
             placeholder="$0.00"
             ref={usdRef}

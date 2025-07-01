@@ -91,8 +91,6 @@ const TransferDialog = ({
 
   useEffect(() => {
     if (
-      toAccountValue === "funding" &&
-      fromAccountValue === "trading" &&
       selectedTradingAccountFrom
     ) {
       const selectedTradingAccount = zkAccounts.find(
@@ -297,6 +295,7 @@ const TransferDialog = ({
           setIsSubmitLoading(false);
           return;
         }
+
         if (toAccountValue === "trading") {
 
           const depositZkAccount = zkAccounts.find(
@@ -372,6 +371,7 @@ const TransferDialog = ({
           } = privateTxSingleResult.data;
 
           console.log("txId", txId, "updatedAddess", updatedDepositAddress);
+
           const updatedSenderAccount = senderZkPrivateAccount.get();
 
           const updatedZkAccount = {
@@ -422,6 +422,7 @@ const TransferDialog = ({
             ...senderZkAccount,
             value: updatedSenderAccount.value,
             isOnChain: updatedSenderAccount.isOnChain,
+            type: "Coin",
           });
 
           const rawDepositZkAccountData = depositZkPrivateAccount.get();
@@ -643,6 +644,7 @@ const TransferDialog = ({
             ...senderZkAccount,
             isOnChain: false,
             value: 0,
+            type: "Coin",
           });
 
           addTransactionHistory({
@@ -772,7 +774,7 @@ const TransferDialog = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {zkAccounts.filter((account) => account.value).map((subAccount) => {
+                      {zkAccounts.filter((account) => account.value || (account.type === "CoinSettled" && account.value)).map((subAccount) => {
                         return (
                           <SelectItem
                             disabled={
@@ -899,7 +901,7 @@ const TransferDialog = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {zkAccounts.filter((account) => !account.value).map((subAccount) => {
+                      {zkAccounts.filter((account) => !account.value && account.type !== "CoinSettled").map((subAccount) => {
                         return (
                           <SelectItem
                             disabled={
