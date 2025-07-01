@@ -6,6 +6,7 @@ import BTC from "@/lib/twilight/denoms";
 import { TradeOrder } from "@/lib/types";
 import { ColumnDef } from "@tanstack/react-table";
 import Big from "big.js";
+import dayjs from 'dayjs';
 
 interface MyTradeOrder extends TradeOrder {
   onSettle: (trade: TradeOrder) => void;
@@ -36,6 +37,11 @@ export const calculateUpnl = (entryPrice: number, currentPrice: number, position
 };
 
 export const myTradesColumns: ColumnDef<MyTradeOrder, any>[] = [
+  {
+    accessorKey: "date",
+    header: "Date & Time",
+    accessorFn: (row) => dayjs(row.date).format("DD/MM/YYYY HH:mm:ss"),
+  },
   {
     accessorKey: "positionSize",
     header: "Position Size (USD)",

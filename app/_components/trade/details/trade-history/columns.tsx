@@ -7,6 +7,7 @@ import BTC from "@/lib/twilight/denoms";
 import { TradeOrder } from '@/lib/types';
 import { ColumnDef } from "@tanstack/react-table";
 import Big from "big.js";
+import dayjs from 'dayjs';
 import Link from "next/link";
 interface MyTradeOrder extends TradeOrder {
   currentPrice?: number;
@@ -218,6 +219,6 @@ export const tradeHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
   {
     accessorKey: "date",
     header: "Date & Time",
-    accessorFn: (row) => convertDate(row.date).toLocaleString(),
+    accessorFn: (row) => dayjs(row.date).format("DD/MM/YYYY HH:mm:ss"),
   },
 ];
