@@ -6,6 +6,8 @@ import { queryTradeOrder } from "../api/relayer";
 import Big from "big.js";
 import dayjs from "dayjs";
 import { TradeOrder } from "../types";
+import { useWallet } from "@cosmos-kit/react-lite";
+import { WalletStatus } from "@cosmos-kit/core";
 
 const statusToSkip = ["CANCELLED", "SETTLED"];
 
@@ -13,11 +15,15 @@ export const useSyncTrades = () => {
   const tradeOrders = useTwilightStore((state) => state.trade.trades);
   const setNewTrades = useTwilightStore((state) => state.trade.setNewTrades);
 
+  const { status } = useWallet();
+
   const privateKey = useSessionStore((state) => state.privateKey);
 
   useQuery({
     queryKey: ["sync-trades"],
     queryFn: async () => {
+      if (status !== WalletStatus.Connected) return true;
+
       if (tradeOrders.length === 0) return true;
 
       const updated: TradeOrder[] = [];
