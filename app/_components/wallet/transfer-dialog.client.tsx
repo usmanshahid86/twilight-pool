@@ -168,6 +168,15 @@ const TransferDialog = ({
           return;
         }
 
+        if (twilightSats < transferAmount) {
+          toast({
+            title: "Unable to transfer",
+            description: "Insufficient balance",
+          });
+          setIsSubmitLoading(false);
+          return;
+        }
+
         const stargateClient = await chainWallet.getSigningStargateClient();
 
         console.log("funding transfer signature", privateKey);
@@ -263,6 +272,16 @@ const TransferDialog = ({
         )[0];
 
         if (toAccountValue === "trading") {
+          if (!senderZkAccount.value) {
+            toast({
+              variant: "error",
+              title: "An error has occurred",
+              description: "Account does not have enough value to send",
+            });
+            setIsSubmitLoading(false);
+            return;
+          }
+
           const depositZkAccount = zkAccounts.find(
             (account) => account.address === selectedTradingAccountTo
           );
@@ -653,6 +672,11 @@ const TransferDialog = ({
         setIsSubmitLoading(false);
       }
     } catch (err) {
+      toast({
+        variant: "error",
+        title: "An error has occurred",
+        description: "An error has occurred, please check the console for more information",
+      });
       console.error("err", err);
       setIsSubmitLoading(false);
     }
