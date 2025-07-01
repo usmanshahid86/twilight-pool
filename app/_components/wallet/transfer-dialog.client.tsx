@@ -62,6 +62,7 @@ const TransferDialog = ({
   const zkAccounts = zkAccountsRaw.filter((account) => account.type !== "Memo");
 
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount);
+  const addZkAccount = useTwilightStore((state) => state.zk.addZkAccount);
 
   const addTransactionHistory = useTwilightStore(
     (state) => state.history.addTransaction
@@ -760,7 +761,7 @@ const TransferDialog = ({
                   <Select
                     defaultValue={selectedTradingAccountFrom}
                     value={selectedTradingAccountFrom}
-                    onValueChange={(newAddress) => {
+                    onValueChange={async (newAddress) => {
                       setSelectedTradingAccountFrom(newAddress);
                     }}
                   >
@@ -889,7 +890,27 @@ const TransferDialog = ({
                   <Select
                     defaultValue={selectedTradingAccountTo}
                     value={selectedTradingAccountTo}
-                    onValueChange={setSelectedTradingAccountTo}
+                    onValueChange={async (newAddress) => {
+                      if (newAddress === "create") {
+                        const tag = `Subaccount ${zkAccounts.length}`
+
+                        const newZkAccount = await createZkAccount({
+                          tag,
+                          signature: privateKey,
+                        });
+
+                        addZkAccount({
+                          ...newZkAccount,
+                          isOnChain: false,
+                          value: 0,
+                        });
+
+                        setSelectedTradingAccountTo(newZkAccount.address);
+                        return;
+                      }
+
+                      setSelectedTradingAccountTo(newAddress);
+                    }}
                   >
                     <SelectTrigger
                       id="dropdown-trading-account-to"
@@ -913,6 +934,12 @@ const TransferDialog = ({
                           </SelectItem>
                         );
                       })}
+                      <SelectItem
+                        key={"create"}
+                        value={"create"}
+                      >
+                        Create new account
+                      </SelectItem>
                     </SelectContent>
                   </Select>
 
