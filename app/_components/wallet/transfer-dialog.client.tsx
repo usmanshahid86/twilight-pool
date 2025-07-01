@@ -892,7 +892,7 @@ const TransferDialog = ({
                     value={selectedTradingAccountTo}
                     onValueChange={async (newAddress) => {
                       if (newAddress === "create") {
-                        const tag = `Subaccount ${zkAccounts.length}`
+                        const tag = `Subaccount ${zkAccountsRaw.length}`
 
                         const newZkAccount = await createZkAccount({
                           tag,
