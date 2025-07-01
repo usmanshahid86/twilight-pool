@@ -89,14 +89,13 @@ const OrderMarketForm = () => {
         value: satsValue,
       });
 
-      setIsSubmitting(false);
-
       if (!success || !msg) {
         toast({
           variant: "error",
           title: "Unable to submit trade order",
           description: "An error has occurred, try again later.",
         });
+        setIsSubmitting(false);
         return;
       }
 
