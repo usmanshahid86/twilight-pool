@@ -973,7 +973,7 @@ const TransferDialog = ({
           </div>
 
           <div className="pt-2">
-            <Button disabled={isSubmitLoading} type="submit" size="small">
+            <Button disabled={isSubmitLoading || (!selectedTradingAccountFrom && !selectedTradingAccountTo)} type="submit" size="small">
               <Resource
                 isLoaded={!isSubmitLoading}
                 placeholder={<Loader2 className="animate-spin" />}
