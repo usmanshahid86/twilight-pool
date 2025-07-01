@@ -772,7 +772,7 @@ const TransferDialog = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {zkAccounts.map((subAccount) => {
+                      {zkAccounts.filter((account) => account.value).map((subAccount) => {
                         return (
                           <SelectItem
                             disabled={

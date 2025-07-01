@@ -18,6 +18,9 @@ import { ZK_ACCOUNT_INDEX } from "@/lib/constants";
 import { useTwilightStore } from "@/lib/providers/store";
 import BTC from "@/lib/twilight/denoms";
 import Big from "big.js";
+import { WalletStatus } from '@cosmos-kit/core';
+import { useSessionStore } from '@/lib/providers/session';
+import { useToast } from '@/lib/hooks/useToast';
 
 function getSelectMenuText(selectedZkAccount: number, zkAccounts: ZkAccount[]) {
   if (selectedZkAccount === ZK_ACCOUNT_INDEX.DISCONNECTED) {
@@ -41,6 +44,8 @@ const SubaccountSelect = () => {
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
   const { status } = useWallet();
 
+  const { toast } = useToast();
+  const privateKey = useSessionStore((state) => state.privateKey);
   const { hasRegisteredBTC, hasConfirmedBTC } = useTwilight();
 
   const selectedZkAccount =
@@ -70,9 +75,16 @@ const SubaccountSelect = () => {
           // note: -1 represents manage subaccount
           // -2 represents trading account
           // -3 represents disconnected state
-          // limitation cause we parseint maybe someone can fix it
           if (newSubaccountIndex === ZK_ACCOUNT_INDEX.MANAGE_ACCOUNT) {
-            // open modal to create subaccount
+
+            if (status !== WalletStatus.Connected || !privateKey) {
+              toast({
+                title: "Please connect your wallet",
+                description: "Please connect your wallet to manage subaccounts",
+              });
+              return;
+            }
+
             setOpenSubaccountModal(true);
             return;
           }
