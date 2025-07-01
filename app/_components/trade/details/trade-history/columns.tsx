@@ -46,7 +46,7 @@ export const tradeHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
 
       return (
         <span className="font-medium">
-          {BTC.format(positionValue, "BTC")} BTC
+          {BTC.format(positionValue, "BTC")}
         </span>
       );
     },
@@ -78,7 +78,7 @@ export const tradeHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
   },
   {
     accessorKey: "unrealizedPnl",
-    header: "PnL",
+    header: "PnL (BTC)",
     cell: (row) => {
       const trade = row.row.original;
 
@@ -102,7 +102,7 @@ export const tradeHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
             !isPositive && !isNegative && "text-gray-500"
           )}
         >
-          {isPositive ? "+" : ""}{displayupnl} BTC
+          {isPositive ? "+" : ""}{displayupnl}
         </span>
       );
     },
@@ -180,7 +180,7 @@ export const tradeHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
   },
   {
     accessorKey: "availableMargin",
-    header: "A. Margin (BTC)",
+    header: "Avl. Margin (BTC)",
     cell: (row) => {
       const trade = row.row.original;
 
@@ -195,7 +195,7 @@ export const tradeHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
 
       return (
         <span className="font-medium">
-          {BTC.format(availableMargin, "BTC")} BTC
+          {BTC.format(availableMargin, "BTC")}
         </span>
       );
     },
@@ -213,7 +213,7 @@ export const tradeHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
 
       return (
         <span className="font-medium">
-          {BTC.format(new BTC("sats", Big(fee)).convert("BTC"), "BTC")} BTC
+          {BTC.format(new BTC("sats", Big(fee)).convert("BTC"), "BTC")}
         </span>
       );
     },
