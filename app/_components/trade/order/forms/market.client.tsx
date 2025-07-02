@@ -51,7 +51,7 @@ const OrderMarketForm = () => {
   const currentZkAccount = zKAccounts[selectedZkAccount];
 
   useEffect(() => {
-    if (!selectedZkAccount || !currentZkAccount ||
+    if (!currentZkAccount ||
       !currentZkAccount.value ||
       !btcRef.current ||
       !usdRef.current ||

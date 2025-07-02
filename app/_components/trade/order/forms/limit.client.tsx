@@ -26,7 +26,6 @@ import { useWallet } from "@cosmos-kit/react-lite";
 import Big from "big.js";
 import dayjs from 'dayjs';
 import { ChevronDown, Loader2 } from "lucide-react";
-import Link from "next/link";
 import React, { SyntheticEvent, useEffect, useRef, useState } from "react";
 
 const limitQtyOptions = [25, 50, 75, 100];
@@ -55,7 +54,7 @@ const OrderLimitForm = () => {
   const currentZkAccount = zkAccounts[selectedZkAccount];
 
   useEffect(() => {
-    if (!selectedZkAccount || !currentZkAccount ||
+    if (!currentZkAccount ||
       !currentZkAccount.value ||
       !btcAmountRef.current ||
       !leverageRef.current) return;
