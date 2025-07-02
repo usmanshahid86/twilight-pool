@@ -43,26 +43,35 @@ const MobileNav = () => {
         <div className="space-y-4">
           <div className="space-y-1">
             <Text className="font-ui text-xs uppercase text-primary/80">
-              Trade
+              Links
             </Text>
-
             <div className="space-y-2">
-              <MobileLink href="/wallet" text="Wallet" />
+              <MobileLink href="/trade" text="Trade" />
               <MobileLink href="/lend" text="Lend" />
+              <MobileLink href="/wallet" text="Wallet" />
+              <MobileLink href="/faucet" text="Faucet" />
             </div>
           </div>
           <div className="space-y-1">
             <Text className="font-ui text-xs uppercase text-primary/80">
-              Funds
+              Docs
             </Text>
 
             <div className="space-y-2">
-              <MobileLink href="/registration" text="Register" />
-              <MobileLink href="/verification" text="Verify" />
-              <MobileLink href="/withdrawal" text="Withdraw" />
+              <MobileLink href="https://docs.twilight.rest/#introduction" text="Developer Docs" />
+              <MobileLink href="https://docs.twilight.org/" text="Specs" />
             </div>
           </div>
 
+          <div className="space-y-1">
+            <Text className="font-ui text-xs uppercase text-primary/80">
+              User Guides
+            </Text>
+            <div className="space-y-2">
+              <MobileLink href="/dex-operations" text="DEX Operations" />
+              <MobileLink href="/lend-to-twilight-pool" text="Lend to Twilight Pool" />
+            </div>
+          </div>
           <div className="space-y-1">
             <Text className="font-ui text-xs uppercase text-primary/80">
               Accounts
