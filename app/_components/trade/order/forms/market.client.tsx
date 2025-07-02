@@ -118,6 +118,15 @@ const OrderMarketForm = () => {
         return;
       }
 
+      if (currentZkAccount.value - satsValue !== 0) {
+        toast({
+          variant: "error",
+          title: "Unable to submit trade order",
+          description: "You can only enter the full balance of the account to submit a trade order",
+        });
+        return;
+      }
+
       setIsSubmitting(true);
 
       const leverage = parseInt(leverageRef.current?.value || "1");

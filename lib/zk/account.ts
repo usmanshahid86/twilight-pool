@@ -414,12 +414,23 @@ export class ZkPrivateAccount {
       }>
     | FailureResult
   > {
+    // for now make sure the updated balance is 0
+
+    // const updatedBalance = this.value - amount;
+
+    // if (amount < 0) {
+    //   return {
+    //     success: false,
+    //     message: `Unable to transfer ${amount} sats, due to lack of funds ${this.value}`,
+    //   };
+    // }
+
     const updatedBalance = this.value - amount;
 
-    if (amount < 0) {
+    if (updatedBalance !== 0) {
       return {
         success: false,
-        message: `Unable to transfer ${amount} sats, due to lack of funds ${this.value}`,
+        message: `Unable to complete transfer, you must only transfer the full balance of the account`,
       };
     }
 

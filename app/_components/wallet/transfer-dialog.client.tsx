@@ -905,9 +905,6 @@ const TransferDialog = ({
                           value: 0,
                         });
 
-                        setSelectedTradingAccountTo(newZkAccount.address);
-
-
                         toast({
                           title: "Created Subaccount",
                           description: `Successfully created ${tag}`,

@@ -105,6 +105,10 @@ const OrderLimitForm = () => {
         } BTC`;
       }
 
+      if (currentAccountValue - btcAmountInSats !== 0) {
+        throw `You can only enter the full balance of the account to submit a trade order`;
+      }
+
       if (orderPrice <= 0) {
         throw `Unable to create limit order with price lower than 0`;
       }
