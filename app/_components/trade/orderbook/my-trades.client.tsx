@@ -44,15 +44,6 @@ const OrderMyTrades = () => {
 
   // Memoize the callback functions to prevent unnecessary re-renders
   const handleSettleOrder = useCallback(async (tradeOrder: TradeOrder) => {
-    if (!tradeOrder.output) {
-      toast({
-        variant: "error",
-        title: "Error",
-        description: "Error with settling trade order",
-      });
-      return;
-    }
-
     const currentAccount = zkAccounts.find(
       (account) => account.address === tradeOrder.accountAddress
     );
@@ -66,6 +57,54 @@ const OrderMyTrades = () => {
 
       return;
     }
+
+    const transactionHashCondition = (
+      txHashResult: Awaited<ReturnType<typeof queryTransactionHashes>>
+    ) => {
+      if (txHashResult.result) {
+        const transactionHashes = txHashResult.result;
+
+        let hasSettled = false;
+        transactionHashes.forEach((result) => {
+          if (result.order_status !== "FILLED") {
+            console.log(result.order_status)
+            return;
+          }
+
+          hasSettled =
+            result.order_id === tradeOrder.uuid &&
+            !result.tx_hash.includes("Error");
+        });
+
+        return hasSettled;
+      }
+      return false;
+    };
+
+    const transactionHashRes = await retry<
+      ReturnType<typeof queryTransactionHashes>,
+      string
+    >(
+      queryTransactionHashes,
+      9,
+      tradeOrder.accountAddress,
+      2500,
+      transactionHashCondition
+    );
+
+    if (!transactionHashRes.success) {
+      console.error("cancel order failed to get transaction_hashes");
+      toast({
+        variant: "error",
+        title: "Error",
+        description: "Error with cancelling trade order",
+      });
+      return;
+    }
+
+    const output = transactionHashRes.data.result.find(
+      (tx) => tx.order_status === "FILLED"
+    )?.output || ""
 
     try {
       console.log({
@@ -83,7 +122,7 @@ const OrderMyTrades = () => {
         address: tradeOrder.accountAddress,
         orderStatus: tradeOrder.orderStatus,
         orderType: tradeOrder.orderType,
-        outputMemo: tradeOrder.output,
+        outputMemo: tradeOrder.output || output,
         transactionType: "ORDERTX",
         uuid: tradeOrder.uuid,
         signature: privateKey,
@@ -109,10 +148,11 @@ const OrderMyTrades = () => {
 
           let hasSettled = false;
           transactionHashes.forEach((result) => {
-            if (result.order_status !== "SETTLED") {
+            if (result.order_status !== "PENDING") {
               return;
             }
 
+            console.log(result.order_id, tradeOrder.uuid)
             hasSettled =
               result.order_id === tradeOrder.uuid &&
               !result.tx_hash.includes("Error");
@@ -127,9 +167,9 @@ const OrderMyTrades = () => {
         ReturnType<typeof queryTransactionHashes>,
         string
       >(
-        queryTransactionHashByRequestId,
+        queryTransactionHashes,
         9,
-        requestId,
+        tradeOrder.accountAddress,
         2500,
         transactionHashCondition
       );
@@ -186,6 +226,7 @@ const OrderMyTrades = () => {
       const { value: newAccountBalance } = getZkAccountBalanceResult.data;
 
       if (!newAccountBalance) {
+        console.error("settling order failed to get balance", newAccountBalance);
         toast({
           variant: "error",
           title: "Error",
