@@ -86,12 +86,19 @@ const Header = () => {
               </div>
               <Separator className="mx-4 h-5" orientation="vertical" />
               <div className="flex items-center space-x-4">
-                <MultiLink
+                {/* <MultiLink
                   className={"min-w-[200px] justify-between"}
                   target={"_blank"}
                   title="User Guides"
                   subLinks={UserGuideLinks}
-                />
+                /> */}
+                <Link
+                  href="https://user-guide.docs.twilight.rest/docs"
+                  className="flex dark:text-gray-400 dark:hover:text-primary"
+                  target="_blank"
+                >
+                  User Guides <ArrowUpRight className="h-4 w-4" />
+                </Link>
                 <Link
                   href="https://docs.twilight.org/"
                   className="flex dark:text-gray-400 dark:hover:text-primary"

@@ -64,12 +64,12 @@ const MobileNav = () => {
           </div>
 
           <div className="space-y-1">
-            <Text className="font-ui text-xs uppercase text-primary/80">
+            {/* <Text className="font-ui text-xs uppercase text-primary/80">
               User Guides
-            </Text>
+            </Text> */}
             <div className="space-y-2">
-              <MobileLink href="/dex-operations" text="DEX Operations" />
-              <MobileLink href="/lend-to-twilight-pool" text="Lend to Twilight Pool" />
+              <MobileLink href="https://user-guide.docs.twilight.rest/docs" text="User Guides" />
+              {/* <MobileLink href="/lend-to-twilight-pool" text="Lend to Twilight Pool" /> */}
             </div>
           </div>
           <div className="space-y-1">
