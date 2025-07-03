@@ -17,6 +17,7 @@ import { myTradesColumns, calculateUpnl } from "./my-trades/columns";
 import { cancelTradeOrder, queryTradeOrder } from '@/lib/api/relayer';
 import dayjs from 'dayjs';
 import cn from "@/lib/cn";
+import Link from 'next/link';
 
 const OrderMyTrades = () => {
   const { toast } = useToast();
@@ -245,7 +246,16 @@ const OrderMyTrades = () => {
 
       toast({
         title: "Success",
-        description: `Successfully closed ${tradeOrder.orderType.toLowerCase()} order`,
+        description: <div className="opacity-90">
+          Successfully closed {tradeOrder.orderType.toLowerCase()} order.{" "}
+          <Link
+            href={`https://explorer.twilight.rest/nyks/tx/${settledTx?.tx_hash || tradeOrder.tx_hash}`}
+            target={"_blank"}
+            className="text-sm underline hover:opacity-100"
+          >
+            Explorer link
+          </Link>
+        </div>
       });
 
       console.log("trade order settled", settledTx?.tx_hash);

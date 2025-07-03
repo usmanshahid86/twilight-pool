@@ -29,6 +29,7 @@ import { WalletStatus } from '@cosmos-kit/core';
 import { useWallet } from '@cosmos-kit/react-lite';
 import Big from "big.js";
 import { Loader2 } from "lucide-react";
+import Link from 'next/link';
 import React, { useRef, useState } from "react";
 
 type Props = {
@@ -142,7 +143,18 @@ const LendDialog = ({ children }: Props) => {
 
       toast({
         title: "Success",
-        description: "Successfully submitted lend order",
+        description: <div className="opacity-90">
+          {`Successfully submitted lend order for ${new BTC("sats", Big(depositAmount))
+            .convert("BTC")
+            .toString()} BTC. `}
+          <Link
+            href={`https://explorer.twilight.rest/nyks/tx/${tx_hash}`}
+            target={"_blank"}
+            className="text-sm underline hover:opacity-100"
+          >
+            Explorer link
+          </Link>
+        </div>
       });
 
       addLendOrder({
@@ -222,7 +234,7 @@ const LendDialog = ({ children }: Props) => {
 
           <div className="space-y-1">
             <Text className="text-xs text-primary-accent" asChild>
-              <label htmlFor="dropdown-trading-account-from">Sats Amount</label>
+              <label htmlFor="dropdown-trading-account-from">BTC Amount</label>
             </Text>
 
             <PopoverInput
