@@ -216,7 +216,8 @@ const DetailsPanel = () => {
         );
       }
       case "trades": {
-        return <OrderMyTrades />;
+        // return <OrderMyTrades />;
+        return <></>
       }
     }
   }
@@ -241,26 +242,19 @@ const DetailsPanel = () => {
               Open Orders
             </TabsTrigger>
             <TabsTrigger
-              onClick={() => setCurrentTab("trades")}
-              value={"trades"}
-              variant="underline"
-            >
-              My Trades
-            </TabsTrigger>
-            <TabsTrigger
               onClick={() => setCurrentTab("trader-history")}
               value={"trader-history"}
               variant="underline"
             >
               Trader History
             </TabsTrigger>
-            <TabsTrigger
+            {/* <TabsTrigger
               onClick={() => setCurrentTab("history")}
               value={"history"}
               variant="underline"
             >
               Order History
-            </TabsTrigger>
+            </TabsTrigger> */}
           </TabsList>
         </Tabs>
       </div>
