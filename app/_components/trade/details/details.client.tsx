@@ -12,6 +12,7 @@ import Big from 'big.js';
 import dayjs from 'dayjs';
 import OpenOrdersTable from './tables/open-orders/open-orders-table.client';
 import TraderHistoryTable from './tables/trader-history/trader-history-table.client';
+import OrderHistoryTable from './tables/order-history/order-history-table.client';
 
 type TabType = "history" | "trades" | "positions" | "open-orders" | "trader-history";
 
@@ -19,6 +20,8 @@ const DetailsPanel = () => {
   const [currentTab, setCurrentTab] = useState<TabType>("positions");
 
   const tradeOrders = useTwilightStore((state) => state.trade.trades);
+
+  const orderHistoryData = useTwilightStore((state) => state.trade_history.trades);
   const privateKey = useSessionStore((state) => state.privateKey);
 
   const updateTrade = useTwilightStore((state) => state.trade.updateTrade)
@@ -115,7 +118,6 @@ const DetailsPanel = () => {
     });
   }, [privateKey])
 
-
   const cancelOrder = useCallback(async (order: TradeOrder) => {
     toast({
       title: "Cancelling order",
@@ -210,10 +212,9 @@ const DetailsPanel = () => {
         />;
       }
       case "history": {
-        return (
-          // <TradeHistoryDataTable columns={tradeHistoryColumns} data={tradeHistoryData} />
-          <></>
-        );
+        return <OrderHistoryTable
+          data={orderHistoryData}
+        />;
       }
       case "trades": {
         // return <OrderMyTrades />;

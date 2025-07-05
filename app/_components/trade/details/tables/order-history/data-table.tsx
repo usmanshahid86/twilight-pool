@@ -10,19 +10,27 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useState } from "react";
+import { OrderHistoryTableMeta } from "./columns";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  getCurrentPrice: () => number;
 }
 
-export function TradeHistoryDataTable<TData, TValue>({
+export function OrderHistoryDataTable<TData, TValue>({
   columns,
   data,
+  getCurrentPrice,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "date", desc: true },
   ]);
+
+  // Define the table meta data
+  const tableMeta: OrderHistoryTableMeta = {
+    getCurrentPrice,
+  };
 
   const table = useReactTable({
     data: data,
@@ -32,10 +40,15 @@ export function TradeHistoryDataTable<TData, TValue>({
       sorting: sorting,
     },
     getSortedRowModel: getSortedRowModel(),
+    onSortingChange: setSorting,
+    state: {
+      sorting,
+    },
+    meta: tableMeta, // Pass the meta data to the table
   });
 
   return (
-    <div className="w-full px-3">
+    <div className="w-full">
       <table cellSpacing={0} className="relative w-full overflow-auto">
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -65,9 +78,8 @@ export function TradeHistoryDataTable<TData, TValue>({
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
               <tr
-                className="cursor-pointer text-xs hover:bg-theme/20 data-[state=selected]:bg-theme"
+                className="text-xs transition-colors hover:bg-theme/20"
                 key={row.id}
-                data-state={row.getIsSelected() && "selected"}
               >
                 {row.getVisibleCells().map((cell, index) => (
                   <td
