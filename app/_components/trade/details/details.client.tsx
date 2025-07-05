@@ -11,8 +11,9 @@ import Link from 'next/link';
 import Big from 'big.js';
 import dayjs from 'dayjs';
 import OpenOrdersTable from './tables/open-orders/open-orders-table.client';
+import TraderHistoryTable from './tables/trader-history/trader-history-table.client';
 
-type TabType = "history" | "trades" | "positions" | "open-orders";
+type TabType = "history" | "trades" | "positions" | "open-orders" | "trader-history";
 
 const DetailsPanel = () => {
   const [currentTab, setCurrentTab] = useState<TabType>("positions");
@@ -23,32 +24,6 @@ const DetailsPanel = () => {
   const updateTrade = useTwilightStore((state) => state.trade.updateTrade)
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount)
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
-  const selectedZkAccount = useTwilightStore(
-    (state) => state.zk.selectedZkAccount
-  );
-
-  // const tradeHistoryData = useMemo(() => {
-  //   return tradeOrders.length > 1
-  //     ? [...tradeOrders].sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf())
-  //     : tradeOrders
-  //       .map((trade) => {
-  //         let calculatedUnrealizedPnl: number | undefined;
-
-  //         if (trade.orderStatus === "SETTLED") {
-  //           calculatedUnrealizedPnl = trade.realizedPnl || trade.unrealizedPnl;
-  //         }
-  //         else {
-  //           const positionSize = trade.positionSize;
-  //           calculatedUnrealizedPnl = calculateUpnl(trade.entryPrice, currentPrice || trade.entryPrice, trade.positionType, positionSize);
-  //         }
-
-  //         return {
-  //           ...trade,
-  //           currentPrice: trade.settlementPrice || currentPrice,
-  //           unrealizedPnl: calculatedUnrealizedPnl || trade.realizedPnl || trade.unrealizedPnl,
-  //         };
-  //       });
-  // }, [tradeOrders, currentPrice]);
 
   const positionsData = useMemo(() => {
     return tradeOrders.filter((trade) => trade.orderStatus === "FILLED")
@@ -56,6 +31,10 @@ const DetailsPanel = () => {
 
   const openOrdersData = useMemo(() => {
     return tradeOrders.filter((trade) => trade.orderStatus === "PENDING")
+  }, [tradeOrders])
+
+  const traderHistoryData = useMemo(() => {
+    return tradeOrders.filter((trade) => trade.orderStatus === "SETTLED" || trade.orderStatus === "LIQUIDATED")
   }, [tradeOrders])
 
   const {
@@ -225,6 +204,11 @@ const DetailsPanel = () => {
           cancelOrder={cancelOrder}
         />
       }
+      case "trader-history": {
+        return <TraderHistoryTable
+          data={traderHistoryData}
+        />;
+      }
       case "history": {
         return (
           // <TradeHistoryDataTable columns={tradeHistoryColumns} data={tradeHistoryData} />
@@ -262,6 +246,13 @@ const DetailsPanel = () => {
               variant="underline"
             >
               My Trades
+            </TabsTrigger>
+            <TabsTrigger
+              onClick={() => setCurrentTab("trader-history")}
+              value={"trader-history"}
+              variant="underline"
+            >
+              Trader History
             </TabsTrigger>
             <TabsTrigger
               onClick={() => setCurrentTab("history")}
