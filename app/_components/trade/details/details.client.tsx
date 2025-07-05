@@ -249,13 +249,13 @@ const DetailsPanel = () => {
             >
               Trader History
             </TabsTrigger>
-            {/* <TabsTrigger
+            <TabsTrigger
               onClick={() => setCurrentTab("history")}
               value={"history"}
               variant="underline"
             >
               Order History
-            </TabsTrigger> */}
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
