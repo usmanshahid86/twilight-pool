@@ -65,15 +65,13 @@ const OrderMyTrades = () => {
         const transactionHashes = txHashResult.result;
 
         let hasSettled = false;
+
         transactionHashes.forEach((result) => {
-          if (result.order_status !== "FILLED") {
-            console.log(result.order_status)
+          if (!result.output) {
             return;
           }
 
-          hasSettled =
-            result.order_id === tradeOrder.uuid &&
-            !result.tx_hash.includes("Error");
+          hasSettled = result.order_id === tradeOrder.uuid;
         });
 
         return hasSettled;

@@ -15,6 +15,10 @@ import {
 } from "./session/trade";
 import { createHistorySlice, initialHistorySliceState } from "./local/history";
 import { createPriceSlice } from "./session/price";
+import {
+  createTradeHistorySlice,
+  initialTradeHistorySliceState,
+} from "./local/trade-history";
 
 export const createTwilightStore = () => {
   return createStore<
@@ -27,6 +31,7 @@ export const createTwilightStore = () => {
         lend: createLendSlice(...actions),
         trade: createTradeSlice(...actions),
         history: createHistorySlice(...actions),
+        trade_history: createTradeHistorySlice(...actions),
       })),
       {
         name: "twilight-",
@@ -74,6 +79,10 @@ export const createTwilightStore = () => {
             history: {
               ...currentState.history,
               ...initialHistorySliceState,
+            },
+            trade_history: {
+              ...currentState.trade_history,
+              ...initialTradeHistorySliceState,
             },
           };
 

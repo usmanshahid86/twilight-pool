@@ -46,6 +46,7 @@ const OrderLimitForm = () => {
   const privateKey = useSessionStore((state) => state.privateKey);
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount)
   const addTrade = useTwilightStore((state) => state.trade.addTrade);
+  const addTradeHistory = useTwilightStore((state) => state.trade_history.addTrade)
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
   const selectedZkAccount = useTwilightStore(
     (state) => state.zk.selectedZkAccount
@@ -205,7 +206,7 @@ const OrderLimitForm = () => {
       const traderOrderInfo = queryTradeOrderRes.result;
       console.log("traderOrderInfo", traderOrderInfo);
 
-      addTrade({
+      const newTradeData = {
         accountAddress: currentZkAccount.address,
         orderStatus: orderData.order_status,
         positionType,
@@ -232,7 +233,10 @@ const OrderLimitForm = () => {
         unrealizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
         feeFilled: new Big(traderOrderInfo.fee_filled).toNumber(),
         feeSettled: new Big(traderOrderInfo.fee_settled).toNumber(),
-      });
+      }
+
+      addTrade(newTradeData);
+      addTradeHistory(newTradeData);
 
       console.log("success limit order");
 

@@ -64,6 +64,33 @@ async function cancelTradeOrder({
   return data;
 }
 
+export type QueryTradeOrderData = {
+  account_id: string;
+  available_margin: string;
+  bankruptcy_price: string;
+  bankruptcy_value: string;
+  entry_nonce: number;
+  entry_sequence: number;
+  entryprice: string;
+  execution_price: string;
+  exit_nonce: number;
+  id: number;
+  initial_margin: string;
+  leverage: string;
+  liquidation_price: string;
+  maintenance_margin: string;
+  order_status: string;
+  order_type: string;
+  position_type: string;
+  positionsize: string;
+  settlement_price: string;
+  timestamp: string;
+  unrealized_pnl: string;
+  uuid: string;
+  fee_filled: string;
+  fee_settled: string;
+};
+
 async function queryTradeOrder(msg: string) {
   const body = JSON.stringify({
     jsonrpc: "2.0",
@@ -90,32 +117,7 @@ async function queryTradeOrder(msg: string) {
 
   return data as {
     jsonrpc: "2.0";
-    result: {
-      account_id: string;
-      available_margin: string;
-      bankruptcy_price: string;
-      bankruptcy_value: string;
-      entry_nonce: number;
-      entry_sequence: number;
-      entryprice: string;
-      execution_price: string;
-      exit_nonce: number;
-      id: number;
-      initial_margin: string;
-      leverage: string;
-      liquidation_price: string;
-      maintenance_margin: string;
-      order_status: string;
-      order_type: string;
-      position_type: string;
-      positionsize: string;
-      settlement_price: string;
-      timestamp: string;
-      unrealized_pnl: string;
-      uuid: string;
-      fee_filled: string;
-      fee_settled: string;
-    };
+    result: QueryTradeOrderData;
     id: number;
   };
 }

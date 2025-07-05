@@ -1,8 +1,8 @@
 "use client";
 
-import { convertDate } from "@/app/(main)/wallet/transaction-history/columns";
 import Button from "@/components/button";
 import cn from "@/lib/cn";
+import { capitaliseFirstLetter } from '@/lib/helpers';
 import BTC from "@/lib/twilight/denoms";
 import { TradeOrder } from '@/lib/types';
 import { ColumnDef } from "@tanstack/react-table";
@@ -12,10 +12,6 @@ import Link from "next/link";
 interface MyTradeOrder extends TradeOrder {
   currentPrice?: number;
   calculatedUnrealizedPnl?: number;
-}
-
-function capitaliseFirstLetter(str: string) {
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
 
 export const tradeHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [

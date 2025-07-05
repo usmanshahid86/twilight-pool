@@ -4,16 +4,64 @@ import { createQueryTradeOrderMsg } from "../twilight/zkos";
 import { useSessionStore } from "../providers/session";
 import { queryTradeOrder } from "../api/relayer";
 import Big from "big.js";
-import dayjs from "dayjs";
 import { TradeOrder } from "../types";
 import { useWallet } from "@cosmos-kit/react-lite";
 import { WalletStatus } from "@cosmos-kit/core";
 
 const statusToSkip = ["CANCELLED", "SETTLED", "LIQUIDATE"];
 
+const keysToUpdateNumber = [
+  "bankruptcyPrice",
+  "bankruptcyValue",
+  "maintenanceMargin",
+  "entryPrice",
+  "realizedPnl",
+  "unrealizedPnl",
+  "settlementPrice",
+  "positionSize",
+  "entryNonce",
+  "entrySequence",
+  "executionPrice",
+  "initialMargin",
+  "availableMargin",
+  "liquidationPrice",
+  "feeFilled",
+  "feeSettled",
+  "leverage",
+  "value",
+];
+
+const tradeInfoKeysToTradeKey = {
+  order_status: "orderStatus",
+  available_margin: "availableMargin",
+  bankruptcy_price: "bankruptcyPrice",
+  bankruptcy_value: "bankruptcyValue",
+  entry_nonce: "entryNonce",
+  entry_sequence: "entrySequence",
+  entryprice: "entryPrice",
+  execution_price: "executionPrice",
+  exit_nonce: "exit_nonce",
+  initial_margin: "initialMargin",
+  leverage: "leverage",
+  liquidation_price: "liquidationPrice",
+  maintenance_margin: "maintenanceMargin",
+  order_type: "orderType",
+  position_type: "positionType",
+  positionsize: "positionSize",
+  settlement_price: "settlementPrice",
+  timestamp: "date",
+  unrealized_pnl: "unrealizedPnl",
+  fee_filled: "feeFilled",
+  fee_settled: "feeSettled",
+  output: "output",
+};
+
 export const useSyncTrades = () => {
   const tradeOrders = useTwilightStore((state) => state.trade.trades);
   const setNewTrades = useTwilightStore((state) => state.trade.setNewTrades);
+  const addTradeHistory = useTwilightStore(
+    (state) => state.trade_history.addTrade
+  );
 
   const { status } = useWallet();
 
@@ -26,7 +74,7 @@ export const useSyncTrades = () => {
 
       if (tradeOrders.length === 0) return true;
 
-      const updated: TradeOrder[] = [];
+      const updated = new Map<string, Partial<TradeOrder>>();
 
       for (const trade of tradeOrders) {
         if (statusToSkip.includes(trade.orderStatus)) continue;
@@ -45,52 +93,79 @@ export const useSyncTrades = () => {
 
         const traderOrderInfo = queryTradeOrderRes.result;
 
-        const updatedTrade: TradeOrder = {
-          ...trade,
-          bankruptcyPrice: new Big(traderOrderInfo.bankruptcy_price).toNumber(),
-          bankruptcyValue: new Big(traderOrderInfo.bankruptcy_value).toNumber(),
-          maintenanceMargin: new Big(
-            traderOrderInfo.maintenance_margin
-          ).toNumber(),
-          entryPrice: new Big(traderOrderInfo.entryprice).toNumber(),
-          orderStatus: traderOrderInfo.order_status,
-          uuid: traderOrderInfo.uuid,
-          realizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
-          unrealizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
-          settlementPrice: new Big(traderOrderInfo.settlement_price).toNumber(),
-          positionSize: new Big(traderOrderInfo.positionsize).toNumber(),
-          entryNonce: traderOrderInfo.entry_nonce,
-          entrySequence: traderOrderInfo.entry_sequence,
-          executionPrice: new Big(traderOrderInfo.execution_price).toNumber(),
-          initialMargin: new Big(traderOrderInfo.initial_margin).toNumber(),
-          availableMargin: new Big(traderOrderInfo.available_margin).toNumber(),
-          liquidationPrice: new Big(
-            traderOrderInfo.liquidation_price
-          ).toNumber(),
-          exit_nonce: traderOrderInfo.exit_nonce,
-          date: dayjs(traderOrderInfo.timestamp).toDate(),
-          feeFilled: new Big(traderOrderInfo.fee_filled).toNumber(),
-          feeSettled: new Big(traderOrderInfo.fee_settled).toNumber(),
-          isOpen:
-            traderOrderInfo.order_status === "CANCELLED" ||
-            traderOrderInfo.order_status === "LIQUIDATE" ||
-            traderOrderInfo.order_status === "SETTLED"
-              ? false
-              : true,
-        };
+        for (const [key, value] of Object.entries(traderOrderInfo)) {
+          const tradeKey =
+            tradeInfoKeysToTradeKey[
+              key as keyof typeof tradeInfoKeysToTradeKey
+            ];
 
-        updated.push(updatedTrade);
+          if (!(tradeKey in trade)) {
+            continue;
+          }
+
+          let updatedValue = value;
+
+          if (keysToUpdateNumber.includes(tradeKey)) {
+            updatedValue = new Big(value).toNumber();
+          }
+
+          const currentValue = trade[tradeKey as keyof TradeOrder];
+
+          if (currentValue === updatedValue) {
+            continue;
+          }
+
+          if (key === "order_status") {
+            updated.set(trade.uuid, {
+              isOpen:
+                traderOrderInfo.order_status === "CANCELLED" ||
+                traderOrderInfo.order_status === "LIQUIDATE" ||
+                traderOrderInfo.order_status === "SETTLED"
+                  ? false
+                  : true,
+            });
+          }
+
+          updated.set(trade.uuid, {
+            [tradeKey]: updatedValue,
+          });
+        }
       }
 
-      const mergedTrades = tradeOrders.map((trade) => {
-        const updatedTrade = updated.find((t) => t.uuid === trade.uuid);
+      if (updated.size < 1) {
+        return true;
+      }
+
+      const mergedTrades: Array<TradeOrder> = [];
+
+      for (const trade of tradeOrders) {
+        const updatedTrade = updated.get(trade.uuid);
 
         if (updatedTrade) {
-          return updatedTrade;
-        }
+          mergedTrades.push({
+            ...trade,
+            ...updatedTrade,
+          });
 
-        return trade;
-      });
+          // order status changed, add to history
+          if (
+            updatedTrade.orderStatus &&
+            updatedTrade.orderStatus !== trade.orderStatus
+          ) {
+            console.log(
+              "adding to history",
+              trade.orderStatus,
+              updatedTrade.orderStatus
+            );
+            addTradeHistory({
+              ...trade,
+              ...updatedTrade,
+            });
+          }
+        } else {
+          mergedTrades.push(trade);
+        }
+      }
 
       setNewTrades(mergedTrades);
 

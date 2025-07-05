@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { useSyncTrades } from '../hooks/useSyncTrades';
+import { useSyncBalance } from '../hooks/useSyncBalance';
 
 type PriceFeedProviderProps = {
   children: React.ReactNode;
@@ -86,6 +87,7 @@ const PriceFeed: React.FC<PriceFeedProviderProps> = ({ children }) => {
   }, [addPrice, getCurrentPrice, subscribe]);
 
   useSyncTrades()
+  useSyncBalance()
 
   return <feedContext.Provider value={value}>{children}</feedContext.Provider>;
 };

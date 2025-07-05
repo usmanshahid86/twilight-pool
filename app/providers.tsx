@@ -20,6 +20,7 @@ import { Toaster } from "@/components/toast-provider";
 import { PriceFeedProvider } from "@/lib/providers/feed";
 import { TwilightStoreProvider } from "@/lib/providers/store";
 import { SessionStoreProvider } from "@/lib/providers/session";
+import { DialogProvider } from '@/lib/providers/limit-dialogs';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -62,7 +63,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <TwilightProvider>
             <SessionStoreProvider>
               <TwilightStoreProvider>
-                <PriceFeedProvider>{children}</PriceFeedProvider>
+                <PriceFeedProvider>
+                  <DialogProvider>
+                    {children}
+                  </DialogProvider>
+                </PriceFeedProvider>
               </TwilightStoreProvider>
             </SessionStoreProvider>
             <Toaster />

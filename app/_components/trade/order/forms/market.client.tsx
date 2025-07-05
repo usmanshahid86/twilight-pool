@@ -47,6 +47,7 @@ const OrderMarketForm = () => {
 
   const addTrade = useTwilightStore((state) => state.trade.addTrade);
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount)
+  const addTradeHistory = useTwilightStore((state) => state.trade_history.addTrade)
 
   const currentZkAccount = zKAccounts[selectedZkAccount];
 
@@ -235,7 +236,8 @@ const OrderMarketForm = () => {
         const traderOrderInfo = queryTradeOrderRes.result;
 
         console.log("traderOrderInfo", traderOrderInfo)
-        addTrade({
+
+        const newTradeData = {
           accountAddress: currentZkAccount.address,
           orderStatus: orderData.order_status,
           positionType,
@@ -262,7 +264,10 @@ const OrderMarketForm = () => {
           unrealizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
           feeFilled: new Big(traderOrderInfo.fee_filled).toNumber(),
           feeSettled: new Big(traderOrderInfo.fee_settled).toNumber(),
-        });
+        }
+
+        addTrade(newTradeData);
+        addTradeHistory(newTradeData);
 
         updateZkAccount(currentZkAccount.address, {
           ...currentZkAccount,
