@@ -34,6 +34,7 @@ const Page = () => {
 
   const [currentTab, setCurrentTab] = useState<TabType>("active-orders");
   const [isSettleLoading, setIsSettleLoading] = useState(false);
+  const [settlingOrderId, setSettlingOrderId] = useState<string | null>(null);
 
   const currentPrice = useSessionStore((state) => state.price.btcPrice);
   const privateKey = useSessionStore((state) => state.privateKey);
@@ -67,6 +68,7 @@ const Page = () => {
       })
 
       setIsSettleLoading(true);
+      setSettlingOrderId(order.accountAddress); // Use accountAddress as unique identifier
 
       const lendOrderRes = await retry<
         ReturnType<typeof queryTransactionHashes>,
@@ -88,6 +90,7 @@ const Page = () => {
       if (!lendOrderRes.success) {
         console.error("lend order settle not successful");
         setIsSettleLoading(false);
+        setSettlingOrderId(null);
         return;
       }
 
@@ -99,6 +102,7 @@ const Page = () => {
 
       if (!lendOrderData) {
         setIsSettleLoading(false);
+        setSettlingOrderId(null);
         return;
       }
 
@@ -138,6 +142,7 @@ const Page = () => {
       if (!requestIdRes.success) {
         console.error("lend order settle not successful");
         setIsSettleLoading(false);
+        setSettlingOrderId(null);
         return;
       }
 
@@ -158,6 +163,7 @@ const Page = () => {
       if (!selectedZkAccount) {
         console.error("selectedZkAccount not found");
         setIsSettleLoading(false);
+        setSettlingOrderId(null);
         return;
       }
 
@@ -173,6 +179,7 @@ const Page = () => {
       });
 
       setIsSettleLoading(false);
+      setSettlingOrderId(null);
 
       toast({
         title: "Success",
@@ -186,6 +193,7 @@ const Page = () => {
 
     } catch (err) {
       setIsSettleLoading(false);
+      setSettlingOrderId(null);
       console.error(err);
       toast({
         variant: "error",
@@ -204,6 +212,7 @@ const Page = () => {
             getCurrentPrice={getCurrentPrice}
             getPoolSharePrice={getPoolSharePrice}
             settleLendOrder={settleLendOrder}
+            settlingOrderId={settlingOrderId}
           />
         );
       case "lend-history":

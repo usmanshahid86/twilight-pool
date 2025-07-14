@@ -227,12 +227,14 @@ async function createQueryTradeOrderMsg({
 async function createQueryLendOrderMsg({
   address,
   signature,
+  orderStatus,
 }: {
   address: string;
   signature: string;
+  orderStatus: string;
 }) {
   const zkos = await import("@kenny019/zkos-wasm");
-  return zkos.queryLendOrderZkos(address, signature, "PENDING");
+  return zkos.queryLendOrderZkos(address, signature, orderStatus);
 }
 
 async function verifyAccount({

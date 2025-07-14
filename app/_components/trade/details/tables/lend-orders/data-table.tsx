@@ -19,6 +19,7 @@ interface DataTableProps<TData, TValue> {
   getCurrentPrice: () => number;
   getPoolSharePrice: () => number;
   settleLendOrder: (order: LendOrder) => Promise<void>;
+  settlingOrderId: string | null;
 }
 
 export function LendOrdersDataTable<TData, TValue>({
@@ -27,6 +28,7 @@ export function LendOrdersDataTable<TData, TValue>({
   getCurrentPrice,
   getPoolSharePrice,
   settleLendOrder,
+  settlingOrderId,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "timestamp", desc: true },
@@ -37,6 +39,7 @@ export function LendOrdersDataTable<TData, TValue>({
     getCurrentPrice,
     getPoolSharePrice,
     settleLendOrder,
+    settlingOrderId,
   };
 
   const table = useReactTable({

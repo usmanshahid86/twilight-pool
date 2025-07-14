@@ -14,6 +14,7 @@ export interface LendOrdersTableMeta {
   getCurrentPrice: () => number;
   getPoolSharePrice: () => number;
   settleLendOrder: (order: LendOrder) => Promise<void>;
+  settlingOrderId: string | null;
 }
 
 export const lendOrdersColumns: ColumnDef<LendOrder, any>[] = [
@@ -147,6 +148,7 @@ export const lendOrdersColumns: ColumnDef<LendOrder, any>[] = [
     cell: (row) => {
       const order = row.row.original;
       const meta = row.table.options.meta as LendOrdersTableMeta;
+      const isSettling = meta.settlingOrderId === order.accountAddress;
 
       if (order.orderStatus !== "LENDED") {
         return null;
@@ -156,9 +158,17 @@ export const lendOrdersColumns: ColumnDef<LendOrder, any>[] = [
         <Button
           size="small"
           onClick={() => meta.settleLendOrder(order)}
+          disabled={isSettling || meta.settlingOrderId !== null}
           className="px-3 py-1"
         >
-          Settle
+          {isSettling ? (
+            <>
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+              Settling...
+            </>
+          ) : (
+            "Settle"
+          )}
         </Button>
       );
     },
