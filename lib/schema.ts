@@ -42,9 +42,24 @@ export const TradeOrderSchema = z.object({
 
 export const LendOrderSchema = z.object({
   accountAddress: z.string(),
-  value: z.number(),
+  value: z.number(), // balance in sats
   uuid: z.string(),
-  orderStatus: z.string(),
+  orderStatus: z.string(), // LENDED, SETTLED, CANCELLED
+  timestamp: z.date(),
+  npoolshare: z.number().optional(), // locked shares
+  pool_share_price_entry: z.number().optional(), // BTC price when lent
+  apy: z.number().optional(), // APR at lend time
+  payment: z.number().optional(), // rewards for withdrawals
+  tx_hash: z.string().optional(), // transaction hash
+  order_id: z.string().optional(), // from API
+  nwithdraw: z.number().optional(), // withdrawal amount
+});
+
+export const PoolInfoSchema = z.object({
+  apy: z.number(), // Annualised yield %
+  tvl_btc: z.number(), // Total value locked
+  pool_share_price: z.number(), // Price per share (BTC)
+  "24h_volume_btc": z.number(), // Trading volume feeding pool
 });
 
 export const TransactionHistorySchema = z.object({

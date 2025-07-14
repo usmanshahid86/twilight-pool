@@ -23,7 +23,7 @@ export default function RootLayout({
       <body>
         <Providers>
           <>
-            <div className="block bg-purple p-2 text-center">
+            <div className="block bg-theme p-2 text-center">
               <span>Participate in Open Testnet 1 by </span>
               <Link
                 className="inline-flex whitespace-nowrap underline"

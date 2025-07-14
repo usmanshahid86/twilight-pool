@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   LendOrderSchema,
+  PoolInfoSchema,
   TradeOrderSchema,
   TransactionHistorySchema,
   ZkAccountSchema,
@@ -65,6 +66,7 @@ export type UtxoData = {
 export type ZkAccount = z.infer<typeof ZkAccountSchema>;
 export type TradeOrder = z.infer<typeof TradeOrderSchema>;
 export type LendOrder = z.infer<typeof LendOrderSchema>;
+export type PoolInfo = z.infer<typeof PoolInfoSchema>;
 export type TransactionHistory = z.infer<typeof TransactionHistorySchema>;
 
 export type PositionTypes = "LONG" | "SHORT";

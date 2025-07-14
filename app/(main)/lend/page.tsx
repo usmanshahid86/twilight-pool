@@ -1,399 +1,291 @@
 "use client";
 
 import LendDialog from "@/app/_components/trade/lend/lend-dialog.client";
-import TransferDialog from "@/app/_components/wallet/transfer-dialog.client";
+import PoolInfo from "@/app/_components/lend/pool-info.client";
+import ApyChart from "@/app/_components/lend/apy-chart.client";
+import MyInvestment from "@/app/_components/lend/my-investment.client";
+import LendOrdersTable from "@/app/_components/trade/details/tables/lend-orders/lend-orders-table.client";
+import LendHistoryTable from "@/app/_components/trade/details/tables/lend-history/lend-history-table.client";
 import Button from "@/components/button";
-import Resource from "@/components/resource";
-import { Separator } from "@/components/seperator";
-import Skeleton from "@/components/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/tabs";
 import { Text } from "@/components/typography";
+import { Separator } from "@/components/seperator";
 import { executeLendOrder } from "@/lib/api/client";
 import { queryTransactionHashByRequestId, queryTransactionHashes } from "@/lib/api/rest";
 import { retry } from "@/lib/helpers";
-import useGetTwilightBTCBalance from "@/lib/hooks/useGetTwilightBtcBalance";
 import useRedirectUnconnected from "@/lib/hooks/useRedirectUnconnected";
 import { useToast } from "@/lib/hooks/useToast";
 import { useSessionStore } from "@/lib/providers/session";
 import { useTwilightStore } from "@/lib/providers/store";
-import BTC from "@/lib/twilight/denoms";
 import { executeTradeLendOrderMsg } from "@/lib/twilight/zkos";
 import { WalletStatus } from "@cosmos-kit/core";
 import { useWallet } from "@cosmos-kit/react-lite";
-import Big from "big.js";
-import { ArrowDown, ArrowLeftRight, Loader2, Wallet } from "lucide-react";
-import React, { useState } from "react";
+import { Loader2 } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { LendOrder } from "@/lib/types";
+
+type TabType = "active-orders" | "lend-history";
 
 const Page = () => {
   useRedirectUnconnected();
 
   const { toast } = useToast();
+  const { status } = useWallet();
 
-  const { twilightSats, isLoading: twilightSatsLoading } =
-    useGetTwilightBTCBalance();
+  const [currentTab, setCurrentTab] = useState<TabType>("active-orders");
+  const [isSettleLoading, setIsSettleLoading] = useState(false);
 
   const currentPrice = useSessionStore((state) => state.price.btcPrice);
   const privateKey = useSessionStore((state) => state.privateKey);
-  const zKAccounts = useTwilightStore((state) => state.zk.zkAccounts);
   const lendOrders = useTwilightStore((state) => state.lend.lends);
+  const poolInfo = useTwilightStore((state) => state.lend.poolInfo);
+  const zKAccounts = useTwilightStore((state) => state.zk.zkAccounts);
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount);
-
+  const removeLend = useTwilightStore((state) => state.lend.removeLend);
   const addTransactionHistory = useTwilightStore(
     (state) => state.history.addTransaction
   );
 
-  const removeLend = useTwilightStore((state) => state.lend.removeLend);
+  // Filter lend orders for active vs history
+  const activeLendOrders = useMemo(() => {
+    return lendOrders.filter(order => order.orderStatus === "LENDED");
+  }, [lendOrders]);
 
-  const [isRedeemLoading, setIsRedeemLoading] = useState(false);
+  const lendHistory = useMemo(() => {
+    return lendOrders.filter(order => order.orderStatus !== "LENDED");
+  }, [lendOrders]);
 
-  const { status } = useWallet();
+  const getCurrentPrice = () => currentPrice || 0;
 
-  const totalTradingSatsBalance = zKAccounts.reduce((acc, account) => {
-    acc += account.value || 0;
+  const getPoolSharePrice = () => poolInfo?.pool_share_price || 0;
 
-    return acc;
-  }, 0);
-
-  const totalSatsBalance = Big(twilightSats).plus(totalTradingSatsBalance || 0);
-
-  const twilightBTCBalanceString = new BTC("sats", totalSatsBalance)
-    .convert("BTC")
-    .toFixed(8);
-
-  const twilightSatsBalanceString = new BTC("sats", Big(twilightSats))
-    .convert("BTC")
-    .mul(currentPrice)
-    .toFixed(2);
-
-  const totalTradingBTCValueString = new BTC(
-    "sats",
-    Big(totalTradingSatsBalance)
-  )
-    .convert("BTC")
-    .mul(currentPrice)
-    .toFixed(2);
-
-  const totalTradingBTCBalanceString = new BTC(
-    "sats",
-    Big(totalTradingSatsBalance)
-  )
-    .convert("BTC")
-    .toFixed(8);
-
-  const totalBTCBalanceString = new BTC(
-    "sats",
-    totalSatsBalance,
-  )
-    .convert("BTC")
-    .toFixed(8);
-
-  const totalBalanceUSDString = Big(totalBTCBalanceString)
-    .mul(currentPrice)
-    .toFixed(2);
-
-  const totalLentSats = lendOrders.reduce((acc, lendOrder) => {
-    acc += lendOrder.value;
-    return acc;
-  }, 0);
-
-  const totalLentBTC = new BTC("sats", Big(totalLentSats))
-    .convert("BTC")
-    .toFixed(8);
-
-  const totalLentUSDString = Big(totalLentBTC).mul(currentPrice).toFixed(2);
-
-  async function submitRedeemLentSats() {
+  async function settleLendOrder(order: LendOrder) {
     try {
-      for (const lendOrder of lendOrders) {
-        setIsRedeemLoading(true);
+      toast({
+        title: "Settling lend order",
+        description: "Please do not close this page until the lend order is settled...",
+      })
 
-        const lendOrderRes = await retry<
-          ReturnType<typeof queryTransactionHashes>,
-          string
-        >(
-          queryTransactionHashes,
-          9,
-          lendOrder.accountAddress,
-          2500,
-          (txHash) => {
-            const found = txHash.result.find(
-              (tx) => tx.order_status === "FILLED"
-            );
+      setIsSettleLoading(true);
 
-            return found ? true : false;
-          }
-        );
+      const lendOrderRes = await retry<
+        ReturnType<typeof queryTransactionHashes>,
+        string
+      >(
+        queryTransactionHashes,
+        9,
+        order.accountAddress,
+        2500,
+        (txHash) => {
+          const found = txHash.result.find(
+            (tx) => tx.order_status === "FILLED"
+          );
 
-        if (!lendOrderRes.success) {
-          console.error("lend order redeem not successful");
-          setIsRedeemLoading(false);
-          continue;
+          return found ? true : false;
         }
+      );
 
-        const lendOrders = lendOrderRes.data;
-
-        const lendOrderData = lendOrders.result.find(
-          (tx) => tx.order_status === "FILLED"
-        );
-
-        if (!lendOrderData) {
-          setIsRedeemLoading(false);
-          continue;
-        }
-
-        const msg = await executeTradeLendOrderMsg({
-          outputMemo: lendOrderData.output,
-          signature: privateKey,
-          address: lendOrderData.account_id,
-          uuid: lendOrderData.order_id,
-          orderStatus: lendOrderData.order_status,
-          orderType: lendOrderData.order_type,
-          transactionType: "LENDTX",
-          executionPricePoolshare: 1,
-        });
-
-        const executeLendRes = await executeLendOrder(msg);
-        console.log("executeLendRes", executeLendRes);
-
-        const requestId = executeLendRes.result.id_key;
-
-        const requestIdRes = await retry<
-          ReturnType<typeof queryTransactionHashes>,
-          string
-        >(
-          queryTransactionHashByRequestId,
-          9,
-          requestId,
-          2500,
-          (txHash) => {
-            const found = txHash.result.find(
-              (tx) => tx.order_status === "SETTLED"
-            );
-
-            return found ? true : false;
-          }
-        );
-
-        if (!requestIdRes.success) {
-          console.error("lend order redeem not successful");
-          setIsRedeemLoading(false);
-          continue;
-        }
-
-        const requestIdData = requestIdRes.data.result.find(
-          (tx) => tx.order_status === "SETTLED"
-        )
-
-        const tx_hash = requestIdData?.tx_hash;
-
-        console.log("requestIdData", requestIdData);
-
-        removeLend(lendOrder);
-
-        const selectedZkAccount = zKAccounts.find(
-          (account) => account.address === lendOrder.accountAddress
-        );
-
-        if (!selectedZkAccount) {
-          console.error("selectedZkAccount not found");
-          continue;
-        }
-
-        addTransactionHistory({
-          date: new Date(),
-          from: selectedZkAccount?.address || "",
-          fromTag: selectedZkAccount?.tag || "",
-          to: lendOrder.accountAddress,
-          toTag: selectedZkAccount?.tag || "",
-          tx_hash: tx_hash || "",
-          type: "Redeem Lend",
-          value: lendOrder.value,
-        });
-
-        setIsRedeemLoading(false);
-        toast({
-          title: "Success",
-          description: "Redeemed lend sats successfully",
-        });
-
-        updateZkAccount(selectedZkAccount.address, {
-          ...selectedZkAccount,
-          type: "CoinSettled",
-        });
-
+      if (!lendOrderRes.success) {
+        console.error("lend order settle not successful");
+        setIsSettleLoading(false);
+        return;
       }
+
+      const lendOrders = lendOrderRes.data;
+
+      const lendOrderData = lendOrders.result.find(
+        (tx) => tx.order_status === "FILLED"
+      );
+
+      if (!lendOrderData) {
+        setIsSettleLoading(false);
+        return;
+      }
+
+      const msg = await executeTradeLendOrderMsg({
+        outputMemo: lendOrderData.output,
+        signature: privateKey,
+        address: lendOrderData.account_id,
+        uuid: lendOrderData.order_id,
+        orderStatus: lendOrderData.order_status,
+        orderType: lendOrderData.order_type,
+        transactionType: "LENDTX",
+        executionPricePoolshare: 1,
+      });
+
+      const executeLendRes = await executeLendOrder(msg);
+      console.log("executeLendRes", executeLendRes);
+
+      const requestId = executeLendRes.result.id_key;
+
+      const requestIdRes = await retry<
+        ReturnType<typeof queryTransactionHashes>,
+        string
+      >(
+        queryTransactionHashByRequestId,
+        9,
+        requestId,
+        2500,
+        (txHash) => {
+          const found = txHash.result.find(
+            (tx) => tx.order_status === "SETTLED"
+          );
+
+          return found ? true : false;
+        }
+      );
+
+      if (!requestIdRes.success) {
+        console.error("lend order settle not successful");
+        setIsSettleLoading(false);
+        return;
+      }
+
+      const requestIdData = requestIdRes.data.result.find(
+        (tx) => tx.order_status === "SETTLED"
+      );
+
+      const tx_hash = requestIdData?.tx_hash;
+
+      console.log("requestIdData", requestIdData);
+
+      removeLend(order);
+
+      const selectedZkAccount = zKAccounts.find(
+        (account) => account.address === order.accountAddress
+      );
+
+      if (!selectedZkAccount) {
+        console.error("selectedZkAccount not found");
+        setIsSettleLoading(false);
+        return;
+      }
+
+      addTransactionHistory({
+        date: new Date(),
+        from: selectedZkAccount?.address || "",
+        fromTag: selectedZkAccount?.tag || "",
+        to: order.accountAddress,
+        toTag: selectedZkAccount?.tag || "",
+        tx_hash: tx_hash || "",
+        type: "Settle Lend",
+        value: order.value,
+      });
+
+      setIsSettleLoading(false);
+
+      toast({
+        title: "Success",
+        description: "Settled lend order successfully",
+      });
+
+      updateZkAccount(selectedZkAccount.address, {
+        ...selectedZkAccount,
+        type: "CoinSettled",
+      });
+
     } catch (err) {
-      setIsRedeemLoading(false);
+      setIsSettleLoading(false);
       console.error(err);
       toast({
         variant: "error",
         title: "Error",
-        description: "An error has occurred executing redeem lend, try again later.",
+        description: "An error has occurred settling lend order, try again later.",
       });
     }
   }
 
+  function renderTableContent() {
+    switch (currentTab) {
+      case "active-orders":
+        return (
+          <LendOrdersTable
+            data={activeLendOrders}
+            getCurrentPrice={getCurrentPrice}
+            getPoolSharePrice={getPoolSharePrice}
+            settleLendOrder={settleLendOrder}
+          />
+        );
+      case "lend-history":
+        return (
+          <LendHistoryTable
+            data={lendHistory}
+            getCurrentPrice={getCurrentPrice}
+          />
+        );
+    }
+  }
+
   return (
-    <div className="mx-8 mt-4 space-y-4 md:space-y-8">
-      <div className="flex flex-row justify-between">
-        <div className="flex w-full max-w-4xl flex-row items-baseline justify-between">
-          <div className="space-y-2">
-            <Text heading="h1" className="mb-0 text-2xl font-normal md:mb-4">
-              Assets Overview
-            </Text>
-            <div className="md:space-y-1">
-              <Text className="text-lg md:text-4xl">
-                {totalBTCBalanceString}
-                <span className="ml-1 inline-flex text-sm">BTC</span>
-              </Text>
-              <Text className="text-xs text-primary-accent">
-                = {totalBalanceUSDString} USD
-              </Text>
+    <div className="mx-8 mt-4 space-y-6 md:space-y-8">
+      {/* Pool Info */}
+      <div className="rounded-lg bg-card border border-outline p-4 md:p-6">
+        <Text heading="h2" className="mb-4 text-lg font-medium">
+          Pool Info
+        </Text>
+        <PoolInfo />
+      </div>
+
+      {/* APY Chart and Add Liquidity */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* APY Chart */}
+        <div className="rounded-lg bg-card border border-outline p-4 md:p-6">
+          <Text heading="h2" className="mb-4 text-lg font-medium">
+            APY Chart
+          </Text>
+          <ApyChart />
+        </div>
+
+        {/* Add Liquidity */}
+        <div className="rounded-lg bg-card border border-outline p-4 md:p-6">
+          <Text heading="h2" className="mb-4 text-lg font-medium">
+            Add Liquidity
+          </Text>
+          <div className="space-y-4">
+            <LendDialog>
+              <Button className="w-full">
+                Manage Liquidity
+              </Button>
+            </LendDialog>
+            <div className="text-sm text-primary-accent">
+              <p>Deposit BTC to earn yield from trading fees and lending rewards.</p>
             </div>
           </div>
         </div>
       </div>
+
+      {/* My Investment */}
+      <div className="rounded-lg bg-card border border-outline p-4 md:p-6">
+        <MyInvestment />
+      </div>
+
       <Separator />
-      <div className="flex w-full">
-        <div className="w-full space-y-2">
-          <Text className="text-md font-normal tracking-tight">My Assets</Text>
-          <div className="flex w-full flex-row justify-between border-b py-4 pr-2 md:py-6">
-            <div className="flex w-full max-w-md flex-row space-x-6 md:justify-between">
-              <div className="flex flex-row items-center space-x-2">
-                <div className="rounded-full bg-button-secondary p-2">
-                  <Wallet className="h-5 w-5" />
-                </div>
-                <Text>Funding</Text>
-              </div>
-              <div className="w-[150px]">
-                <Resource
-                  isLoaded={
-                    status === WalletStatus.Connected && !twilightSatsLoading
-                  }
-                  placeholder={
-                    <>
-                      <Skeleton className="h-6 w-full" />
-                      <Skeleton className="mt-1 h-4 w-full" />
-                    </>
-                  }
-                >
-                  <Text className="text-primary/80">
-                    {twilightSatsBalanceString} USD
-                  </Text>
-                  <Text className="text-xs text-primary-accent">
-                    = {twilightBTCBalanceString} BTC
-                  </Text>
-                </Resource>
-              </div>
-            </div>
 
-            <TransferDialog
-              tradingAccountAddress={zKAccounts[0]?.address || ""}
-              defaultAccount="funding"
-            >
-              <Button
-                className="p-3"
-                disabled={twilightSats < 1}
-                variant="ui"
-                size="icon"
+      {/* Active Orders / Lend History */}
+      <div className="space-y-4">
+        <div className="flex w-full items-center border-b">
+          <Tabs defaultValue={currentTab}>
+            <TabsList className="flex w-full border-b-0" variant="underline">
+              <TabsTrigger
+                onClick={() => setCurrentTab("active-orders")}
+                value="active-orders"
+                variant="underline"
               >
-                <ArrowLeftRight className="h-4 w-4" />
-              </Button>
-            </TransferDialog>
-          </div>
-
-          <div className="flex w-full flex-row items-center justify-between border-b py-4 pr-2 md:py-6">
-            <div className="flex w-full max-w-md flex-row space-x-6 md:justify-between">
-              <div className="flex flex-row items-center space-x-2">
-                <div className="rounded-full bg-button-secondary p-2">
-                  <ArrowLeftRight className="h-5 w-5" />
-                </div>
-                <Text>Trading</Text>
-              </div>
-              <div className="w-[150px]">
-                <Resource
-                  isLoaded={status === WalletStatus.Connected}
-                  placeholder={
-                    <>
-                      <Skeleton className="h-6 w-full" />
-                      <Skeleton className="mt-1 h-4 w-full" />
-                    </>
-                  }
-                >
-                  <Text className="text-primary/80">
-                    {totalTradingBTCValueString} USD
-                  </Text>
-                  <Text className="text-xs text-primary-accent">
-                    = {totalTradingBTCBalanceString} BTC
-                  </Text>
-                </Resource>
-              </div>
-            </div>
-            <TransferDialog
-              tradingAccountAddress={zKAccounts[0]?.address || ""}
-              defaultAccount="trading"
-            >
-              <Button
-                className="p-3"
-                disabled={twilightSats < 1}
-                variant="ui"
-                size="icon"
+                Active Orders
+              </TabsTrigger>
+              <TabsTrigger
+                onClick={() => setCurrentTab("lend-history")}
+                value="lend-history"
+                variant="underline"
               >
-                <ArrowLeftRight className="h-4 w-4" />
-              </Button>
-            </TransferDialog>
-          </div>
+                Lend History
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
-          <div className="pt-4">
-            <Text className="text-md font-normal tracking-tight">Loan</Text>
-            <div className="flex w-full flex-col space-y-4 py-4 pr-2 md:flex-row md:items-center md:justify-between md:space-y-0 md:py-6">
-              <div className="flex w-full max-w-md flex-row space-x-6 md:justify-between">
-                <div className="flex flex-row items-center space-x-2">
-                  <div className="rounded-full bg-button-secondary p-2">
-                    <ArrowDown className="h-5 w-5" />
-                  </div>
-                  <Text>Lending</Text>
-                </div>
-                <div className="w-[150px]">
-                  <Resource
-                    isLoaded={status === WalletStatus.Connected}
-                    placeholder={
-                      <>
-                        <Skeleton className="h-6 w-full" />
-                        <Skeleton className="mt-1 h-4 w-full" />
-                      </>
-                    }
-                  >
-                    <Text className="text-primary/80">
-                      {totalLentUSDString} USD
-                    </Text>
-                    <Text className="text-xs text-primary-accent">
-                      = {totalLentBTC} BTC
-                    </Text>
-                  </Resource>
-                </div>
-              </div>
-
-              <div className="flex space-x-4">
-                <LendDialog>
-                  <Button size="small">Lend</Button>
-                </LendDialog>
-                <Button
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    await submitRedeemLentSats();
-                  }}
-                  size="small"
-                  disabled={totalLentSats === 0 || status !== WalletStatus.Connected}
-                >
-                  {isRedeemLoading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    "Redeem"
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
+        <div className="overflow-x-auto">
+          {renderTableContent()}
         </div>
       </div>
     </div>

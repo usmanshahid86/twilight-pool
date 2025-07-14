@@ -1,15 +1,19 @@
-import { LendOrder } from "@/lib/types";
+import { LendOrder, PoolInfo } from "@/lib/types";
 import { AccountSlices, StateImmerCreator } from "../utils";
 
 export interface LendSlice {
   lends: LendOrder[];
+  poolInfo: PoolInfo | null;
   addLend: (lendOrder: LendOrder) => void;
+  updateLend: (uuid: string, updates: Partial<LendOrder>) => void;
   removeLend: (lendOrder: LendOrder) => void;
+  setPoolInfo: (poolInfo: PoolInfo) => void;
   resetState: () => void;
 }
 
 export const initialLendSliceState = {
   lends: [],
+  poolInfo: null,
 };
 
 export const createLendSlice: StateImmerCreator<AccountSlices, LendSlice> = (
@@ -20,11 +24,22 @@ export const createLendSlice: StateImmerCreator<AccountSlices, LendSlice> = (
     set((state) => {
       state.lend.lends = [...state.lend.lends, lendOrder];
     }),
+  updateLend: (uuid, updates) =>
+    set((state) => {
+      const index = state.lend.lends.findIndex((lend) => lend.uuid === uuid);
+      if (index !== -1) {
+        state.lend.lends[index] = { ...state.lend.lends[index], ...updates };
+      }
+    }),
   removeLend: (lendOrder) =>
     set((state) => {
       state.lend.lends = state.lend.lends.filter(
         (lend) => lend.accountAddress !== lendOrder.accountAddress
       );
+    }),
+  setPoolInfo: (poolInfo) =>
+    set((state) => {
+      state.lend.poolInfo = poolInfo;
     }),
   resetState: () => {
     set((state) => {
