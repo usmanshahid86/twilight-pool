@@ -1,11 +1,5 @@
 "use client";
 import Button from "@/components/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/dialog";
 import { PopoverInput } from "@/components/input";
 import Resource from "@/components/resource";
 import {
@@ -15,7 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/tabs";
 import { Text } from "@/components/typography";
 import { sendLendOrder } from "@/lib/api/client";
 import { queryTransactionHashByRequestId, queryTransactionHashes } from '@/lib/api/rest';
@@ -26,7 +19,6 @@ import { useSessionStore } from "@/lib/providers/session";
 import { useTwilightStore } from "@/lib/providers/store";
 import BTC, { BTCDenoms } from "@/lib/twilight/denoms";
 import { createZkLendOrder } from "@/lib/twilight/zk";
-import { ZkAccount } from '@/lib/types';
 import { WalletStatus } from '@cosmos-kit/core';
 import { useWallet } from '@cosmos-kit/react-lite';
 import Big from "big.js";
@@ -34,13 +26,9 @@ import { Loader2 } from "lucide-react";
 import Link from 'next/link';
 import React, { useMemo, useRef, useState } from "react";
 
-type Props = {
-  children: React.ReactNode;
-};
-
 type TabType = "deposit" | "withdraw";
 
-const LendDialog = ({ children }: Props) => {
+const LendManagement = () => {
   const { toast } = useToast();
   const privateKey = useSessionStore((state) => state.privateKey);
   const { status } = useWallet();
@@ -69,7 +57,6 @@ const LendDialog = ({ children }: Props) => {
   }, [selectedAccountIndex, zkAccounts]);
 
   const depositRef = useRef<HTMLInputElement>(null);
-  const withdrawRef = useRef<HTMLInputElement>(null);
 
   // Filter accounts that have lend orders for withdrawal
   const accountsWithLends = zkAccounts.filter(account =>
@@ -249,9 +236,6 @@ const LendDialog = ({ children }: Props) => {
   };
 
   const calculateApproxReward = () => {
-    if (!withdrawRef.current?.value) return "0.00000000";
-
-    // TODO: Calculate based on actual pool share price and accrued rewards
     return "0.00000000";
   };
 
@@ -379,7 +363,7 @@ const LendDialog = ({ children }: Props) => {
           <Text>≈ {calculateApproxPoolShare()}%</Text>
         </div>
 
-        <Button disabled={isSubmitLoading} type="submit" className="w-full">
+        <Button disabled={isSubmitLoading || status !== WalletStatus.Connected} type="submit" className="w-full">
           <Resource
             isLoaded={!isSubmitLoading}
             placeholder={<Loader2 className="animate-spin" />}
@@ -391,135 +375,11 @@ const LendDialog = ({ children }: Props) => {
     );
   }
 
-  function renderWithdrawForm() {
-    return (
-      <form onSubmit={submitWithdrawForm} className="space-y-4">
-        <div className="space-y-1">
-          <Select
-            onValueChange={(val) => {
-              toast({
-                title: "Work in progress",
-                description: "Still working on this feature",
-              })
-              return;
-            }}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select account" />
-            </SelectTrigger>
-            <SelectContent>
-              {accountsWithLends.map((subAccount, index) => {
-                const accountLends = lendOrders.filter(lend =>
-                  lend.accountAddress === subAccount.address && lend.orderStatus === "LENDED"
-                );
-                const totalLent = accountLends.reduce((sum, lend) => sum + lend.value, 0);
-                const balance = new BTC("sats", Big(totalLent)).convert("BTC").toFixed(8);
-                return (
-                  <SelectItem
-                    value={index.toString()}
-                    key={subAccount.address}
-                  >
-                    {subAccount.tag === "main" ? "Trading Account" : subAccount.tag} - {balance}BTC
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1">
-          <div className="flex justify-between text-sm">
-            <Text className="text-primary-accent" asChild>
-              <label htmlFor="amount-wd">Amount BTC</label>
-            </Text>
-            <Text className="text-primary-accent">
-              Available: {getAvailableBalance()} BTC
-            </Text>
-          </div>
-
-          <PopoverInput
-            id="amount-wd"
-            name="withdrawValue"
-            onClickPopover={(e) => {
-              e.preventDefault();
-              if (!withdrawRef.current?.value) return;
-
-              const toDenom = e.currentTarget.value as BTCDenoms;
-
-              const currentValue = new BTC(
-                depositDenom as BTCDenoms,
-                Big(withdrawRef.current.value)
-              );
-
-              withdrawRef.current.value = currentValue
-                .convert(toDenom)
-                .toString();
-            }}
-            type="number"
-            step="any"
-            placeholder="0.00"
-            options={["BTC", "mBTC", "sats"]}
-            setSelected={setDepositDenom}
-            selected={depositDenom}
-            ref={withdrawRef}
-            onInput={calculateApproxReward}
-          />
-        </div>
-
-        <div className="flex justify-between text-sm">
-          <Text className="text-primary-accent">Approx Reward</Text>
-          <Text>≈ {calculateApproxReward()} BTC</Text>
-        </div>
-
-        <Button
-          disabled={isSubmitLoading || accountsWithLends.length === 0}
-          type="submit"
-          className="w-full"
-        >
-          <Resource
-            isLoaded={!isSubmitLoading}
-            placeholder={<Loader2 className="animate-spin" />}
-          >
-            Withdraw
-          </Resource>
-        </Button>
-      </form>
-    );
-  }
-
   return (
-    <Dialog>
-      <DialogTrigger disabled={status !== WalletStatus.Connected} asChild>
-        {children}
-      </DialogTrigger>
-      <DialogContent className="left-auto right-0 min-h-screen max-w-2xl translate-x-0 rounded-none border-r-0">
-        <DialogTitle>Add Liquidity</DialogTitle>
-
-        <div className="max-w-sm space-y-4">
-          <Tabs defaultValue={currentTab}>
-            <TabsList variant="default" className="w-full">
-              <TabsTrigger
-                value="deposit"
-                onClick={() => setCurrentTab("deposit")}
-                className="flex-1"
-              >
-                Deposit
-              </TabsTrigger>
-              <TabsTrigger
-                value="withdraw"
-                onClick={() => setCurrentTab("withdraw")}
-                className="flex-1"
-              >
-                Withdraw
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          {currentTab === "deposit" ? renderDepositForm() : renderWithdrawForm()}
-        </div>
-      </DialogContent>
-    </Dialog>
+    <div className="space-y-4">
+      {renderDepositForm()}
+    </div>
   );
 };
 
-export default LendDialog;
+export default LendManagement; 

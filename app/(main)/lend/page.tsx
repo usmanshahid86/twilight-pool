@@ -1,9 +1,9 @@
 "use client";
 
-import LendDialog from "@/app/_components/trade/lend/lend-dialog.client";
 import PoolInfo from "@/app/_components/lend/pool-info.client";
 import ApyChart from "@/app/_components/lend/apy-chart.client";
 import MyInvestment from "@/app/_components/lend/my-investment.client";
+import LendManagement from "@/app/_components/lend/lend-management.client";
 import LendOrdersTable from "@/app/_components/trade/details/tables/lend-orders/lend-orders-table.client";
 import LendHistoryTable from "@/app/_components/trade/details/tables/lend-history/lend-history-table.client";
 import Button from "@/components/button";
@@ -245,17 +245,12 @@ const Page = () => {
           <ApyChart />
         </div>
 
-        {/* Add Liquidity */}
         <div className="rounded-lg bg-card border border-outline p-4 md:p-6">
           <Text heading="h2" className="mb-4 text-lg font-medium">
             Add Liquidity
           </Text>
           <div className="space-y-4">
-            <LendDialog>
-              <Button className="w-full">
-                Manage Liquidity
-              </Button>
-            </LendDialog>
+            <LendManagement />
             <div className="text-sm text-primary-accent">
               <p>Deposit BTC to earn yield from trading fees and lending rewards.</p>
             </div>
