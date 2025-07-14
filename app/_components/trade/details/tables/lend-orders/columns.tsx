@@ -167,7 +167,7 @@ export const lendOrdersColumns: ColumnDef<LendOrder, any>[] = [
               Settling...
             </>
           ) : (
-            "Settle"
+            "Withdraw"
           )}
         </Button>
       );
