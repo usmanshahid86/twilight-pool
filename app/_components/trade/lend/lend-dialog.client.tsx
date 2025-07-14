@@ -32,7 +32,7 @@ import { useWallet } from '@cosmos-kit/react-lite';
 import Big from "big.js";
 import { Loader2 } from "lucide-react";
 import Link from 'next/link';
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 
 type Props = {
   children: React.ReactNode;
@@ -62,7 +62,11 @@ const LendDialog = ({ children }: Props) => {
   const [selectedAccountIndex, setSelectedAccountIndex] = useState<number | null>(null);
   const [depositDenom, setDepositDenom] = useState<string>("BTC");
   const [isSubmitLoading, setIsSubmitLoading] = useState(false);
-  const [selectedZkAccount, setSelectedZkAccount] = useState<ZkAccount | null>(null);
+
+  const selectedZkAccount = useMemo(() => {
+    if (selectedAccountIndex === null) return null;
+    return zkAccounts[selectedAccountIndex];
+  }, [selectedAccountIndex, zkAccounts]);
 
   const depositRef = useRef<HTMLInputElement>(null);
   const withdrawRef = useRef<HTMLInputElement>(null);
