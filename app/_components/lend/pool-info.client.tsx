@@ -6,10 +6,13 @@ import Skeleton from "@/components/skeleton";
 import { useTwilightStore } from "@/lib/providers/store";
 import { useSessionStore } from "@/lib/providers/session";
 import React from "react";
+import { useGetPoolShareValue } from '@/lib/hooks/useGetPoolShareValue';
 
 const PoolInfo = () => {
   const poolInfo = useTwilightStore((state) => state.lend.poolInfo);
   const currentPrice = useSessionStore((state) => state.price.btcPrice);
+
+  const { data: poolShareValue } = useGetPoolShareValue();
 
   return (
     <div className="flex flex-row flex-wrap gap-6 md:gap-12">
@@ -28,12 +31,11 @@ const PoolInfo = () => {
       <div className="flex flex-col">
         <Text className="text-sm text-primary-accent">Pool Share</Text>
         <Resource
-          isLoaded={!!poolInfo}
+          isLoaded={!!poolShareValue}
           placeholder={<Skeleton className="h-6 w-16" />}
         >
           <Text className="text-xl font-semibold">
-            {/* This would be calculated based on user's position vs total pool */}
-            0.00%
+            {poolShareValue?.toString() || "0"}
           </Text>
         </Resource>
       </div>

@@ -237,6 +237,28 @@ export type TransactionHash = {
   tx_hash: string;
 };
 
+async function getPoolShareValue() {
+  const body = JSON.stringify({
+    jsonrpc: "2.0",
+    method: "pool_share_value",
+    id: 1,
+    params: null,
+  });
+
+  const { success, data, error } = await wfetch(priceURL)
+    .post({ body })
+    .json<TwilightApiResponse<number>>();
+
+  if (!success) {
+    console.error(error);
+    return 0;
+  }
+
+  const { result } = data;
+
+  return result;
+}
+
 async function queryTransactionHashes(
   address: string
 ): Promise<Record<string, never> | TwilightApiResponse<TransactionHash[]>> {
@@ -293,4 +315,5 @@ export {
   getOpenLimitOrders,
   getRecentLimitOrders,
   queryTransactionHashByRequestId,
+  getPoolShareValue,
 };

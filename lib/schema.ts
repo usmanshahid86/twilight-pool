@@ -56,10 +56,9 @@ export const LendOrderSchema = z.object({
 });
 
 export const PoolInfoSchema = z.object({
-  apy: z.number(), // Annualised yield %
-  tvl_btc: z.number(), // Total value locked
-  pool_share_price: z.number(), // Price per share (BTC)
-  "24h_volume_btc": z.number(), // Trading volume feeding pool
+  apy: z.number(),
+  tvl_btc: z.number(),
+  pool_share: z.number(),
 });
 
 export const TransactionHistorySchema = z.object({

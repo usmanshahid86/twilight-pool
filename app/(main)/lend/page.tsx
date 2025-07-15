@@ -58,7 +58,7 @@ const Page = () => {
 
   const getCurrentPrice = () => currentPrice || 0;
 
-  const getPoolSharePrice = () => poolInfo?.pool_share_price || 0;
+  const getPoolSharePrice = () => poolInfo?.pool_share || 0;
 
   async function settleLendOrder(order: LendOrder) {
     try {
