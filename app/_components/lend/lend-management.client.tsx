@@ -11,6 +11,7 @@ import {
 } from "@/components/select";
 import { Text } from "@/components/typography";
 import { sendLendOrder } from "@/lib/api/client";
+import { queryLendOrder } from '@/lib/api/relayer';
 import { queryTransactionHashByRequestId, queryTransactionHashes } from '@/lib/api/rest';
 import { retry } from '@/lib/helpers';
 import useGetTwilightBTCBalance from '@/lib/hooks/useGetTwilightBtcBalance';
@@ -19,6 +20,7 @@ import { useSessionStore } from "@/lib/providers/session";
 import { useTwilightStore } from "@/lib/providers/store";
 import BTC, { BTCDenoms } from "@/lib/twilight/denoms";
 import { createZkLendOrder } from "@/lib/twilight/zk";
+import { createQueryLendOrderMsg } from '@/lib/twilight/zkos';
 import { WalletStatus } from '@cosmos-kit/core';
 import { useWallet } from '@cosmos-kit/react-lite';
 import Big from "big.js";
@@ -39,6 +41,7 @@ const LendManagement = () => {
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
   const lendOrders = useTwilightStore((state) => state.lend.lends);
   const poolInfo = useTwilightStore((state) => state.lend.poolInfo);
+
   const addLendOrder = useTwilightStore((state) => state.lend.addLend);
   const addTransactionHistory = useTwilightStore(
     (state) => state.history.addTransaction
@@ -68,8 +71,8 @@ const LendManagement = () => {
 
     if (accountSelectionType === "new") {
       toast({
-        title: "Work in progress",
-        description: "Still working on this feature",
+        title: "Currently Disabled",
+        description: "This feature is currently disabled, please create a subaccount manually.",
       })
       return;
     }
@@ -180,6 +183,26 @@ const LendManagement = () => {
         </div>
       });
 
+      const queryLendOrderMsg = await createQueryLendOrderMsg({
+        address: selectedZkAccount.address,
+        signature: privateKey,
+        orderStatus: "FILLED",
+      });
+
+      const queryLendOrderRes = await queryLendOrder(queryLendOrderMsg);
+      console.log(queryLendOrderRes);
+
+      if (!queryLendOrderRes) {
+        console.error(queryLendOrderRes);
+        toast({
+          variant: "error",
+          title: "Unable to query lend order",
+          description: "An error has occurred, try again later.",
+        });
+        setIsSubmitLoading(false);
+        return;
+      }
+
       addLendOrder({
         accountAddress: selectedZkAccount.address,
         uuid: data.result.id_key as string,
@@ -188,6 +211,7 @@ const LendManagement = () => {
         timestamp: new Date(),
         apy: poolInfo?.apy,
         tx_hash: tx_hash,
+        npoolshare: Number(queryLendOrderRes.result.npoolshare)
       });
 
       addTransactionHistory({
@@ -227,11 +251,12 @@ const LendManagement = () => {
   }
 
   const calculateApproxPoolShare = () => {
-    if (!depositRef.current?.value || !poolInfo?.tvl_btc) return "0";
+    if (!depositRef.current?.value || !poolInfo?.pool_share) return "0";
 
     const amount = parseFloat(depositRef.current.value) || 0;
-    const poolShare = ((amount / poolInfo.tvl_btc) * 100).toFixed(3);
-    return poolShare;
+
+    const poolShare = (amount / poolInfo.pool_share);
+    return poolShare.toFixed(8)
   };
 
   const calculateApproxReward = () => {
@@ -293,6 +318,10 @@ const LendManagement = () => {
                 const account = zkAccounts.find((account) => account.address === val);
                 if (account) {
                   setSelectedAccountIndex(zkAccounts.indexOf(account));
+                  if (depositRef.current) {
+                    const currentValue = new BTC("sats", Big(account?.value || 0)).convert(depositDenom as BTCDenoms).toString();
+                    depositRef.current.value = currentValue;
+                  }
                 }
               }}
             >
@@ -300,19 +329,21 @@ const LendManagement = () => {
                 <SelectValue placeholder="Select account" />
               </SelectTrigger>
               <SelectContent>
-                {zkAccounts.filter((account) => account.type === "Coin").map((subAccount, index) => {
-                  const balance = subAccount.value ?
-                    new BTC("sats", Big(subAccount.value)).convert("BTC").toFixed(8) :
-                    "0.00000000";
-                  return (
-                    <SelectItem
-                      value={subAccount.address}
-                      key={subAccount.address}
-                    >
-                      {subAccount.tag === "main" ? "Trading Account" : subAccount.tag} - {balance}BTC
-                    </SelectItem>
-                  );
-                })}
+                {zkAccounts
+                  .filter((account) => account.type === "Coin" && (account.value ?? 0) > 0)
+                  .map((subAccount) => {
+                    const balance = typeof subAccount.value === "number"
+                      ? new BTC("sats", Big(subAccount.value)).convert("BTC").toFixed(8)
+                      : "0.00000000";
+                    return (
+                      <SelectItem
+                        value={subAccount.address}
+                        key={subAccount.address}
+                      >
+                        {subAccount.tag === "main" ? "Trading Account" : subAccount.tag} - {balance}BTC
+                      </SelectItem>
+                    );
+                  })}
               </SelectContent>
             </Select>
           </div>
@@ -354,12 +385,13 @@ const LendManagement = () => {
             selected={depositDenom}
             ref={depositRef}
             onInput={calculateApproxPoolShare}
+            readOnly={accountSelectionType === "existing"}
           />
         </div>
 
         <div className="flex justify-between text-sm">
           <Text className="text-primary-accent">Approx Pool Share</Text>
-          <Text>≈ {calculateApproxPoolShare()}%</Text>
+          <Text>≈ {calculateApproxPoolShare()}</Text>
         </div>
 
         <Button disabled={isSubmitLoading || status !== WalletStatus.Connected} type="submit" className="w-full">

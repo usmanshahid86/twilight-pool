@@ -106,3 +106,39 @@ export type OpenLimitOrderData = {
   ask: LimitOrderData[];
   bid: LimitOrderData[];
 };
+
+export type LendPoolInfo = {
+  sequence: number;
+  nonce: number;
+  total_pool_share: string;
+  total_locked_value: string;
+  pending_orders: number;
+  aggregate_log_sequence: number;
+  last_snapshot_id: number;
+};
+
+export type QueryLendOrderData = {
+  id: number;
+  uuid: string;
+  account_id: string;
+  balance: string;
+  order_status: string;
+  order_type: string;
+  entry_nonce: number;
+  exit_nonce: number;
+  deposit: string;
+  new_lend_state_amount: string;
+  timestamp: string;
+  npoolshare: string;
+  nwithdraw: string;
+  payment: string;
+  tlv0: string;
+  tps0: string;
+  tlv1: string;
+  tps1: string;
+  tlv2: string;
+  tps2: string;
+  tlv3: string;
+  tps3: string;
+  entry_sequence: number;
+};

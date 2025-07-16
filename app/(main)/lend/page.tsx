@@ -23,11 +23,13 @@ import { useWallet } from "@cosmos-kit/react-lite";
 import { Loader2 } from "lucide-react";
 import React, { useState, useMemo } from "react";
 import { LendOrder } from "@/lib/types";
+import { useGetLendPoolInfo } from '@/lib/hooks/useGetLendPoolInfo';
 
 type TabType = "active-orders" | "lend-history";
 
 const Page = () => {
   useRedirectUnconnected();
+  useGetLendPoolInfo()
 
   const { toast } = useToast();
   const { status } = useWallet();
@@ -40,6 +42,7 @@ const Page = () => {
   const privateKey = useSessionStore((state) => state.privateKey);
   const lendOrders = useTwilightStore((state) => state.lend.lends);
   const poolInfo = useTwilightStore((state) => state.lend.poolInfo);
+
   const zKAccounts = useTwilightStore((state) => state.zk.zkAccounts);
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount);
   const removeLend = useTwilightStore((state) => state.lend.removeLend);
@@ -58,7 +61,7 @@ const Page = () => {
 
   const getCurrentPrice = () => currentPrice || 0;
 
-  const getPoolSharePrice = () => poolInfo?.pool_share || 0;
+  const getPoolSharePrice = () => poolInfo?.pool_share || 0
 
   async function settleLendOrder(order: LendOrder) {
     try {

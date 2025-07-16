@@ -1,6 +1,7 @@
 import wfetch from "../http";
 import {
   CandleInterval,
+  LendPoolInfo,
   OpenLimitOrderData,
   TwilightApiResponse,
   twilightRegistedBtcAddressStruct,
@@ -259,6 +260,28 @@ async function getPoolShareValue() {
   return result;
 }
 
+async function getLendPoolInfo() {
+  const body = JSON.stringify({
+    jsonrpc: "2.0",
+    method: "lend_pool_info",
+    id: 1,
+    params: null,
+  });
+
+  const { success, data, error } = await wfetch(priceURL)
+    .post({ body })
+    .json<TwilightApiResponse<LendPoolInfo>>();
+
+  if (!success) {
+    console.error(error);
+    return null;
+  }
+
+  const { result } = data;
+
+  return result;
+}
+
 async function queryTransactionHashes(
   address: string
 ): Promise<Record<string, never> | TwilightApiResponse<TransactionHash[]>> {
@@ -316,4 +339,5 @@ export {
   getRecentLimitOrders,
   queryTransactionHashByRequestId,
   getPoolShareValue,
+  getLendPoolInfo,
 };

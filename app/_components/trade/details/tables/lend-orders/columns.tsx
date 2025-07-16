@@ -63,14 +63,20 @@ export const lendOrdersColumns: ColumnDef<LendOrder, any>[] = [
   },
   {
     accessorKey: "pool_share_price",
-    header: "Share Price",
+    header: "Entry Pool Share Value",
     cell: (row) => {
-      const meta = row.table.options.meta as LendOrdersTableMeta;
-      const currentSharePrice = meta.getPoolSharePrice();
-      const sharePriceBTC = new BTC("sats", Big(currentSharePrice * 100000000)).convert("BTC");
+      const deposit = row.row.original.value;
+      const npoolshare = row.row.original.npoolshare;
+
+      if (!deposit || !npoolshare) {
+        return <Text className="font-medium">0.00000000 BTC</Text>;
+      }
+
+      const shareValue = Big(deposit).div(npoolshare)
+
       return (
         <Text className="font-medium">
-          {BTC.format(sharePriceBTC, "BTC")}
+          {shareValue.toFixed(8)}
         </Text>
       );
     },
