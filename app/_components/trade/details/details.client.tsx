@@ -259,7 +259,7 @@ const DetailsPanel = () => {
           </TabsList>
         </Tabs>
       </div>
-      <div className="flex-1 px-2 pb-2">
+      <div className="flex-1 px-2 pb-2 overflow-auto">
         <RenderTabs />
       </div>
     </div>
