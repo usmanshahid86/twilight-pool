@@ -34,7 +34,7 @@ export const TwilightStoreProvider = ({
     useRef<
       Mutate<
         StoreApi<AccountSlices>,
-        [["zustand/persist", never], ["zustand/immer", never]]
+        [["zustand/persist", AccountSlices], ["zustand/immer", never]]
       >
     >();
 

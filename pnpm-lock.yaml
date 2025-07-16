@@ -166,8 +166,8 @@ importers:
         version: 4.5.7(@types/react@18.2.20)(immer@10.1.1)(react@18.2.0)
     devDependencies:
       '@chain-registry/types':
-        specifier: ^0.16.0
-        version: 0.16.0
+        specifier: ^0.46.15
+        version: 0.46.15
       '@keplr-wallet/types':
         specifier: ^0.12.32
         version: 0.12.251(starknet@7.6.4)
@@ -193,10 +193,6 @@ packages:
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
 
-  '@babel/runtime@7.27.6':
-    resolution: {integrity: sha512-vbavdySgbTTrmFE+EsiqUTzlOr5bzlnJtUv9PynGCAKvfQqjIXbvFdumPM/GxMDfyuGMJaJAU6TO4zc1Jf1i8Q==}
-    engines: {node: '>=6.9.0'}
-
   '@chain-registry/client@1.53.172':
     resolution: {integrity: sha512-3tV0LMP0v5VjDJCgOIqyC6OzSlhT1omoyo2MyjjbtTwDUfTVree9v7+YZB9y8zgNM1PAC4AUx+YYb2wnYceKcg==}
 
@@ -208,9 +204,6 @@ packages:
 
   '@chain-registry/keplr@1.74.276':
     resolution: {integrity: sha512-hVhd2rGpEo1qc/c1aDGfmDIvb4oTfnRixhVO1EKZbjxBgyN9XJcCf507l5l2v20+5TaCYIPyQakfn14ohOmL2A==}
-
-  '@chain-registry/types@0.16.0':
-    resolution: {integrity: sha512-4j6vq2Vqn/nF+UBjvRPUVs6eM3+5rJ+dPmEWpd/OoNH3wTy1k6aoilcSTZRR//vGcI5EOVGsxhhJxUzo2qqweA==}
 
   '@chain-registry/types@0.41.4':
     resolution: {integrity: sha512-LeW2nXd0dmnI+TC4L2xC3RNooUthUfou1yFcdsinSW6EP9qEwo2BwwnWWAcMG+dsPvXfM4AfmisVBrxbX2OKqw==}
@@ -3636,8 +3629,6 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@babel/runtime@7.27.6': {}
-
   '@chain-registry/client@1.53.172':
     dependencies:
       '@chain-registry/types': 0.50.172
@@ -3666,10 +3657,6 @@ snapshots:
       '@keplr-wallet/cosmos': 0.12.28
       '@keplr-wallet/crypto': 0.12.28
       semver: 7.7.2
-
-  '@chain-registry/types@0.16.0':
-    dependencies:
-      '@babel/runtime': 7.27.6
 
   '@chain-registry/types@0.41.4': {}
 

@@ -23,7 +23,7 @@ import {
 export const createTwilightStore = () => {
   return createStore<
     AccountSlices,
-    [["zustand/persist", never], ["zustand/immer", never]]
+    [["zustand/persist", AccountSlices], ["zustand/immer", never]]
   >(
     persist(
       immer<AccountSlices>((...actions) => ({
@@ -35,7 +35,7 @@ export const createTwilightStore = () => {
       })),
       {
         name: "twilight-",
-        storage: createJSONStorage(() => localStorage),
+        storage: createJSONStorage<AccountSlices>(() => localStorage),
         skipHydration: true,
         version: 0.3,
         migrate: (persistedState, version) => {
@@ -101,7 +101,7 @@ export const createTwilightStore = () => {
 export const createSessionStore = () => {
   return createStore<
     SessionSlices,
-    [["zustand/persist", never], ["zustand/immer", never]]
+    [["zustand/persist", SessionSlices], ["zustand/immer", never]]
   >(
     persist(
       immer<SessionSlices>((...actions) => ({
@@ -118,7 +118,7 @@ export const createSessionStore = () => {
       })),
       {
         name: "twilight-session-",
-        storage: createJSONStorage(() => sessionStorage),
+        storage: createJSONStorage<SessionSlices>(() => sessionStorage),
         skipHydration: true,
         version: 0.1,
         merge: (persistedState, currentState) => {

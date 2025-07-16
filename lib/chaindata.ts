@@ -4,9 +4,10 @@ import { SignerOptions } from "@cosmos-kit/core";
 import { GasPrice, SigningStargateClientOptions } from "@cosmjs/stargate";
 
 export const twilightTestnet: Chain = {
+  chain_type: "cosmos",
   chain_name: "nyks",
   website: "https://twilight.finance",
-  status: "testing",
+  status: "upcoming",
   network_type: "testnet",
   pretty_name: "Twilight Testnet",
   chain_id: "nyks",
@@ -66,6 +67,7 @@ export const twilightTestnetAssets: AssetList = {
   assets: [
     {
       description: "The native staking token of Twilight.",
+      type_asset: "sdk.coin",
       denom_units: [
         {
           denom: "nyks",
@@ -89,14 +91,14 @@ export const twilightTestnetAssets: AssetList = {
 };
 
 export const signerOptions: SignerOptions = {
-  signingStargate: () => {
+  signingStargate: ((chain: string | Chain) => {
     const { aminoTypes, registry } = getSigningTwilightprojectClientOptions();
     return {
       registry,
       aminoTypes,
       gasPrice: GasPrice.fromString("0.0001nyks"),
-    } as unknown as SigningStargateClientOptions; // https://github.com/cosmology-tech/cosmos-kit/issues/234
-  },
+    } as unknown as SigningStargateClientOptions;
+  }) as SignerOptions["signingStargate"],
   // signingCosmwasm: (chain) => {
   //   return {
   //     gasPrice: GasPrice.fromString("0.0001nyks") as GasPrice,

@@ -187,7 +187,6 @@ const LendManagement = () => {
         value: depositAmount,
         timestamp: new Date(),
         apy: poolInfo?.apy,
-        pool_share_price_entry: poolInfo?.pool_share_price,
         tx_hash: tx_hash,
       });
 

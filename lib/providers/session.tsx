@@ -26,7 +26,7 @@ export const SessionStoreProvider = ({
     useRef<
       Mutate<
         StoreApi<SessionSlices>,
-        [["zustand/persist", never], ["zustand/immer", never]]
+        [["zustand/persist", SessionSlices], ["zustand/immer", never]]
       >
     >();
 
