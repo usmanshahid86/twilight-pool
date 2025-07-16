@@ -1,5 +1,16 @@
+let zkos: Awaited<typeof import("@twilight-dev/zkos-wasm")> | null = null;
+
+export async function initZkos() {
+  if (!zkos) {
+    const wasm = await import("@twilight-dev/zkos-wasm");
+    await wasm.default(); // this initializes the wasm module
+    zkos = wasm;
+  }
+  return zkos!;
+}
+
 async function generatePublicKey({ signature }: { signature: string }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.generatePublicKeyFromSignature(signature);
 }
 
@@ -8,7 +19,7 @@ async function generateHexAddressFromPublicKey({
 }: {
   publicKey: string;
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.hexStandardAddressFromPublicKey(12, publicKey);
 }
 
@@ -17,7 +28,7 @@ async function generateTradingAccountAddress({
 }: {
   publicKeyHex: string;
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.generateNewRandomAddress(publicKeyHex);
 }
 
@@ -26,7 +37,7 @@ async function generateZeroBalanceTradingAccount({
 }: {
   tradingAccountAddress: string;
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.generateZeroBalaneZkAccountFromAddress(tradingAccountAddress);
 }
 
@@ -39,7 +50,7 @@ async function generateTradingAccount({
   balance: number;
   scalar: string;
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.generateZkAccountWithBalance(publicKeyHex, balance, scalar);
 }
 
@@ -48,17 +59,17 @@ async function getTradingAddressFromTradingAccount({
 }: {
   tradingAccountAddress: string;
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.getAddressFromZkAccountHex(tradingAccountAddress);
 }
 
 async function generateRandomScalar() {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.generateRandomScalar();
 }
 
 async function utxoStringToHex({ utxoString }: { utxoString: string }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.getUtxoHexFromJson(utxoString);
 }
 
@@ -67,7 +78,7 @@ async function getZKAccountHexFromOutputString({
 }: {
   outputString: string;
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.extractZkAccountFromOutput(outputString);
 }
 
@@ -78,7 +89,7 @@ async function decryptZKAccountHexValue({
   zkAccountHex: string;
   signature: string;
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.decryptZkAccountValue(signature, zkAccountHex);
 }
 
@@ -89,7 +100,7 @@ async function createInputCoinFromOutput({
   outputString: string;
   utxoString: string;
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.createInputCoinFromOutput(outputString, utxoString);
 }
 
@@ -120,7 +131,7 @@ async function createTraderOrder({
     return "";
   }
 
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
 
   console.log("createTraderOrder Inputs", {
     inputString,
@@ -162,7 +173,7 @@ async function createZkOSLendOrder({
   scalar: string;
   deposit: number;
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.createZkOSLendOrder(
     inputString,
     signature,
@@ -185,7 +196,7 @@ async function createTradingTxSingle({
   amount: number;
   updatedSenderBalance: number;
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.privateTransactionSingle(
     signature,
     senderInput,
@@ -206,7 +217,7 @@ async function createCancelTraderOrderMsg({
   signature: string;
   uuid: string;
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   console.log(address, signature, uuid);
   return zkos.cancelTraderOrderZkOS(address, signature, JSON.stringify(uuid));
 }
@@ -220,7 +231,7 @@ async function createQueryTradeOrderMsg({
   signature: string;
   orderStatus: string;
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.queryTraderOrderZkos(address, signature, orderStatus);
 }
 
@@ -233,7 +244,7 @@ async function createQueryLendOrderMsg({
   signature: string;
   orderStatus: string;
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.queryLendOrderZkos(address, signature, orderStatus);
 }
 
@@ -246,12 +257,12 @@ async function verifyAccount({
   signature: string;
   balance: number;
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.verifyZkAccount(signature, zkAccountHex, balance);
 }
 
 async function verifyQuisQuisTransaction({ tx }: { tx: string }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.verifyQuisQuisTransaction(tx);
 }
 
@@ -268,7 +279,7 @@ async function createBurnMessageTx({
   signature: string;
   address: string;
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.createBurnMessageTransaction(
     inputString,
     BigInt(amount),
@@ -297,7 +308,7 @@ async function executeTradeLendOrderMsg({
   executionPricePoolshare: number;
   transactionType: "ORDERTX" | "LENDTX";
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.executeTradeLendOrderZkOS(
     outputMemo,
     signature,
@@ -317,7 +328,7 @@ async function coinAddressMonitoring({
   utxoOutputString: string;
   signature: string;
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.coinAddressMonitoring(utxoOutputString, signature);
 }
 
@@ -332,7 +343,7 @@ async function getUpdatedAddressFromTransaction({
   signature: string;
   txHex: string;
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.getUpdatedAddressesFromTransaction(signature, txHex);
 }
 
@@ -351,7 +362,7 @@ async function createShuffleTransactionSingle({
   updatedSenderBalance: number;
   anonymitySet: string;
 }) {
-  const zkos = await import("@twilight-dev/zkos-wasm");
+  const zkos = await initZkos();
   return zkos.createQuisQuisTransactionSingle(
     signature,
     senderInput,

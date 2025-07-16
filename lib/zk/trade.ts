@@ -83,11 +83,13 @@ export async function settleOrder(
       }
 
       const transactionHashResult = transactionHashRes.data;
+
       output = transactionHashResult.result.find(
-        (result) => result.order_id === trade.uuid
+        (result) => result.order_id === trade.uuid && result.output
       )?.output;
 
       if (typeof output !== "string") {
+        console.log(transactionHashResult);
         return {
           success: false,
           message:

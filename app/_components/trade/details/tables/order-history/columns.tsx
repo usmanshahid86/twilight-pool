@@ -58,6 +58,11 @@ export const orderHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
     cell: (row) => {
       const trade = row.row.original;
       const markPrice = trade.settlementPrice || trade.entryPrice;
+
+      if (!markPrice) {
+        return <span className="text-xs text-gray-500">—</span>;
+      }
+
       const positionValue = new BTC("sats", Big(Math.abs(trade.positionSize / markPrice)))
         .convert("BTC")
 
