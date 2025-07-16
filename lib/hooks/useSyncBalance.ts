@@ -133,12 +133,11 @@ export const useSyncBalance = () => {
       accountsToSync.length > 0,
 
     // Performance optimizations
-    refetchInterval: 5000,
-    staleTime: 3000, // Consider data stale after 3 seconds
+    refetchInterval: 30000,
+    staleTime: 25000, // Consider data stale after 25 seconds
     refetchOnMount: true,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    refetchIntervalInBackground: true,
 
     // Error handling
     retry: (failureCount, error) => {
