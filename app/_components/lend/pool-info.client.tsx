@@ -35,7 +35,7 @@ const PoolInfo = () => {
           placeholder={<Skeleton className="h-6 w-16" />}
         >
           <Text className="text-xl font-semibold">
-            {poolShareValue?.toString() || "0"}
+            {poolShareValue?.toFixed(2) || "0"}
           </Text>
         </Resource>
       </div>

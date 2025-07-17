@@ -63,6 +63,9 @@ export const useSyncTrades = () => {
     (state) => state.trade_history.addTrade
   );
 
+  const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount);
+  const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
+
   const { status } = useWallet();
 
   const privateKey = useSessionStore((state) => state.privateKey);
@@ -142,10 +145,30 @@ export const useSyncTrades = () => {
         const updatedTrade = updated.get(trade.uuid);
 
         if (updatedTrade) {
-          mergedTrades.push({
+          const newTrade = {
             ...trade,
             ...updatedTrade,
-          });
+          };
+
+          mergedTrades.push(newTrade);
+
+          if (
+            newTrade.orderStatus === "SETTLED" ||
+            newTrade.orderStatus === "LIQUIDATED"
+          ) {
+            const newBalance = newTrade.availableMargin;
+
+            const existingZkAccount = zkAccounts.find(
+              (account) => account.address === newTrade.accountAddress
+            );
+
+            if (existingZkAccount) {
+              updateZkAccount(newTrade.accountAddress, {
+                ...existingZkAccount,
+                value: newBalance,
+              });
+            }
+          }
 
           // order status changed, add to history
           if (
