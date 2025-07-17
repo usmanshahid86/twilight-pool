@@ -76,6 +76,7 @@ function SettleLimitDialog({ account, open, onOpenChange }: Props) {
     }
 
     const settledData = result.data;
+
     updateTrade({
       ...selectedTrade,
       orderStatus: settledData.order_status,
@@ -116,7 +117,6 @@ function SettleLimitDialog({ account, open, onOpenChange }: Props) {
         }
       </div>
     })
-
 
   }
 

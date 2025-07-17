@@ -13,6 +13,7 @@ import dayjs from 'dayjs';
 import OpenOrdersTable from './tables/open-orders/open-orders-table.client';
 import TraderHistoryTable from './tables/trader-history/trader-history-table.client';
 import OrderHistoryTable from './tables/order-history/order-history-table.client';
+import { getZkAccountBalance } from '@/lib/twilight/zk';
 
 type TabType = "history" | "trades" | "positions" | "open-orders" | "trader-history";
 
@@ -103,6 +104,11 @@ const DetailsPanel = () => {
 
     const updatedAccount = zkAccounts.find(account => account.address === trade.accountAddress);
 
+    const balance = await getZkAccountBalance({
+      zkAccountAddress: trade.accountAddress,
+      signature: privateKey,
+    });
+
     if (!updatedAccount) {
       toast({
         title: "Failed to settle position",
@@ -115,7 +121,9 @@ const DetailsPanel = () => {
     updateZkAccount(trade.accountAddress, {
       ...updatedAccount,
       type: "CoinSettled",
+      value: balance.value || trade.value,
     });
+
   }, [privateKey])
 
   const cancelOrder = useCallback(async (order: TradeOrder) => {

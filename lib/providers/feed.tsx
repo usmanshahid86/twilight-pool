@@ -87,7 +87,7 @@ const PriceFeed: React.FC<PriceFeedProviderProps> = ({ children }) => {
   }, [addPrice, getCurrentPrice, subscribe]);
 
   useSyncTrades()
-  useSyncBalance()
+  // useSyncBalance()
 
   return <feedContext.Provider value={value}>{children}</feedContext.Provider>;
 };
