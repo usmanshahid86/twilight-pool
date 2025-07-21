@@ -78,10 +78,14 @@ export const traderHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
     header: "Settlement Price (USD)",
     cell: (row) => {
       const trade = row.row.original;
-      const settlementPrice = trade.orderStatus === "SETTLED" ? trade.settlementPrice : trade.liquidationPrice;
+
+      if (!trade.settlementPrice) {
+        return <span className="text-xs text-gray-500">—</span>;
+      }
+
       return (
         <span className="font-medium">
-          ${settlementPrice.toFixed(2)}
+          ${trade.settlementPrice.toFixed(2)}
         </span>
       );
     }
@@ -124,7 +128,7 @@ export const traderHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
       const trade = row.row.original;
       const liquidationPrice = trade.liquidationPrice;
 
-      if (trade.orderStatus !== "LIQUIDATED") {
+      if (!liquidationPrice) {
         return <span className="text-xs text-gray-500">—</span>;
       }
 
