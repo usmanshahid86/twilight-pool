@@ -288,7 +288,7 @@ const OrderMyTrades = () => {
         description: <div className="opacity-90">
           Successfully closed {tradeOrder.orderType.toLowerCase()} order.{" "}
           <Link
-            href={`https://explorer.twilight.rest/nyks/tx/${settledTx?.tx_hash || tradeOrder.tx_hash}`}
+            href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${settledTx?.tx_hash || tradeOrder.tx_hash}`}
             target={"_blank"}
             className="text-sm underline hover:opacity-100"
           >

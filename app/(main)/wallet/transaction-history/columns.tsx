@@ -45,7 +45,7 @@ export const transactionHistoryColumns: ColumnDef<TransactionHistory, any>[] = [
     cell: (row) => (
       <Button className="justify-end" asChild variant="link">
         <Link
-          href={`https://explorer.twilight.rest/nyks/tx/${row.getValue()}`}
+          href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${row.getValue()}`}
           target="_blank"
         >
           {row.getValue()}

@@ -96,7 +96,7 @@ const DetailsPanel = () => {
         {
           settledData.tx_hash && (
             <Link
-              href={`https://explorer.twilight.rest/nyks/tx/${settledData.tx_hash}`}
+              href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${settledData.tx_hash}`}
               target={"_blank"}
               className="text-sm underline hover:opacity-100"
             >
@@ -154,7 +154,7 @@ const DetailsPanel = () => {
         {
           cancelOrderResult.data.tx_hash && (
             <Link
-              href={`https://explorer.twilight.rest/nyks/tx/${cancelOrderResult.data.tx_hash}`}
+              href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${cancelOrderResult.data.tx_hash}`}
               target={"_blank"}
               className="text-sm underline hover:opacity-100"
             >

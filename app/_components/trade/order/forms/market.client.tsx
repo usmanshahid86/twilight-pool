@@ -209,7 +209,7 @@ const OrderMarketForm = () => {
                 asChild
               >
                 <Link
-                  href={`https://explorer.twilight.rest/nyks/tx/${orderData.tx_hash}`}
+                  href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${orderData.tx_hash}`}
                   target={"_blank"}
                 >
                   Explorer link
@@ -461,7 +461,7 @@ const OrderMarketForm = () => {
                       asChild
                     >
                       <Link
-                        href={`https://explorer.twilight.rest/nyks/tx/BRCs50fMzA3AW7q0HuzkA`}
+                        href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/BRCs50fMzA3AW7q0HuzkA`}
                         target={"_blank"}
                       >
                         Explorer link
