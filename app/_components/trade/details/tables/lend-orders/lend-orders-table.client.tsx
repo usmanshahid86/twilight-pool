@@ -5,8 +5,10 @@ import { LendOrdersDataTable } from "./data-table";
 import { lendOrdersColumns } from "./columns";
 import { LendOrder } from "@/lib/types";
 
+type LendOrderWithAccountTag = LendOrder & { accountTag: string };
+
 interface Props {
-  data: LendOrder[];
+  data: LendOrderWithAccountTag[];
   getCurrentPrice: () => number;
   getPoolSharePrice: () => number;
   settleLendOrder: (order: LendOrder) => Promise<void>;

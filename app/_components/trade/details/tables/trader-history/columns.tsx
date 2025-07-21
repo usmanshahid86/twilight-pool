@@ -147,7 +147,7 @@ export const traderHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
       const trade = row.row.original;
 
       const pnl = trade.realizedPnl || trade.unrealizedPnl || 0;
-      const funding = trade.initialMargin - trade.availableMargin - trade.feeFilled + pnl;
+      const funding = trade.initialMargin - trade.availableMargin - trade.feeFilled - trade.feeSettled + pnl;
 
       const fundingBTC = new BTC("sats", Big(funding))
         .convert("BTC")

@@ -99,3 +99,24 @@ export function safeJSONParse<T>(
 export function capitaliseFirstLetter(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
+
+/**
+ * Truncates a transaction hash for display purposes
+ * @param hash - The transaction hash to truncate
+ * @param startLength - Number of characters to show at the start (default: 8)
+ * @param endLength - Number of characters to show at the end (default: 8)
+ * @param minLength - Minimum length before truncating (default: 16)
+ * @returns The truncated hash or original if shorter than minLength
+ */
+export function truncateHash(
+  hash: string | null | undefined,
+  startLength: number = 8,
+  endLength: number = 8,
+  minLength: number = 16
+): string {
+  if (!hash || hash.length <= minLength) {
+    return hash || "";
+  }
+
+  return `${hash.slice(0, startLength)}...${hash.slice(-endLength)}`;
+}

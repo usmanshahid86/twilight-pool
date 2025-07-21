@@ -59,7 +59,7 @@ export function LendHistoryDataTable<TData, TValue>({
               {headerGroup.headers.map((header, index) => {
                 return (
                   <th
-                    className={cn("font-medium",)}
+                    className={cn("font-medium text-start")}
                     key={header.id}
                   >
                     {header.isPlaceholder
@@ -83,7 +83,7 @@ export function LendHistoryDataTable<TData, TValue>({
               >
                 {row.getVisibleCells().map((cell, index) => (
                   <td
-                    className={cn("")}
+                    className={cn("text-start")}
                     key={cell.id}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

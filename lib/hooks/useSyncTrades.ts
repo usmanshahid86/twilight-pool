@@ -152,6 +152,7 @@ export const useSyncTrades = () => {
 
           mergedTrades.push(newTrade);
 
+          // update zk account balance
           if (
             newTrade.orderStatus === "SETTLED" ||
             newTrade.orderStatus === "LIQUIDATED"
@@ -171,19 +172,14 @@ export const useSyncTrades = () => {
           }
 
           // order status changed, add to history
-          if (
-            updatedTrade.orderStatus &&
-            updatedTrade.orderStatus !== trade.orderStatus
-          ) {
+          if (updatedTrade.orderStatus) {
             console.log(
               "adding to history",
               trade.orderStatus,
               updatedTrade.orderStatus
             );
-            addTradeHistory({
-              ...trade,
-              ...updatedTrade,
-            });
+
+            addTradeHistory(newTrade);
           }
         } else {
           mergedTrades.push(trade);

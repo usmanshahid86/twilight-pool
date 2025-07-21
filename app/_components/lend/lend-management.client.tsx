@@ -20,10 +20,9 @@ import { useSessionStore } from "@/lib/providers/session";
 import { useTwilightStore } from "@/lib/providers/store";
 import BTC, { BTCDenoms } from "@/lib/twilight/denoms";
 import { createFundingToTradingTransferMsg } from '@/lib/twilight/wallet';
-import { createZkAccount, createZkAccountWithBalance, createZkLendOrder } from "@/lib/twilight/zk";
+import { createZkAccountWithBalance, createZkLendOrder } from "@/lib/twilight/zk";
 import { createQueryLendOrderMsg } from '@/lib/twilight/zkos';
 import { ZkAccount } from '@/lib/types';
-import { calculateFee, GasPrice } from '@cosmjs/stargate';
 import { WalletStatus } from '@cosmos-kit/core';
 import { useWallet } from '@cosmos-kit/react-lite';
 import Big from "big.js";
@@ -47,6 +46,8 @@ const LendManagement = () => {
   const [approxPoolShare, setApproxPoolShare] = useState<string>("0.00000000");
 
   const addLendOrder = useTwilightStore((state) => state.lend.addLend);
+  const addLendHistory = useTwilightStore((state) => state.lend.addLendHistory);
+
   const addTransactionHistory = useTwilightStore(
     (state) => state.history.addTransaction
   );
@@ -105,6 +106,11 @@ const LendManagement = () => {
       }
 
       setIsSubmitLoading(true);
+
+      toast({
+        title: "Submitting deposit",
+        description: "Please do not close this page while your deposit is being submitted...",
+      })
 
       const transferAmount = new BTC(
         depositDenom as BTCDenoms,
@@ -279,7 +285,7 @@ const LendManagement = () => {
         return;
       }
 
-      addLendOrder({
+      const newLendOrder = {
         accountAddress: zkAccountToUse.address,
         uuid: data.result.id_key as string,
         orderStatus: "LENDED",
@@ -288,7 +294,10 @@ const LendManagement = () => {
         apy: poolInfo?.apy,
         tx_hash: tx_hash,
         npoolshare: Number(queryLendOrderRes.result.npoolshare)
-      });
+      }
+
+      addLendOrder(newLendOrder);
+      addLendHistory(newLendOrder);
 
       addTransactionHistory({
         date: new Date(),
@@ -297,7 +306,7 @@ const LendManagement = () => {
         to: zkAccountToUse.address,
         toTag: zkAccountToUse.tag,
         tx_hash: tx_hash,
-        type: "Lend Deposit",
+        type: "Deposit Lend",
         value: depositAmount,
       });
 

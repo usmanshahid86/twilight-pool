@@ -13,8 +13,6 @@ import dayjs from 'dayjs';
 import OpenOrdersTable from './tables/open-orders/open-orders-table.client';
 import TraderHistoryTable from './tables/trader-history/trader-history-table.client';
 import OrderHistoryTable from './tables/order-history/order-history-table.client';
-import { getZkAccountBalance } from '@/lib/twilight/zk';
-import { useQueryClient } from '@tanstack/react-query';
 
 type TabType = "history" | "trades" | "positions" | "open-orders" | "trader-history";
 
@@ -27,6 +25,7 @@ const DetailsPanel = () => {
   const privateKey = useSessionStore((state) => state.privateKey);
 
   const updateTrade = useTwilightStore((state) => state.trade.updateTrade)
+  const removeTrade = useTwilightStore((state) => state.trade.removeTrade)
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount)
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
 
@@ -48,8 +47,6 @@ const DetailsPanel = () => {
     toast,
   } = useToast()
 
-  const queryClient = useQueryClient();
-
   const settleMarketOrder = useCallback(async (trade: TradeOrder, currentPrice: number) => {
     toast({
       title: "Closing position",
@@ -70,7 +67,7 @@ const DetailsPanel = () => {
     const settledData = settleOrderResult.data;
     console.log(`settledData`, settledData)
 
-    updateTrade({
+    const updatedTrade = {
       ...trade,
       orderStatus: settledData.order_status,
       availableMargin: Big(settledData.available_margin).toNumber(),
@@ -87,9 +84,13 @@ const DetailsPanel = () => {
       feeFilled: Big(settledData.fee_filled).toNumber(),
       realizedPnl: Big(settledData.unrealized_pnl).toNumber(),
       tx_hash: settledData.tx_hash || trade.tx_hash,
-    })
+    }
 
-    queryClient.invalidateQueries({ queryKey: ['sync-trades'] })
+    updateTrade(updatedTrade)
+
+    if (updatedTrade.orderStatus === "SETTLED") {
+      addTradeHistory(updatedTrade)
+    }
 
     const updatedAccount = zkAccounts.find(account => account.address === trade.accountAddress);
 
@@ -167,24 +168,8 @@ const DetailsPanel = () => {
       </div>
     })
 
-    updateTrade({
-      ...order,
-      orderStatus: cancelOrderData.order_status,
-      availableMargin: Big(cancelOrderData.available_margin).toNumber(),
-      maintenanceMargin: Big(cancelOrderData.maintenance_margin).toNumber(),
-      unrealizedPnl: Big(cancelOrderData.unrealized_pnl).toNumber(),
-      settlementPrice: Big(cancelOrderData.settlement_price).toNumber(),
-      positionSize: Big(cancelOrderData.positionsize).toNumber(),
-      orderType: cancelOrderData.order_type,
-      date: dayjs(cancelOrderData.timestamp).toDate(),
-      exit_nonce: cancelOrderData.exit_nonce,
-      executionPrice: Big(cancelOrderData.execution_price).toNumber(),
-      isOpen: false,
-      feeSettled: Big(cancelOrderData.fee_settled).toNumber(),
-      feeFilled: Big(cancelOrderData.fee_filled).toNumber(),
-      realizedPnl: Big(cancelOrderData.unrealized_pnl).toNumber(),
-      tx_hash: cancelOrderData.tx_hash || order.tx_hash,
-    })
+
+    removeTrade(order);
 
     const updatedAccount = zkAccounts.find(account => account.address === order.accountAddress);
 

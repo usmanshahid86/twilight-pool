@@ -5,8 +5,10 @@ import { LendHistoryDataTable } from "./data-table";
 import { lendHistoryColumns } from "./columns";
 import { LendOrder } from "@/lib/types";
 
+type LendOrderWithAccountTag = LendOrder & { accountTag: string };
+
 interface Props {
-  data: LendOrder[];
+  data: LendOrderWithAccountTag[];
   getCurrentPrice: () => number;
 }
 

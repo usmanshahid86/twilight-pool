@@ -17,28 +17,28 @@ export interface LendOrdersTableMeta {
   settlingOrderId: string | null;
 }
 
-export const lendOrdersColumns: ColumnDef<LendOrder, any>[] = [
+export const lendOrdersColumns: ColumnDef<LendOrder & { accountTag: string }, any>[] = [
   {
     accessorKey: "timestamp",
     header: "Date",
     accessorFn: (row) => dayjs(row.timestamp).format("DD/MM/YYYY HH:mm:ss"),
   },
   {
-    accessorKey: "accountAddress",
-    header: "Account",
+    accessorKey: "accountTag",
+    header: "Account Tag",
     cell: (row) => {
       const order = row.row.original;
       // Only show if user has multiple accounts
       return (
         <Text className="text-xs">
-          {order.accountAddress.slice(0, 12)}...
+          {order.accountTag}
         </Text>
       );
     },
   },
   {
     accessorKey: "value",
-    header: "Amount (BTC)",
+    header: "Deposit (BTC)",
     cell: (row) => {
       const order = row.row.original;
       const amountBTC = new BTC("sats", Big(order.value)).convert("BTC");
@@ -51,19 +51,30 @@ export const lendOrdersColumns: ColumnDef<LendOrder, any>[] = [
   },
   {
     accessorKey: "npoolshare",
-    header: "Share Qty",
+    header: "No of Shares",
     cell: (row) => {
       const order = row.row.original;
+
+      if (!order.npoolshare) {
+        return (
+          <Text className="font-medium">
+            -
+          </Text>
+        )
+      }
+
+      const shares = order.npoolshare / 10_000;
+
       return (
         <Text className="font-medium">
-          {order.npoolshare?.toLocaleString() || "0"} shares
+          {shares.toLocaleString() || "0"} shares
         </Text>
       );
     },
   },
   {
     accessorKey: "pool_share_price",
-    header: "Entry Pool Share Value",
+    header: "Entry Pool Share Value (BTC)",
     cell: (row) => {
       const deposit = row.row.original.value;
       const npoolshare = row.row.original.npoolshare;
@@ -95,7 +106,7 @@ export const lendOrdersColumns: ColumnDef<LendOrder, any>[] = [
   },
   {
     accessorKey: "accrued_rewards",
-    header: "Accrued Rew.",
+    header: "U.Rewards (BTC)",
     cell: (row) => {
       const order = row.row.original;
       const meta = row.table.options.meta as LendOrdersTableMeta;
@@ -127,8 +138,6 @@ export const lendOrdersColumns: ColumnDef<LendOrder, any>[] = [
         switch (status) {
           case "LENDED":
             return "bg-green-medium/10 text-green-medium";
-          case "SETTLING":
-            return "bg-orange/10 text-orange";
           case "ERROR":
             return "bg-red/10 text-red";
           default:
@@ -172,7 +181,7 @@ export const lendOrdersColumns: ColumnDef<LendOrder, any>[] = [
             {isSettling ? (
               <>
                 <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                Settling...
+                Withdrawing...
               </>
             ) : (
               "Withdraw"

@@ -17,13 +17,23 @@ import useRedirectUnconnected from "@/lib/hooks/useRedirectUnconnected";
 import { useToast } from "@/lib/hooks/useToast";
 import { useSessionStore } from "@/lib/providers/session";
 import { useTwilightStore } from "@/lib/providers/store";
-import { executeTradeLendOrderMsg } from "@/lib/twilight/zkos";
+import { createQueryLendOrderMsg, executeTradeLendOrderMsg } from "@/lib/twilight/zkos";
 import { WalletStatus } from "@cosmos-kit/core";
 import { useWallet } from "@cosmos-kit/react-lite";
 import { Loader2 } from "lucide-react";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { LendOrder } from "@/lib/types";
 import { useGetLendPoolInfo } from '@/lib/hooks/useGetLendPoolInfo';
+import { queryLendOrder } from '@/lib/api/relayer';
+import Big from 'big.js';
+
+const formatTag = (tag: string) => {
+  if (tag === "main") {
+    return "Trading Account";
+  }
+
+  return tag;
+}
 
 type TabType = "active-orders" | "lend-history";
 
@@ -41,6 +51,10 @@ const Page = () => {
   const currentPrice = useSessionStore((state) => state.price.btcPrice);
   const privateKey = useSessionStore((state) => state.privateKey);
   const lendOrders = useTwilightStore((state) => state.lend.lends);
+
+  const lendHistoryData = useTwilightStore((state) => state.lend.lendHistory);
+  const addLendHistory = useTwilightStore((state) => state.lend.addLendHistory);
+
   const poolInfo = useTwilightStore((state) => state.lend.poolInfo);
 
   const zKAccounts = useTwilightStore((state) => state.zk.zkAccounts);
@@ -50,14 +64,25 @@ const Page = () => {
     (state) => state.history.addTransaction
   );
 
+  const getAccountTag = useCallback((address: string) => {
+    const account = zKAccounts.find(account => account.address === address);
+    return formatTag(account?.tag || "");
+  }, [zKAccounts]);
+
   // Filter lend orders for active vs history
   const activeLendOrders = useMemo(() => {
-    return lendOrders.filter(order => order.orderStatus === "LENDED");
+    return lendOrders.filter(order => order.orderStatus === "LENDED").map(order => ({
+      ...order,
+      accountTag: getAccountTag(order.accountAddress)
+    }));
   }, [lendOrders]);
 
   const lendHistory = useMemo(() => {
-    return lendOrders.filter(order => order.orderStatus !== "LENDED");
-  }, [lendOrders]);
+    return lendHistoryData.map(order => ({
+      ...order,
+      accountTag: getAccountTag(order.accountAddress)
+    }));
+  }, [lendHistoryData]);
 
   const getCurrentPrice = () => currentPrice || 0;
 
@@ -66,8 +91,8 @@ const Page = () => {
   async function settleLendOrder(order: LendOrder) {
     try {
       toast({
-        title: "Settling lend order",
-        description: "Please do not close this page until the lend order is settled...",
+        title: "Withdrawing lend order",
+        description: "Please do not close this page until the lend order is withdrawn...",
       })
 
       setIsSettleLoading(true);
@@ -170,6 +195,27 @@ const Page = () => {
         return;
       }
 
+      const queryLendOrderMsg = await createQueryLendOrderMsg({
+        address: order.accountAddress,
+        signature: privateKey,
+        orderStatus: "SETTLED",
+      });
+
+      const queryLendOrderRes = await queryLendOrder(queryLendOrderMsg);
+      console.log(queryLendOrderRes);
+
+      if (!queryLendOrderRes) {
+        console.error(queryLendOrderRes);
+        toast({
+          variant: "error",
+          title: "Unable to query lend order",
+          description: "An error has occurred, try again later.",
+        });
+        setIsSettleLoading(false);
+        setSettlingOrderId(null);
+        return;
+      }
+
       addTransactionHistory({
         date: new Date(),
         from: selectedZkAccount?.address || "",
@@ -177,21 +223,31 @@ const Page = () => {
         to: order.accountAddress,
         toTag: selectedZkAccount?.tag || "",
         tx_hash: tx_hash || "",
-        type: "Settle Lend",
         value: order.value,
+        type: "Withdraw Lend",
       });
+
+      addLendHistory({
+        ...order,
+        orderStatus: "SETTLED",
+        timestamp: new Date(),
+        tx_hash: tx_hash,
+        value: Big(queryLendOrderRes.result.new_lend_state_amount).toNumber() || order.value,
+        payment: Big(queryLendOrderRes.result.payment).toNumber() || 0,
+      })
 
       setIsSettleLoading(false);
       setSettlingOrderId(null);
 
       toast({
         title: "Success",
-        description: "Settled lend order successfully",
+        description: "Withdrew lend order successfully",
       });
 
       updateZkAccount(selectedZkAccount.address, {
         ...selectedZkAccount,
         type: "CoinSettled",
+        value: Big(queryLendOrderRes.result.new_lend_state_amount).toNumber() || order.value,
       });
 
     } catch (err) {
@@ -201,7 +257,7 @@ const Page = () => {
       toast({
         variant: "error",
         title: "Error",
-        description: "An error has occurred settling lend order, try again later.",
+        description: "An error has occurred withdrawing lend order, try again later.",
       });
     }
   }
@@ -280,14 +336,14 @@ const Page = () => {
                 value="active-orders"
                 variant="underline"
               >
-                Active Orders
+                Deposits
               </TabsTrigger>
               <TabsTrigger
                 onClick={() => setCurrentTab("lend-history")}
                 value="lend-history"
                 variant="underline"
               >
-                Lend History
+                History
               </TabsTrigger>
             </TabsList>
           </Tabs>

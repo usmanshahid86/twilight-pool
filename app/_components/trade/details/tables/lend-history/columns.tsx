@@ -7,40 +7,56 @@ import dayjs from "dayjs";
 import Big from "big.js";
 import BTC from "@/lib/twilight/denoms";
 import cn from "@/lib/cn";
-import Link from "next/link";
+import Button from '@/components/button';
+import Link from 'next/link';
+import { truncateHash } from '@/lib/helpers';
 
 export interface LendHistoryTableMeta {
   getCurrentPrice: () => number;
 }
 
-export const lendHistoryColumns: ColumnDef<LendOrder, any>[] = [
+const orderStatus = {
+  "LENDED": "Deposit",
+  "SETTLED": "Withdraw"
+}
+
+export const lendHistoryColumns: ColumnDef<LendOrder & { accountTag: string }, any>[] = [
   {
     accessorKey: "timestamp",
     header: "Date",
     accessorFn: (row) => dayjs(row.timestamp).format("DD/MM/YYYY HH:mm:ss"),
   },
   {
-    accessorKey: "type",
-    header: "Type",
+    accessorKey: "accountTag",
+    header: "Account Tag",
     cell: (row) => {
       const order = row.row.original;
-      // Determine if this is a deposit or withdraw based on order data
-      const type = order.nwithdraw ? "Withdraw" : "Deposit";
+      // Only show if user has multiple accounts
       return (
-        <Text className="font-medium">
-          {type}
+        <Text className="text-xs">
+          {order.accountTag}
         </Text>
       );
     },
   },
   {
-    accessorKey: "amount",
+    accessorKey: "orderStatus2",
+    header: "Type",
+    cell: (row) => {
+      const order = row.row.original;
+      const status = orderStatus[order.orderStatus as keyof typeof orderStatus];
+
+      return (
+        <Text className="font-medium">{status}</Text>
+      );
+    },
+  },
+  {
+    accessorKey: "value",
     header: "Amount (BTC)",
     cell: (row) => {
       const order = row.row.original;
-      // Use withdrawal amount if it's a withdraw, otherwise use balance
-      const amount = order.nwithdraw || order.value;
-      const amountBTC = new BTC("sats", Big(amount)).convert("BTC");
+      const amountBTC = new BTC("sats", Big(order.value)).convert("BTC");
       return (
         <Text className="font-medium">
           {BTC.format(amountBTC, "BTC")}
@@ -49,43 +65,83 @@ export const lendHistoryColumns: ColumnDef<LendOrder, any>[] = [
     },
   },
   {
-    accessorKey: "payment",
-    header: "Rewards",
+    accessorKey: "npoolshare",
+    header: "No of Shares",
     cell: (row) => {
       const order = row.row.original;
-      // Only show rewards for withdraw transactions
-      if (!order.nwithdraw || !order.payment) {
-        return <Text className="text-primary-accent">-</Text>;
+
+      if (!order.npoolshare) {
+        return (
+          <Text className="font-medium">
+            -
+          </Text>
+        )
       }
 
-      const rewardsBTC = new BTC("sats", Big(order.payment)).convert("BTC");
+      const shares = order.npoolshare / 10_000;
+
       return (
-        <Text className="font-medium text-green-medium">
-          {BTC.format(rewardsBTC, "BTC")}
+        <Text className="font-medium">
+          {shares.toLocaleString() || "0"} shares
+        </Text>
+      );
+    },
+  },
+  {
+    accessorKey: "pool_share_price",
+    header: "Entry Pool Share Value (BTC)",
+    cell: (row) => {
+      const deposit = row.row.original.value;
+      const npoolshare = row.row.original.npoolshare;
+
+      if (!deposit || !npoolshare) {
+        return <Text className="font-medium">0.00000000</Text>;
+      }
+
+      const shareValue = Big(deposit).div(npoolshare)
+
+      return (
+        <Text className="font-medium">
+          {shareValue.toFixed(8)}
+        </Text>
+      );
+    },
+  },
+  {
+    accessorKey: "payment",
+    header: "Rewards (BTC)",
+    cell: (row) => {
+      const order = row.row.original;
+
+      if (!order.payment) {
+        return (
+          <Text className="font-medium">
+            -
+          </Text>
+        )
+      }
+
+      const rewards = new BTC("sats", Big(order.payment)).convert("BTC");
+      return (
+        <Text className="font-medium">
+          {BTC.format(rewards, "BTC")}
         </Text>
       );
     },
   },
   {
     accessorKey: "tx_hash",
-    header: "TxHash",
-    cell: (row) => {
-      const order = row.row.original;
-      if (!order.tx_hash) {
-        return <Text className="text-primary-accent">-</Text>;
-      }
-
-      return (
+    header: "Transaction Hash",
+    cell: (row) => (
+      <Button className="justify-start" asChild variant="link">
         <Link
-          href={`https://explorer.twilight.rest/tx/${order.tx_hash}`}
+          href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${row.getValue()}`}
           target="_blank"
-          rel="noopener noreferrer"
-          className="font-medium hover:underline text-theme"
         >
-          {order.tx_hash.slice(0, 8)}...
+          {truncateHash(row.getValue() as string)}
         </Link>
-      );
-    },
+      </Button>
+    ),
   },
   {
     accessorKey: "orderStatus",
@@ -94,14 +150,10 @@ export const lendHistoryColumns: ColumnDef<LendOrder, any>[] = [
       const order = row.row.original;
       const getStatusColor = (status: string) => {
         switch (status) {
-          case "SETTLED":
-            return "bg-green-medium/10 text-green-medium";
-          case "CANCELLED":
-            return "bg-red/10 text-red";
           case "ERROR":
             return "bg-red/10 text-red";
           default:
-            return "bg-primary/10 text-primary";
+            return "bg-green-medium/10 text-green-medium";
         }
       };
 
