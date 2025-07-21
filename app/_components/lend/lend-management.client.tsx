@@ -149,6 +149,8 @@ const LendManagement = () => {
         isOnChain: true,
         value: transferAmount,
       }
+
+      addZkAccount(zkAccountToUse);
     }
 
     if (!zkAccountToUse) {
