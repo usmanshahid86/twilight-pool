@@ -95,7 +95,7 @@ const Orderbook = () => {
               value={"market"}
               variant="underline"
             >
-              Market
+              Orderbook
             </TabsTrigger>
             <TabsTrigger
               onClick={() => setCurrentTab("recent")}

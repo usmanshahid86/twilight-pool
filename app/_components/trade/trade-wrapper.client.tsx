@@ -172,7 +172,7 @@ const TradeWrapper = () => {
       <DragWrapper
         dimension={gridDimensionRefs.current}
         name="orderbook"
-        title="Orderbook"
+        title="Trades"
         key="orderbook"
       >
         <Orderbook />
