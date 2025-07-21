@@ -198,7 +198,6 @@ export const positionsColumns: ColumnDef<MyTradeOrder, any>[] = [
             onClick={async (e) => {
               e.preventDefault();
               await meta.settleMarketOrder(trade, meta.getCurrentPrice());
-
             }}
             variant="ui"
             size="small"

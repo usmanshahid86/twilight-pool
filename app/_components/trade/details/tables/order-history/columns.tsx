@@ -1,3 +1,4 @@
+import { Text } from '@/components/typography';
 import cn from '@/lib/cn';
 import { capitaliseFirstLetter } from '@/lib/helpers';
 import BTC from '@/lib/twilight/denoms';
@@ -5,6 +6,7 @@ import { TradeOrder } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
 import Big from 'big.js';
 import dayjs from 'dayjs';
+import Link from 'next/link';
 
 // Define the TableMeta interface for global table data
 interface OrderHistoryTableMeta {
@@ -35,6 +37,67 @@ export const orderHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
         </span>
       );
     }
+  },
+  {
+    accessorKey: "tx_hash",
+    header: "TxHash",
+    cell: (row) => {
+      const order = row.row.original;
+      if (!order.tx_hash) {
+        return <Text className="text-primary-accent">-</Text>;
+      }
+
+      return (
+        <Link
+          href={`https://explorer.twilight.org/tx/${order.tx_hash}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium hover:underline text-theme"
+        >
+          {order.tx_hash.slice(0, 8)}...
+        </Link>
+      );
+    },
+  },
+  {
+    accessorKey: "orderStatus",
+    header: "Status",
+    cell: (row) => {
+      const status = row.getValue() as string;
+      return (
+        <span
+          className={cn(
+            "px-2 py-1 rounded text-xs font-medium",
+            status === "SETTLED"
+              ? "bg-green-medium/10 text-green-medium"
+              : status === "LIQUIDATED"
+                ? "bg-red/10 text-red"
+                : "bg-gray-500/10 text-gray-500"
+          )}
+        >
+          {capitaliseFirstLetter(status)}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: "positionType",
+    header: "Type",
+    cell: (row) => {
+      const positionType = row.getValue() as string;
+      return (
+        <span
+          className={cn(
+            "px-2 py-1 rounded text-xs font-medium",
+            positionType === "LONG"
+              ? "bg-green-medium/10 text-green-medium"
+              : "bg-red/10 text-red"
+          )}
+        >
+          {capitaliseFirstLetter(positionType)}
+        </span>
+      );
+    },
   },
   {
     accessorKey: "positionSize",
@@ -79,14 +142,22 @@ export const orderHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
     accessorFn: (row) => `$${row.entryPrice.toFixed(2)}`
   },
   {
+    accessorKey: "leverage",
+    header: "Leverage",
+    accessorFn: (row) => `${row.leverage.toFixed(2)}x`
+  },
+  {
     accessorKey: "settlementPrice",
-    header: "Settlement Price (USD)",
+    header: "Mark Price (USD)",
     cell: (row) => {
       const trade = row.row.original;
-      const settlementPrice = trade.orderStatus === "SETTLED" ? trade.settlementPrice : trade.liquidationPrice;
+
+      const meta = row.table.options.meta as OrderHistoryTableMeta;
+
+      const currentPrice = meta.getCurrentPrice();
       return (
         <span className="font-medium">
-          ${settlementPrice.toFixed(2)}
+          ${currentPrice.toFixed(2)}
         </span>
       );
     }
@@ -180,46 +251,6 @@ export const orderHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
         </span>
       );
     }
-  },
-  {
-    accessorKey: "positionType",
-    header: "Type",
-    cell: (row) => {
-      const positionType = row.getValue() as string;
-      return (
-        <span
-          className={cn(
-            "px-2 py-1 rounded text-xs font-medium",
-            positionType === "LONG"
-              ? "bg-green-medium/10 text-green-medium"
-              : "bg-red/10 text-red"
-          )}
-        >
-          {capitaliseFirstLetter(positionType)}
-        </span>
-      );
-    },
-  },
-  {
-    accessorKey: "orderStatus",
-    header: "Status",
-    cell: (row) => {
-      const status = row.getValue() as string;
-      return (
-        <span
-          className={cn(
-            "px-2 py-1 rounded text-xs font-medium",
-            status === "SETTLED"
-              ? "bg-green-medium/10 text-green-medium"
-              : status === "LIQUIDATED"
-                ? "bg-red/10 text-red"
-                : "bg-gray-500/10 text-gray-500"
-          )}
-        >
-          {capitaliseFirstLetter(status)}
-        </span>
-      );
-    },
   },
 ]
 

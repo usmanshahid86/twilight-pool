@@ -14,6 +14,7 @@ import OpenOrdersTable from './tables/open-orders/open-orders-table.client';
 import TraderHistoryTable from './tables/trader-history/trader-history-table.client';
 import OrderHistoryTable from './tables/order-history/order-history-table.client';
 import { getZkAccountBalance } from '@/lib/twilight/zk';
+import { useQueryClient } from '@tanstack/react-query';
 
 type TabType = "history" | "trades" | "positions" | "open-orders" | "trader-history";
 
@@ -38,12 +39,14 @@ const DetailsPanel = () => {
   }, [tradeOrders])
 
   const traderHistoryData = useMemo(() => {
-    return tradeOrders.filter((trade) => trade.orderStatus === "SETTLED" || trade.orderStatus === "LIQUIDATED")
-  }, [tradeOrders])
+    return orderHistoryData.filter((trade) => trade.orderStatus === "SETTLED" || trade.orderStatus === "LIQUIDATED" || trade.orderStatus === "FILLED")
+  }, [orderHistoryData])
 
   const {
     toast,
   } = useToast()
+
+  const queryClient = useQueryClient();
 
   const settleMarketOrder = useCallback(async (trade: TradeOrder, currentPrice: number) => {
     toast({
@@ -83,6 +86,8 @@ const DetailsPanel = () => {
       realizedPnl: Big(settledData.unrealized_pnl).toNumber(),
       tx_hash: settledData.tx_hash || trade.tx_hash,
     })
+
+    queryClient.invalidateQueries({ queryKey: ['sync-trades'] })
 
     toast({
       title: "Position closed",

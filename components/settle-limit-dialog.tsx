@@ -9,6 +9,7 @@ import { useSessionStore } from '@/lib/providers/session';
 import Link from 'next/link';
 import Big from 'big.js';
 import dayjs from 'dayjs';
+import { useQueryClient } from '@tanstack/react-query';
 
 type Props = {
   account?: string;
@@ -24,7 +25,10 @@ function SettleLimitDialog({ account, open, onOpenChange }: Props) {
   const trades = useTwilightStore((state) => state.trade.trades);
   const updateTrade = useTwilightStore((state) => state.trade.updateTrade)
   const privateKey = useSessionStore((state) => state.privateKey);
+
   const selectedTrade = trades.find((trade) => trade.accountAddress === account);
+
+  const queryClient = useQueryClient();
 
   async function handleSettleLimit() {
     const limitPrice = parseFloat(usdRef.current?.value || "0");
@@ -99,6 +103,8 @@ function SettleLimitDialog({ account, open, onOpenChange }: Props) {
       bankruptcyValue: Big(settledData.bankruptcy_value).toNumber(),
       initialMargin: Big(settledData.initial_margin).toNumber(),
     })
+
+    await queryClient.invalidateQueries({ queryKey: ['sync-trades'] })
 
     toast({
       title: "Limit order sent",
