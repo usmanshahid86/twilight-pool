@@ -4,8 +4,8 @@ import { SignerOptions } from "@cosmos-kit/core";
 import { GasPrice, SigningStargateClientOptions } from "@cosmjs/stargate";
 
 export const twilightTestnet: Chain = {
-  chain_type: "cosmos",
   chain_name: "nyks",
+  chain_type: "cosmos",
   website: "https://twilight.finance",
   status: "upcoming",
   network_type: "testnet",
@@ -72,6 +72,7 @@ export const twilightTestnetAssets: AssetList = {
         {
           denom: "nyks",
           exponent: 0,
+          aliases: ["NYKS"],
         },
         {
           denom: "sats",
@@ -82,6 +83,25 @@ export const twilightTestnetAssets: AssetList = {
       name: "nyks",
       display: "nyks",
       symbol: "NYKS",
+      logo_URIs: {
+        svg: "https://twilight-pool.vercel.app/images/twilight.svg",
+        png: "https://twilight-pool.vercel.app/images/twilight.png",
+      },
+    },
+    {
+      description: "The native staking token of Twilight.",
+      type_asset: "sdk.coin",
+      denom_units: [
+        {
+          denom: "sats",
+          exponent: 8,
+          aliases: ["SATS"],
+        },
+      ],
+      base: "sats",
+      name: "sats",
+      display: "sats",
+      symbol: "BTC",
       logo_URIs: {
         svg: "https://twilight-pool.vercel.app/images/twilight.svg",
         png: "https://twilight-pool.vercel.app/images/twilight.png",

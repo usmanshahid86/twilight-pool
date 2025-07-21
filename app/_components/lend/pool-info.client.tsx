@@ -29,7 +29,7 @@ const PoolInfo = () => {
       </div>
 
       <div className="flex flex-col">
-        <Text className="text-sm text-primary-accent">Pool Share</Text>
+        <Text className="text-sm text-primary-accent">Pool Share Value (sats)</Text>
         <Resource
           isLoaded={!!poolShareValue}
           placeholder={<Skeleton className="h-6 w-16" />}

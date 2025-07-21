@@ -193,24 +193,24 @@ export const orderHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
       );
     },
   },
-  {
-    accessorKey: "liquidationPrice",
-    header: "Liq Price (USD)",
-    cell: (row) => {
-      const trade = row.row.original;
-      const liquidationPrice = trade.liquidationPrice;
+  // {
+  //   accessorKey: "liquidationPrice",
+  //   header: "Liq Price (USD)",
+  //   cell: (row) => {
+  //     const trade = row.row.original;
+  //     const liquidationPrice = trade.liquidationPrice;
 
-      if (trade.orderStatus !== "LIQUIDATED") {
-        return <span className="text-xs text-gray-500">—</span>;
-      }
+  //     if (trade.orderStatus !== "LIQUIDATED") {
+  //       return <span className="text-xs text-gray-500">—</span>;
+  //     }
 
-      return (
-        <span className="font-medium">
-          ${liquidationPrice.toFixed(2)}
-        </span>
-      );
-    }
-  },
+  //     return (
+  //       <span className="font-medium">
+  //         ${liquidationPrice.toFixed(2)}
+  //       </span>
+  //     );
+  //   }
+  // },
   {
     accessorKey: "availableMargin",
     header: "Avail. Margin (BTC)",
