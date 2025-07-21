@@ -1,6 +1,6 @@
 import { Text } from '@/components/typography';
 import cn from '@/lib/cn';
-import { capitaliseFirstLetter } from '@/lib/helpers';
+import { capitaliseFirstLetter, truncateHash } from '@/lib/helpers';
 import BTC from '@/lib/twilight/denoms';
 import { TradeOrder } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
@@ -52,12 +52,17 @@ export const orderHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
           href={`https://explorer.twilight.rest/tx/${order.tx_hash}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-medium hover:underline text-theme"
+          className="font-medium hover:underline"
         >
-          {order.tx_hash.slice(0, 8)}...
+          {truncateHash(order.tx_hash)}
         </Link>
       );
     },
+  },
+  {
+    accessorKey: "orderType",
+    header: "Type",
+    accessorFn: (row) => capitaliseFirstLetter(row.orderType)
   },
   {
     accessorKey: "orderStatus",
@@ -82,7 +87,7 @@ export const orderHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
   },
   {
     accessorKey: "positionType",
-    header: "Type",
+    header: "Side",
     cell: (row) => {
       const positionType = row.getValue() as string;
       return (
@@ -245,6 +250,11 @@ export const orderHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
     cell: (row) => {
       const trade = row.row.original;
       const fee = trade.feeFilled + trade.feeSettled;
+
+      if (trade.orderStatus === "CANCELLED" || trade.orderStatus === "LIQUIDATED" || trade.orderStatus === "PENDING") {
+        return <span className="text-xs text-gray-500">-</span>;
+      }
+
       return (
         <span className="font-medium">
           {BTC.format(new BTC("sats", Big(fee)).convert("BTC"), "BTC")}

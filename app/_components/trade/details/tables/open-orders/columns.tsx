@@ -64,7 +64,7 @@ export const openOrdersColumns: ColumnDef<TradeOrder, any>[] = [
     cell: (row) => {
       const orderType = row.getValue() as string;
       return (
-        <span className="px-2 py-1 rounded text-xs font-medium">
+        <span className="text-xs font-medium">
           {capitaliseFirstLetter(orderType)}
         </span>
       );

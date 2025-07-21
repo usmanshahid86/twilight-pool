@@ -182,24 +182,24 @@ const DetailsPanel = () => {
       return;
     }
 
-    addTradeHistory({
-      ...order,
-      orderStatus: cancelOrderData.order_status,
-      availableMargin: Big(cancelOrderData.available_margin).toNumber(),
-      maintenanceMargin: Big(cancelOrderData.maintenance_margin).toNumber(),
-      unrealizedPnl: Big(cancelOrderData.unrealized_pnl).toNumber(),
-      settlementPrice: Big(cancelOrderData.settlement_price).toNumber(),
-      positionSize: Big(cancelOrderData.positionsize).toNumber(),
-      orderType: cancelOrderData.order_type,
-      date: dayjs(cancelOrderData.timestamp).toDate(),
-      exit_nonce: cancelOrderData.exit_nonce,
-      executionPrice: Big(cancelOrderData.execution_price).toNumber(),
-      isOpen: false,
-      feeSettled: Big(cancelOrderData.fee_settled).toNumber(),
-      feeFilled: Big(cancelOrderData.fee_filled).toNumber(),
-      realizedPnl: Big(cancelOrderData.unrealized_pnl).toNumber(),
-      tx_hash: cancelOrderData.tx_hash || order.tx_hash,
-    })
+    // addTradeHistory({
+    //   ...order,
+    //   orderStatus: cancelOrderData.order_status,
+    //   availableMargin: Big(cancelOrderData.available_margin).toNumber(),
+    //   maintenanceMargin: Big(cancelOrderData.maintenance_margin).toNumber(),
+    //   unrealizedPnl: Big(cancelOrderData.unrealized_pnl).toNumber(),
+    //   settlementPrice: Big(cancelOrderData.settlement_price).toNumber(),
+    //   positionSize: Big(cancelOrderData.positionsize).toNumber(),
+    //   orderType: cancelOrderData.order_type,
+    //   date: dayjs(cancelOrderData.timestamp).toDate(),
+    //   exit_nonce: cancelOrderData.exit_nonce,
+    //   executionPrice: Big(cancelOrderData.execution_price).toNumber(),
+    //   isOpen: false,
+    //   feeSettled: Big(cancelOrderData.fee_settled).toNumber(),
+    //   feeFilled: Big(cancelOrderData.fee_filled).toNumber(),
+    //   realizedPnl: Big(cancelOrderData.unrealized_pnl).toNumber(),
+    //   tx_hash: cancelOrderData.tx_hash || order.tx_hash,
+    // })
 
     updateZkAccount(order.accountAddress, {
       ...updatedAccount,
@@ -275,7 +275,7 @@ const DetailsPanel = () => {
           </TabsList>
         </Tabs>
       </div>
-      <div className="flex-1 px-2 pb-2 overflow-auto">
+      <div className="flex-1 p-2 pb-10 overflow-auto">
         <RenderTabs />
       </div>
     </div>

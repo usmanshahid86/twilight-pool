@@ -182,7 +182,7 @@ export const traderHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
   },
   {
     accessorKey: "positionType",
-    header: "Type",
+    header: "Side",
     cell: (row) => {
       const positionType = row.getValue() as string;
       return (
