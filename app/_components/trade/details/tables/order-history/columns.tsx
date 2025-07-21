@@ -147,6 +147,23 @@ export const orderHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
     accessorFn: (row) => `$${row.entryPrice.toFixed(2)}`
   },
   {
+    accessorKey: "settlementPrice",
+    header: "Settlement Price (USD)",
+    cell: (row) => {
+      const trade = row.row.original;
+
+      if (trade.orderStatus !== "SETTLED" && trade.orderStatus !== "LIQUIDATE") {
+        return <span className="text-xs text-gray-500">—</span>;
+      }
+
+      return (
+        <span className="font-medium">
+          ${trade.settlementPrice.toFixed(2)}
+        </span>
+      );
+    }
+  },
+  {
     accessorKey: "leverage",
     header: "Leverage",
     accessorFn: (row) => `${row.leverage.toFixed(2)}x`
