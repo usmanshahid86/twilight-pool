@@ -69,7 +69,7 @@ export function LendOrdersDataTable<TData, TValue>({
               {headerGroup.headers.map((header, index) => {
                 return (
                   <th
-                    className={cn("font-medium", index === 0 ? "text-start" : "text-end")}
+                    className={cn("font-medium",)}
                     key={header.id}
                   >
                     {header.isPlaceholder
@@ -93,7 +93,7 @@ export function LendOrdersDataTable<TData, TValue>({
               >
                 {row.getVisibleCells().map((cell, index) => (
                   <td
-                    className={cn(index === 0 ? `text-start` : "text-end")}
+                    className={cn("")}
                     key={cell.id}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

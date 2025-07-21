@@ -38,7 +38,7 @@ export const lendOrdersColumns: ColumnDef<LendOrder, any>[] = [
   },
   {
     accessorKey: "value",
-    header: "Amount",
+    header: "Amount (BTC)",
     cell: (row) => {
       const order = row.row.original;
       const amountBTC = new BTC("sats", Big(order.value)).convert("BTC");
@@ -162,7 +162,7 @@ export const lendOrdersColumns: ColumnDef<LendOrder, any>[] = [
 
       return (
 
-        <div className="flex space-x-2 justify-end">
+        <div className="flex space-x-2 justify-start">
           <Button
             size="small"
             onClick={() => meta.settleLendOrder(order)}

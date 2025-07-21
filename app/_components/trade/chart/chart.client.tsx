@@ -67,6 +67,7 @@ const Chart = forwardRef<IChartApi | void, Props>(
                 theme === "light"
                   ? "rgba(0, 0, 0, 1)"
                   : "rgba(255, 255, 255, 0.9)",
+              attributionLogo: false,
             },
             grid: {
               vertLines: {
@@ -149,6 +150,7 @@ const Chart = forwardRef<IChartApi | void, Props>(
           },
           textColor:
             theme === "light" ? "rgba(0, 0, 0, 1)" : "rgba(255, 255, 255, 0.9)",
+          attributionLogo: false,
         },
         grid: {
           vertLines: {

@@ -258,7 +258,7 @@ export const myTradesColumns: ColumnDef<MyTradeOrder, any>[] = [
       const trade = row.row.original;
 
       return (
-        <div className="flex space-x-2 justify-end">
+        <div className="flex space-x-2 justify-start">
           {trade.orderType === "LIMIT" && trade.orderStatus === "PENDING" && (
             <Button
               onClick={async (e) => {

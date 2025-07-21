@@ -35,7 +35,7 @@ export const lendHistoryColumns: ColumnDef<LendOrder, any>[] = [
   },
   {
     accessorKey: "amount",
-    header: "Amount",
+    header: "Amount (BTC)",
     cell: (row) => {
       const order = row.row.original;
       // Use withdrawal amount if it's a withdraw, otherwise use balance

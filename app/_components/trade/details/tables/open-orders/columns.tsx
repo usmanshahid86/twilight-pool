@@ -93,7 +93,7 @@ export const openOrdersColumns: ColumnDef<TradeOrder, any>[] = [
       const meta = row.table.options.meta as OpenOrdersTableMeta;
 
       return (
-        <div className="flex flex-row gap-1 justify-end">
+        <div className="flex flex-row gap-1 justify-start">
           <Button
             onClick={async (e) => {
               e.preventDefault();

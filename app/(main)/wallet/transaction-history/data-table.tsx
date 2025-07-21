@@ -48,7 +48,7 @@ export function TransactionHistoryDataTable<TData, TValue>({
               {headerGroup.headers.map((header, index) => {
                 return (
                   <th
-                    className={cn(index === 0 ? "text-start" : "text-end")}
+                    className={cn()}
                     key={header.id}
                   >
                     {header.isPlaceholder
@@ -73,7 +73,7 @@ export function TransactionHistoryDataTable<TData, TValue>({
               >
                 {row.getVisibleCells().map((cell, index) => (
                   <td
-                    className={cn(index === 0 ? `text-start` : "text-end")}
+                    className={cn("")}
                     key={cell.id}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

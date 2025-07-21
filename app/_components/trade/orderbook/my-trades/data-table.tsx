@@ -50,7 +50,7 @@ export function MyTradesDataTable<TData, TValue>({
                   <th
                     className={cn(
                       "font-medium",
-                      index === 0 ? "text-start" : "text-end"
+
                     )}
                     key={header.id}
                   >
@@ -76,7 +76,7 @@ export function MyTradesDataTable<TData, TValue>({
                 {row.getVisibleCells().map((cell, index) => (
                   <td
                     className={cn(
-                      index === 0 ? "text-start" : "text-end"
+
                     )}
                     key={cell.id}
                   >

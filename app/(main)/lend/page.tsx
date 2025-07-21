@@ -243,7 +243,7 @@ const Page = () => {
         {/* APY Chart */}
         <div className="rounded-lg bg-card border border-outline p-4 md:p-6">
           <Text heading="h2" className="mb-4 text-lg font-medium">
-            APY Chart
+            APY History
           </Text>
           <ApyChart />
         </div>
@@ -262,8 +262,10 @@ const Page = () => {
       </div>
 
       {/* My Investment */}
-      <div className="rounded-lg bg-card border border-outline p-4 md:p-6">
-        <MyInvestment />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="rounded-lg bg-card border border-outline p-4 md:p-6">
+          <MyInvestment />
+        </div>
       </div>
 
       <Separator />
