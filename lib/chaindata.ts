@@ -94,14 +94,14 @@ export const twilightTestnetAssets: AssetList = {
       denom_units: [
         {
           denom: "sats",
-          exponent: 8,
+          exponent: 0,
           aliases: ["SATS"],
         },
       ],
       base: "sats",
       name: "sats",
       display: "sats",
-      symbol: "BTC",
+      symbol: "SATS",
       logo_URIs: {
         svg: "https://twilight-pool.vercel.app/images/twilight.svg",
         png: "https://twilight-pool.vercel.app/images/twilight.png",
