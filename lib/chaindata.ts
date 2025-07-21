@@ -89,7 +89,8 @@ export const twilightTestnetAssets: AssetList = {
       },
     },
     {
-      description: "The native staking token of Twilight.",
+      description:
+        "The native BTC-backed token on Twilight, representing 1 satoshi per SATS.",
       type_asset: "sdk.coin",
       denom_units: [
         {
