@@ -83,7 +83,7 @@ export const lendOrdersColumns: ColumnDef<LendOrder & { accountTag: string }, an
         return <Text className="font-medium">0.00000000 BTC</Text>;
       }
 
-      const shareValue = Big(deposit).div(npoolshare)
+      const shareValue = Big(deposit).div(npoolshare).div(10_000)
 
       return (
         <Text className="font-medium">

@@ -98,7 +98,7 @@ export const lendHistoryColumns: ColumnDef<LendOrder & { accountTag: string }, a
         return <Text className="font-medium">0.00000000</Text>;
       }
 
-      const shareValue = Big(deposit).div(npoolshare)
+      const shareValue = Big(deposit).div(npoolshare).div(10_000)
 
       return (
         <Text className="font-medium">
@@ -109,7 +109,7 @@ export const lendHistoryColumns: ColumnDef<LendOrder & { accountTag: string }, a
   },
   {
     accessorKey: "payment",
-    header: "Rewards (BTC)",
+    header: "Profit/Loss (BTC)",
     cell: (row) => {
       const order = row.row.original;
 
