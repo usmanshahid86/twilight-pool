@@ -69,7 +69,7 @@ export function LendOrdersDataTable<TData, TValue>({
               {headerGroup.headers.map((header, index) => {
                 return (
                   <th
-                    className={cn("font-medium",)}
+                    className={cn("font-medium text-start")}
                     key={header.id}
                   >
                     {header.isPlaceholder

@@ -156,7 +156,7 @@ const ApyChart = () => {
         </div>
       </div>
 
-      <div className="h-64 w-full rounded-lg border border-primary/20 bg-gradient-to-b from-green-medium/25 to-green-medium/5 p-4">
+      <div className="h-64 w-full rounded-lg border border-primary/20 p-4">
         <div ref={chartContainerRef} className="w-full h-full" />
       </div>
     </div>
