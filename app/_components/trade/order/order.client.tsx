@@ -50,7 +50,7 @@ const Order = () => {
             {/* note this should actually be a button with dropdown */}
           </TabsList>
         </Tabs>
-        <DropdownMenu>
+        {/* <DropdownMenu>
           <DropdownTrigger asChild>
             <button className="group ml-4 flex items-center gap-1 text-sm">
               Stop
@@ -73,7 +73,7 @@ const Order = () => {
               </DropdownItem>
             </DropdownGroup>
           </DropdownContent>
-        </DropdownMenu>
+        </DropdownMenu> */}
       </div>
 
       <OrderViews />
