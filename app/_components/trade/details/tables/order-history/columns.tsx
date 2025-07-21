@@ -152,22 +152,6 @@ export const orderHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
     accessorFn: (row) => `${row.leverage.toFixed(2)}x`
   },
   {
-    accessorKey: "settlementPrice",
-    header: "Mark Price (USD)",
-    cell: (row) => {
-      const trade = row.row.original;
-
-      const meta = row.table.options.meta as OrderHistoryTableMeta;
-
-      const currentPrice = meta.getCurrentPrice();
-      return (
-        <span className="font-medium">
-          ${currentPrice.toFixed(2)}
-        </span>
-      );
-    }
-  },
-  {
     accessorKey: "realizedPnl",
     header: "PnL (BTC)",
     cell: (row) => {

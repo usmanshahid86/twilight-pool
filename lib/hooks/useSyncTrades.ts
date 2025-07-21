@@ -190,7 +190,7 @@ export const useSyncTrades = () => {
 
       return true;
     },
-    refetchInterval: 2500,
+    refetchInterval: 3000,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,

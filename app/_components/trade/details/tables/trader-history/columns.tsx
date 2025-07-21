@@ -79,7 +79,7 @@ export const traderHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
     cell: (row) => {
       const trade = row.row.original;
 
-      if (!trade.settlementPrice) {
+      if (trade.orderStatus !== "SETTLED" && trade.orderStatus !== "LIQUIDATE") {
         return <span className="text-xs text-gray-500">—</span>;
       }
 

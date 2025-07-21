@@ -40,7 +40,7 @@ const DetailsPanel = () => {
   }, [tradeOrders])
 
   const traderHistoryData = useMemo(() => {
-    return orderHistoryData.filter((trade) => trade.orderStatus === "SETTLED" || trade.orderStatus === "LIQUIDATED" || trade.orderStatus === "FILLED")
+    return orderHistoryData.filter((trade) => trade.orderStatus === "SETTLED" || trade.orderStatus === "LIQUIDATE" || trade.orderStatus === "FILLED")
   }, [orderHistoryData])
 
   const {
