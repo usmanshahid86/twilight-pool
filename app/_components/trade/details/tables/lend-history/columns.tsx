@@ -77,7 +77,7 @@ export const lendHistoryColumns: ColumnDef<LendOrder, any>[] = [
 
       return (
         <Link
-          href={`https://explorer.twilight.org/tx/${order.tx_hash}`}
+          href={`https://explorer.twilight.rest/tx/${order.tx_hash}`}
           target="_blank"
           rel="noopener noreferrer"
           className="font-medium hover:underline text-theme"
