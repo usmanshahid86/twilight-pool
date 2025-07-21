@@ -19,16 +19,17 @@ import { useToast } from "@/lib/hooks/useToast";
 import { useSessionStore } from "@/lib/providers/session";
 import { useTwilightStore } from "@/lib/providers/store";
 import BTC, { BTCDenoms } from "@/lib/twilight/denoms";
-import { createZkLendOrder } from "@/lib/twilight/zk";
+import { createFundingToTradingTransferMsg } from '@/lib/twilight/wallet';
+import { createZkAccount, createZkAccountWithBalance, createZkLendOrder } from "@/lib/twilight/zk";
 import { createQueryLendOrderMsg } from '@/lib/twilight/zkos';
+import { ZkAccount } from '@/lib/types';
+import { calculateFee, GasPrice } from '@cosmjs/stargate';
 import { WalletStatus } from '@cosmos-kit/core';
 import { useWallet } from '@cosmos-kit/react-lite';
 import Big from "big.js";
 import { Loader2 } from "lucide-react";
 import Link from 'next/link';
-import React, { useMemo, useRef, useState } from "react";
-
-type TabType = "deposit" | "withdraw";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 
 const LendManagement = () => {
   const { toast } = useToast();
@@ -39,8 +40,11 @@ const LendManagement = () => {
     useGetTwilightBTCBalance();
 
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
+  const addZkAccount = useTwilightStore((state) => state.zk.addZkAccount);
   const lendOrders = useTwilightStore((state) => state.lend.lends);
   const poolInfo = useTwilightStore((state) => state.lend.poolInfo);
+
+  const [approxPoolShare, setApproxPoolShare] = useState<string>("0.00000000");
 
   const addLendOrder = useTwilightStore((state) => state.lend.addLend);
   const addTransactionHistory = useTwilightStore(
@@ -48,11 +52,12 @@ const LendManagement = () => {
   );
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount);
 
-  const [currentTab, setCurrentTab] = useState<TabType>("deposit");
   const [accountSelectionType, setAccountSelectionType] = useState<"new" | "existing">("new");
   const [selectedAccountIndex, setSelectedAccountIndex] = useState<number | null>(null);
   const [depositDenom, setDepositDenom] = useState<string>("BTC");
   const [isSubmitLoading, setIsSubmitLoading] = useState(false);
+
+  const { mainWallet } = useWallet();
 
   const selectedZkAccount = useMemo(() => {
     if (selectedAccountIndex === null) return null;
@@ -61,23 +66,92 @@ const LendManagement = () => {
 
   const depositRef = useRef<HTMLInputElement>(null);
 
-  // Filter accounts that have lend orders for withdrawal
-  const accountsWithLends = zkAccounts.filter(account =>
-    lendOrders.some(lend => lend.accountAddress === account.address && lend.orderStatus === "LENDED")
-  );
-
   async function submitDepositForm(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
+    let zkAccountToUse: ZkAccount | null = selectedZkAccount;
+
     if (accountSelectionType === "new") {
       toast({
-        title: "Currently Disabled",
-        description: "This feature is currently disabled, please create a subaccount manually.",
+        title: "Approval Pending",
+        description: "Please approve the transaction in your wallet.",
       })
-      return;
+
+      const tag = `Subaccount ${zkAccounts.length}`
+
+      const chainWallet = mainWallet?.getChainWallet("nyks");
+
+      if (!chainWallet) {
+        toast({
+          title: "Wallet is not connected",
+          description: "Please connect your wallet to deposit.",
+        })
+        return;
+      }
+
+      if (!depositRef.current?.value) {
+        toast({
+          title: "Invalid amount",
+          description: "Please enter an amount to deposit.",
+        })
+        return;
+      }
+
+      const twilightAddress = chainWallet.address;
+
+      if (!twilightAddress) {
+        console.error("no twilightAddress");
+        return;
+      }
+
+      setIsSubmitLoading(true);
+
+      const transferAmount = new BTC(
+        depositDenom as BTCDenoms,
+        Big(depositRef.current.value)
+      )
+        .convert("sats")
+        .toNumber();
+
+      const stargateClient = await chainWallet.getSigningStargateClient();
+
+      console.log("funding transfer signature", privateKey);
+      const { account: newTradingAccount, accountHex: newTradingAccountHex } =
+        await createZkAccountWithBalance({
+          tag: tag,
+          balance: transferAmount,
+          signature: privateKey,
+        });
+
+      const msg = await createFundingToTradingTransferMsg({
+        twilightAddress,
+        transferAmount,
+        account: newTradingAccount,
+        accountHex: newTradingAccountHex,
+      });
+
+      console.log("msg", msg);
+
+      const res = await stargateClient.signAndBroadcast(
+        twilightAddress,
+        [msg],
+        "auto"
+      );
+
+      console.log("sent sats from funding to trading", transferAmount);
+      console.log("res", res);
+
+      zkAccountToUse = {
+        scalar: newTradingAccount.scalar,
+        type: "Coin",
+        address: newTradingAccount.address,
+        tag: tag,
+        isOnChain: true,
+        value: transferAmount,
+      }
     }
 
-    if (!selectedZkAccount) {
+    if (!zkAccountToUse) {
       toast({
         variant: "error",
         title: "Error",
@@ -105,7 +179,7 @@ const LendManagement = () => {
     setIsSubmitLoading(true);
 
     const { success, msg } = await createZkLendOrder({
-      zkAccount: selectedZkAccount,
+      zkAccount: zkAccountToUse,
       deposit: depositAmount,
       signature: privateKey,
     });
@@ -184,7 +258,7 @@ const LendManagement = () => {
       });
 
       const queryLendOrderMsg = await createQueryLendOrderMsg({
-        address: selectedZkAccount.address,
+        address: zkAccountToUse.address,
         signature: privateKey,
         orderStatus: "FILLED",
       });
@@ -204,7 +278,7 @@ const LendManagement = () => {
       }
 
       addLendOrder({
-        accountAddress: selectedZkAccount.address,
+        accountAddress: zkAccountToUse.address,
         uuid: data.result.id_key as string,
         orderStatus: "LENDED",
         value: depositAmount,
@@ -216,17 +290,17 @@ const LendManagement = () => {
 
       addTransactionHistory({
         date: new Date(),
-        from: selectedZkAccount.address,
-        fromTag: selectedZkAccount.tag,
-        to: selectedZkAccount.address,
-        toTag: selectedZkAccount.tag,
+        from: zkAccountToUse.address,
+        fromTag: zkAccountToUse.tag,
+        to: zkAccountToUse.address,
+        toTag: zkAccountToUse.tag,
         tx_hash: tx_hash,
         type: "Lend Deposit",
         value: depositAmount,
       });
 
-      updateZkAccount(selectedZkAccount.address, {
-        ...selectedZkAccount,
+      updateZkAccount(zkAccountToUse.address, {
+        ...zkAccountToUse,
         type: "Memo",
       });
 
@@ -246,42 +320,27 @@ const LendManagement = () => {
     setIsSubmitLoading(false);
   }
 
-  async function submitWithdrawForm(e: React.FormEvent<HTMLFormElement>) {
-    // e.preventDefault();
-  }
-
-  const calculateApproxPoolShare = () => {
-    if (!depositRef.current?.value || !poolInfo?.pool_share) return "0";
-
-    const amount = parseFloat(depositRef.current.value) || 0;
-
-    const poolShare = (amount / poolInfo.pool_share);
-    return poolShare.toFixed(8)
-  };
-
-  const calculateApproxReward = () => {
-    return "0.00000000";
-  };
-
-  const getAvailableBalance = () => {
-    if (currentTab === "deposit") {
-      if (accountSelectionType === "new") {
-        return BTC.format(new BTC("sats", Big(twilightSats))
-          .convert("BTC"), "BTC")
-      }
-
-      return selectedZkAccount?.value ?
-        new BTC("sats", Big(selectedZkAccount.value)).convert("BTC").toFixed(8) :
-        "0.00000000";
-    } else {
-      // For withdraw, show lent amount for selected account
-      const accountLends = lendOrders.filter(lend =>
-        lend.accountAddress === selectedZkAccount?.address && lend.orderStatus === "LENDED"
-      );
-      const totalLent = accountLends.reduce((sum, lend) => sum + lend.value, 0);
-      return new BTC("sats", Big(totalLent)).convert("BTC").toFixed(8);
+  const getAvailableBalance = useCallback(() => {
+    if (accountSelectionType === "new") {
+      return BTC.format(new BTC("sats", Big(twilightSats))
+        .convert("BTC"), "BTC")
     }
-  };
+
+    return selectedZkAccount?.value ?
+      new BTC("sats", Big(selectedZkAccount.value)).convert("BTC").toFixed(8) :
+      "0.00000000";
+
+  }, [accountSelectionType, selectedZkAccount, twilightSats])
+
+  const calculateApproxPoolShare = useCallback((value: string) => {
+    const amount = Big(value || 0).toNumber()
+    const sats = new BTC(depositDenom as BTCDenoms, Big(amount)).convert("sats").toNumber()
+
+    const poolShare = (sats / (poolInfo?.pool_share || 0));
+
+    console.log(poolShare, sats, poolInfo?.pool_share)
+    setApproxPoolShare(poolShare.toFixed(8))
+  }, [depositDenom, poolInfo?.pool_share])
 
   function renderDepositForm() {
     return (
@@ -321,6 +380,7 @@ const LendManagement = () => {
                   if (depositRef.current) {
                     const currentValue = new BTC("sats", Big(account?.value || 0)).convert(depositDenom as BTCDenoms).toString();
                     depositRef.current.value = currentValue;
+                    calculateApproxPoolShare(currentValue);
                   }
                 }
               }}
@@ -384,14 +444,17 @@ const LendManagement = () => {
             setSelected={setDepositDenom}
             selected={depositDenom}
             ref={depositRef}
-            onInput={calculateApproxPoolShare}
             readOnly={accountSelectionType === "existing"}
+            onChange={(e) => {
+              const value = e.target.value;
+              calculateApproxPoolShare(value);
+            }}
           />
         </div>
 
         <div className="flex justify-between text-sm">
           <Text className="text-primary-accent">Approx Pool Share</Text>
-          <Text>≈ {calculateApproxPoolShare()}</Text>
+          <Text>≈ {approxPoolShare}</Text>
         </div>
 
         <Button disabled={isSubmitLoading || status !== WalletStatus.Connected} type="submit" className="w-full">

@@ -229,7 +229,7 @@ const Page = () => {
   }
 
   return (
-    <div className="mx-8 mt-4 space-y-6 md:space-y-8">
+    <div className="mx-8 my-8 space-y-6 md:space-y-8">
       {/* Pool Info */}
       <div className="rounded-lg bg-card border border-outline p-4 md:p-6">
         <Text heading="h2" className="mb-4 text-lg font-medium">

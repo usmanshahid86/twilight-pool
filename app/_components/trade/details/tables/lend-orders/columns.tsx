@@ -31,7 +31,7 @@ export const lendOrdersColumns: ColumnDef<LendOrder, any>[] = [
       // Only show if user has multiple accounts
       return (
         <Text className="text-xs">
-          {order.accountAddress.slice(0, 8)}...
+          {order.accountAddress.slice(0, 12)}...
         </Text>
       );
     },
@@ -161,21 +161,24 @@ export const lendOrdersColumns: ColumnDef<LendOrder, any>[] = [
       }
 
       return (
-        <Button
-          size="small"
-          onClick={() => meta.settleLendOrder(order)}
-          disabled={isSettling || meta.settlingOrderId !== null}
-          className="px-3 py-1"
-        >
-          {isSettling ? (
-            <>
-              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-              Settling...
-            </>
-          ) : (
-            "Withdraw"
-          )}
-        </Button>
+
+        <div className="flex space-x-2 justify-end">
+          <Button
+            size="small"
+            onClick={() => meta.settleLendOrder(order)}
+            disabled={isSettling || meta.settlingOrderId !== null}
+            className="px-3 py-1"
+          >
+            {isSettling ? (
+              <>
+                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                Settling...
+              </>
+            ) : (
+              "Withdraw"
+            )}
+          </Button>
+        </div>
       );
     },
   },

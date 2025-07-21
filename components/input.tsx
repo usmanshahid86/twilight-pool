@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import Big from "big.js";
 
 export interface InputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {}
+  extends React.InputHTMLAttributes<HTMLInputElement> { }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, ...props }, ref) => {
@@ -91,7 +91,10 @@ const NumberInput = ({
         type="number"
         className={className}
         ref={inputRef}
-        onChange={(e) => setInputValue(Big(e.target.value || 0).toNumber())}
+        onChange={(e) => {
+          props.onChange?.(e);
+          setInputValue(Big(e.target.value || 0).toNumber())
+        }}
         {...props}
       />
       <div className="absolute inset-y-0 right-0 mt-[1px] flex h-[calc(100%-2px)] flex-col items-center justify-center border-l">
