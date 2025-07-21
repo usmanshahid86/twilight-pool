@@ -84,7 +84,7 @@ export function OpenOrdersDataTable<TData, TValue>({
               >
                 {row.getVisibleCells().map((cell, index) => (
                   <td
-                    className={cn("p-1 whitespace-nowrap")}
+                    className={cn("px-1 py-2 whitespace-nowrap")}
                     key={cell.id}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
