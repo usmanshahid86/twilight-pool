@@ -215,7 +215,7 @@ const OrderLimitForm = () => {
         uuid: orderData.order_id,
         value: btcAmountInSats,
         output: orderData.output,
-        entryPrice: orderPrice,
+        entryPrice: new Big(traderOrderInfo.entryprice).toNumber(),
         leverage: leverage,
         date: dayjs(traderOrderInfo.timestamp).toDate(),
         isOpen: true,

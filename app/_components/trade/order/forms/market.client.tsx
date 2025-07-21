@@ -246,7 +246,7 @@ const OrderMarketForm = () => {
           uuid: orderData.order_id,
           value: satsValue,
           output: orderData.output,
-          entryPrice: currentPrice,
+          entryPrice: new Big(traderOrderInfo.entryprice).toNumber(),
           leverage: leverage,
           isOpen: true,
           date: dayjs(traderOrderInfo.timestamp).toDate(),
