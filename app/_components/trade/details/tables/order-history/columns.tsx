@@ -250,7 +250,8 @@ export const orderHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
     header: "Fee (BTC)",
     cell: (row) => {
       const trade = row.row.original;
-      const fee = trade.feeFilled + trade.feeSettled;
+
+      const fee = trade.orderStatus === "FILLED" ? trade.feeFilled : trade.feeSettled;
 
       if (trade.orderStatus === "CANCELLED" || trade.orderStatus === "LIQUIDATED" || trade.orderStatus === "PENDING") {
         return <span className="text-xs text-gray-500">-</span>;
