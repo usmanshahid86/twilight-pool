@@ -30,6 +30,8 @@ const DetailsPanel = () => {
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount)
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
 
+  const addTradeHistory = useTwilightStore((state) => state.trade_history.addTrade)
+
   const positionsData = useMemo(() => {
     return tradeOrders.filter((trade) => trade.orderStatus === "FILLED")
   }, [tradeOrders])
@@ -89,24 +91,6 @@ const DetailsPanel = () => {
 
     queryClient.invalidateQueries({ queryKey: ['sync-trades'] })
 
-    toast({
-      title: "Position closed",
-      description: <div className="opacity-90">
-        Successfully closed {trade.orderType.toLowerCase()} order.{" "}
-        {
-          settledData.tx_hash && (
-            <Link
-              href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${settledData.tx_hash}`}
-              target={"_blank"}
-              className="text-sm underline hover:opacity-100"
-            >
-              Explorer link
-            </Link>
-          )
-        }
-      </div>
-    })
-
     const updatedAccount = zkAccounts.find(account => account.address === trade.accountAddress);
 
     const balance = Big(settledData.available_margin).toNumber();
@@ -125,6 +109,24 @@ const DetailsPanel = () => {
       type: "CoinSettled",
       value: balance || trade.value,
     });
+
+    toast({
+      title: "Position closed",
+      description: <div className="opacity-90">
+        Successfully closed {trade.orderType.toLowerCase()} order.{" "}
+        {
+          settledData.tx_hash && (
+            <Link
+              href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${settledData.tx_hash}`}
+              target={"_blank"}
+              className="text-sm underline hover:opacity-100"
+            >
+              Explorer link
+            </Link>
+          )
+        }
+      </div>
+    })
 
   }, [privateKey])
 
@@ -194,6 +196,25 @@ const DetailsPanel = () => {
       })
       return;
     }
+
+    addTradeHistory({
+      ...order,
+      orderStatus: cancelOrderData.order_status,
+      availableMargin: Big(cancelOrderData.available_margin).toNumber(),
+      maintenanceMargin: Big(cancelOrderData.maintenance_margin).toNumber(),
+      unrealizedPnl: Big(cancelOrderData.unrealized_pnl).toNumber(),
+      settlementPrice: Big(cancelOrderData.settlement_price).toNumber(),
+      positionSize: Big(cancelOrderData.positionsize).toNumber(),
+      orderType: cancelOrderData.order_type,
+      date: dayjs(cancelOrderData.timestamp).toDate(),
+      exit_nonce: cancelOrderData.exit_nonce,
+      executionPrice: Big(cancelOrderData.execution_price).toNumber(),
+      isOpen: false,
+      feeSettled: Big(cancelOrderData.fee_settled).toNumber(),
+      feeFilled: Big(cancelOrderData.fee_filled).toNumber(),
+      realizedPnl: Big(cancelOrderData.unrealized_pnl).toNumber(),
+      tx_hash: cancelOrderData.tx_hash || order.tx_hash,
+    })
 
     updateZkAccount(order.accountAddress, {
       ...updatedAccount,

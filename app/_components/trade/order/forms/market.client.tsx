@@ -313,8 +313,6 @@ const OrderMarketForm = () => {
 
               let value = e.currentTarget.value;
 
-              console.log(value)
-
               // Remove any non-numeric characters except decimal point
               value = value.replace(/[^0-9.]/g, '');
 
