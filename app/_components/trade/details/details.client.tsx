@@ -104,10 +104,7 @@ const DetailsPanel = () => {
 
     const updatedAccount = zkAccounts.find(account => account.address === trade.accountAddress);
 
-    const balance = await getZkAccountBalance({
-      zkAccountAddress: trade.accountAddress,
-      signature: privateKey,
-    });
+    const balance = Big(settledData.available_margin).toNumber();
 
     if (!updatedAccount) {
       toast({
@@ -121,7 +118,7 @@ const DetailsPanel = () => {
     updateZkAccount(trade.accountAddress, {
       ...updatedAccount,
       type: "CoinSettled",
-      value: balance.value || trade.value,
+      value: balance || trade.value,
     });
 
   }, [privateKey])
