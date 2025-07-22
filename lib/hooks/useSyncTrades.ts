@@ -96,6 +96,8 @@ export const useSyncTrades = () => {
 
         const traderOrderInfo = queryTradeOrderRes.result;
 
+        const updatedTradeData: Record<string, any> = {};
+
         for (const [key, value] of Object.entries(traderOrderInfo)) {
           const tradeKey =
             tradeInfoKeysToTradeKey[
@@ -129,9 +131,11 @@ export const useSyncTrades = () => {
             });
           }
 
-          updated.set(trade.uuid, {
-            [tradeKey]: updatedValue,
-          });
+          updatedTradeData[tradeKey] = updatedValue;
+        }
+
+        if (Object.keys(updatedTradeData).length > 0) {
+          updated.set(trade.uuid, updatedTradeData);
         }
       }
 
@@ -149,6 +153,8 @@ export const useSyncTrades = () => {
             ...trade,
             ...updatedTrade,
           };
+
+          console.log("updatedTrade", updatedTrade);
 
           mergedTrades.push(newTrade);
 
