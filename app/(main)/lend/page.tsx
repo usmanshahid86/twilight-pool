@@ -151,7 +151,7 @@ const Page = () => {
       const requestId = executeLendRes.result.id_key;
 
       const requestIdRes = await retry<
-        ReturnType<typeof queryTransactionHashes>,
+        ReturnType<typeof queryTransactionHashByRequestId>,
         string
       >(
         queryTransactionHashByRequestId,
@@ -159,6 +159,8 @@ const Page = () => {
         requestId,
         2500,
         (txHash) => {
+          if (!txHash) return false;
+
           const found = txHash.result.find(
             (tx) => tx.order_status === "SETTLED"
           );
@@ -168,6 +170,13 @@ const Page = () => {
       );
 
       if (!requestIdRes.success) {
+        console.error("lend order settle not successful");
+        setIsSettleLoading(false);
+        setSettlingOrderId(null);
+        return;
+      }
+
+      if (!requestIdRes.success || !requestIdRes.data) {
         console.error("lend order settle not successful");
         setIsSettleLoading(false);
         setSettlingOrderId(null);

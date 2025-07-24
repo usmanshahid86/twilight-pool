@@ -206,7 +206,7 @@ const LendManagement = () => {
 
     if (data.result && data.result.id_key) {
       const lendOrderRes = await retry<
-        ReturnType<typeof queryTransactionHashes>,
+        ReturnType<typeof queryTransactionHashByRequestId>,
         string
       >(
         queryTransactionHashByRequestId,
@@ -214,6 +214,8 @@ const LendManagement = () => {
         data.result.id_key,
         2500,
         (txHash) => {
+          if (!txHash) return false;
+
           const found = txHash.result.find(
             (tx) => tx.order_status === "FILLED"
           );
@@ -223,6 +225,17 @@ const LendManagement = () => {
       );
 
       if (!lendOrderRes.success) {
+        console.error("lend order deposit not successful");
+        toast({
+          variant: "error",
+          title: "Unable to submit lend order",
+          description: "An error has occurred, try again later.",
+        });
+        setIsSubmitLoading(false);
+        return;
+      }
+
+      if (!lendOrderRes.data) {
         console.error("lend order deposit not successful");
         toast({
           variant: "error",
