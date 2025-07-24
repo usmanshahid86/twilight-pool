@@ -1,6 +1,6 @@
 "use client";
 import { executeTradeOrder } from "@/lib/api/client";
-import { queryTransactionHashByRequestId, queryTransactionHashes } from "@/lib/api/rest";
+import { queryTransactionHashes } from "@/lib/api/rest";
 import { retry } from "@/lib/helpers";
 import { useToast } from "@/lib/hooks/useToast";
 import { useSessionStore } from "@/lib/providers/session";

@@ -96,6 +96,10 @@ export const useSyncTrades = () => {
 
         const traderOrderInfo = queryTradeOrderRes.result;
 
+        if (trade.uuid !== traderOrderInfo.uuid) {
+          continue;
+        }
+
         const updatedTradeData: Record<string, any> = {};
 
         for (const [key, value] of Object.entries(traderOrderInfo)) {

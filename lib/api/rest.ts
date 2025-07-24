@@ -306,7 +306,9 @@ async function queryTransactionHashes(
   return data;
 }
 
-async function queryTransactionHashByRequestId(requestId: string) {
+async function queryTransactionHashByRequestId(
+  requestId: string
+): Promise<null | TwilightApiResponse<TransactionHash[]>> {
   const body = JSON.stringify({
     jsonrpc: "2.0",
     method: "transaction_hashes",
@@ -322,7 +324,7 @@ async function queryTransactionHashByRequestId(requestId: string) {
 
   if (!success) {
     console.error(error);
-    return {};
+    return null;
   }
 
   return data;

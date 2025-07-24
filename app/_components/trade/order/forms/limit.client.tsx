@@ -12,7 +12,7 @@ import { Input, NumberInput } from "@/components/input";
 import { Text } from "@/components/typography";
 import { sendTradeOrder } from "@/lib/api/client";
 import { queryTradeOrder } from '@/lib/api/relayer';
-import { queryTransactionHashes } from "@/lib/api/rest";
+import { queryTransactionHashByRequestId, queryTransactionHashes } from "@/lib/api/rest";
 import cn from "@/lib/cn";
 import { retry } from "@/lib/helpers";
 import { useToast } from "@/lib/hooks/useToast";
@@ -147,18 +147,19 @@ const OrderLimitForm = () => {
       }
 
       const transactionHashCondition = (
-        txHashResult: Awaited<ReturnType<typeof queryTransactionHashes>>
+        txHashResult: Awaited<ReturnType<typeof queryTransactionHashByRequestId>>
       ) => {
-        if (txHashResult.result) {
+        if (txHashResult && txHashResult.result) {
           const transactionHashes = txHashResult.result;
 
           let txResult = false;
 
           transactionHashes.forEach((result) => {
-            console.log(`limit order transaction hashes result`, result)
             if (result.tx_hash.includes("Error")) {
               return;
             }
+
+            console.log(`limit order transaction hashes result`, result)
 
             txResult = !!result.tx_hash;
           });
@@ -169,25 +170,23 @@ const OrderLimitForm = () => {
       };
 
       const transactionHashRes = await retry<
-        ReturnType<typeof queryTransactionHashes>,
+        ReturnType<typeof queryTransactionHashByRequestId>,
         string
       >(
-        queryTransactionHashes,
+        queryTransactionHashByRequestId,
         9,
-        currentZkAccount.address,
+        data.result.id_key,
         1500,
         transactionHashCondition
       );
 
-      if (!transactionHashRes.success) {
+      if (!transactionHashRes.success || !transactionHashRes.data) {
         throw "Unable to get tx hash of order";
       }
 
       const orderData = transactionHashRes.data.result[0];
 
       if (!orderData) throw "Unable to get tx hash of order";
-
-      console.log("orderData", orderData);
 
       const queryTradeOrderMsg = await createQueryTradeOrderMsg({
         address: currentZkAccount.address,
