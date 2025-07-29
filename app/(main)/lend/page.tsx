@@ -241,7 +241,7 @@ const Page = () => {
         orderStatus: "SETTLED",
         timestamp: new Date(),
         tx_hash: tx_hash,
-        value: Big(queryLendOrderRes.result.new_lend_state_amount).toNumber() || order.value,
+        value: Math.round(Big(queryLendOrderRes.result.new_lend_state_amount).toNumber()) || order.value,
         payment: Big(queryLendOrderRes.result.payment).toNumber() || 0,
       })
 
@@ -256,7 +256,7 @@ const Page = () => {
       updateZkAccount(selectedZkAccount.address, {
         ...selectedZkAccount,
         type: "CoinSettled",
-        value: Big(queryLendOrderRes.result.new_lend_state_amount).toNumber() || order.value,
+        value: Math.round(Big(queryLendOrderRes.result.new_lend_state_amount).toNumber()) || order.value,
       });
 
     } catch (err) {

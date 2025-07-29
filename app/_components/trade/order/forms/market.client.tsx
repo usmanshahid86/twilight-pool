@@ -325,6 +325,7 @@ const OrderMarketForm = () => {
             id="input-market-amount-btc"
             placeholder="0.000"
             ref={btcRef}
+            readOnly
             onChange={(e) => {
               if (!usdRef.current) return;
 
@@ -379,6 +380,7 @@ const OrderMarketForm = () => {
             id="input-market-amount-usd"
             placeholder="$0.00"
             ref={usdRef}
+            readOnly
             onChange={(e) => {
               if (!btcRef.current) return;
 
@@ -409,6 +411,7 @@ const OrderMarketForm = () => {
         </Text>
         <Input
           ref={leverageRef}
+          autoComplete="off"
           onChange={(e) => {
             const value = e.target.value.replace(/[^\d]/, "");
 
