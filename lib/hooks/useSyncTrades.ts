@@ -96,10 +96,6 @@ export const useSyncTrades = () => {
 
         const traderOrderInfo = queryTradeOrderRes.result;
 
-        if (trade.uuid !== traderOrderInfo.uuid) {
-          continue;
-        }
-
         const updatedTradeData: Record<string, any> = {};
 
         for (const [key, value] of Object.entries(traderOrderInfo)) {
@@ -167,7 +163,7 @@ export const useSyncTrades = () => {
             newTrade.orderStatus === "SETTLED" ||
             newTrade.orderStatus === "LIQUIDATED"
           ) {
-            const newBalance = Math.round(newTrade.availableMargin);
+            const newBalance = newTrade.availableMargin;
 
             const existingZkAccount = zkAccounts.find(
               (account) => account.address === newTrade.accountAddress

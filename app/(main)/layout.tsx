@@ -6,7 +6,6 @@ import { baseMetadata } from "@/lib/metadata";
 import LayoutMountWrapper from "../_components/layout/layout-mount.client";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import Script from 'next/script';
 
 export const metadata = baseMetadata;
 
@@ -21,11 +20,6 @@ export default function RootLayout({
       className={`${inter.variable} ${instrumentSerif.variable} ${robotoMono.variable}`}
       suppressHydrationWarning
     >
-      {
-        process.env.NEXT_PUBLIC_UMAMI_SRC && (
-          <Script defer src={process.env.NEXT_PUBLIC_UMAMI_SRC} data-website-id={process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID} />
-        )
-      }
       <body>
         <Providers>
           <>

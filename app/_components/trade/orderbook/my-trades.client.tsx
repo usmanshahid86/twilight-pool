@@ -1,6 +1,6 @@
 "use client";
 import { executeTradeOrder } from "@/lib/api/client";
-import { queryTransactionHashes } from "@/lib/api/rest";
+import { queryTransactionHashByRequestId, queryTransactionHashes } from "@/lib/api/rest";
 import { retry } from "@/lib/helpers";
 import { useToast } from "@/lib/hooks/useToast";
 import { useSessionStore } from "@/lib/providers/session";
@@ -460,7 +460,29 @@ const OrderMyTrades = () => {
         type: "Coin",
       });
 
-      removeTrade(tradeOrder);
+      updateTrade({
+        ...tradeOrder,
+        orderStatus: "CANCELLED",
+        orderType: tradeOrder.orderType,
+        positionType: tradeOrder.positionType,
+        tx_hash: tradeOrder.tx_hash,
+        uuid: tradeOrder.uuid,
+        output: tradeOrder.output,
+        realizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
+        unrealizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
+        settlementPrice: new Big(traderOrderInfo.settlement_price).toNumber(),
+        positionSize: new Big(traderOrderInfo.positionsize).toNumber(),
+        entryNonce: traderOrderInfo.entry_nonce,
+        entrySequence: traderOrderInfo.entry_sequence,
+        executionPrice: new Big(traderOrderInfo.execution_price).toNumber(),
+        initialMargin: new Big(traderOrderInfo.initial_margin).toNumber(),
+        liquidationPrice: new Big(traderOrderInfo.liquidation_price).toNumber(),
+        exit_nonce: traderOrderInfo.exit_nonce,
+        date: dayjs(traderOrderInfo.timestamp).toDate(),
+        isOpen: false,
+        feeFilled: new Big(traderOrderInfo.fee_filled).toNumber(),
+        feeSettled: new Big(traderOrderInfo.fee_settled).toNumber(),
+      });
     } catch (err) {
       console.error(err);
       toast({

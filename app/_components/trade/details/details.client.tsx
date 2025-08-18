@@ -94,7 +94,7 @@ const DetailsPanel = () => {
 
     const updatedAccount = zkAccounts.find(account => account.address === trade.accountAddress);
 
-    const balance = Math.round(Big(settledData.available_margin).toNumber())
+    const balance = Big(settledData.available_margin).toNumber();
 
     if (!updatedAccount) {
       toast({

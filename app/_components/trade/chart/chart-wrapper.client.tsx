@@ -14,6 +14,31 @@ dayjs.extend(utc);
 
 type ContainerRef = HTMLElement | null;
 
+type BinanceKlineCandleData = {
+  e: "kline";     // Event type
+  E: number;      // Event time (ms timestamp)
+  s: string;      // Symbol
+  k: {
+    t: number;    // Kline start time (ms timestamp)
+    T: number;    // Kline close time (ms timestamp)
+    s: string;    // Symbol
+    i: string;    // Interval (e.g., "1m")
+    f: number;    // First trade ID
+    L: number;    // Last trade ID
+    o: string;    // Open price
+    c: string;    // Close price
+    h: string;    // High price
+    l: string;    // Low price
+    v: string;    // Base asset volume
+    n: number;    // Number of trades
+    x: boolean;   // Is this kline closed?
+    q: string;    // Quote asset volume
+    V: string;    // Taker buy base asset volume
+    Q: string;    // Taker buy quote asset volume
+    B: string;    // Ignore
+  };
+}
+
 type CandlestickData = {
   btc_volume: string;
   close: string;
@@ -70,8 +95,10 @@ const TIME_INTERVALS: {
     },
   ];
 
+
 const ChartWrapper = ({ candleData }: Props) => {
   const { addPrice } = usePriceFeed();
+
   const [container, setContainer] = useState<ContainerRef>(null);
   const handleRef = useCallback((ref: ContainerRef) => setContainer(ref), []);
 
@@ -81,48 +108,32 @@ const ChartWrapper = ({ candleData }: Props) => {
 
   const seriesRef = useRef<ISeriesApi<"Candlestick">>(null);
 
-  const onOpen = useCallback((ws: WebSocket) => {
-    ws.send(
-      JSON.stringify({
-        jsonrpc: "2.0",
-        method: "subscribe_candle_data",
-        id: 123,
-        params: {
-          interval: timeInterval,
-        },
-      })
-    );
-  }, [timeInterval]);
+  const onOpen = useCallback(() => {
+    console.log("candle feed opened");
+  }, []);
 
-  const onMessage = useCallback((message: any) => {
+  const onMessage = useCallback((event: MessageEvent) => {
     try {
-      const parsedMessage = JSON.parse(message.data);
-
-      if (!parsedMessage.params || !parsedMessage.params.result) {
-        return;
-      }
-
       if (!seriesRef.current || seriesRef.current === null) {
         return;
       }
 
-      const candleStickDataArr = parsedMessage.params
-        .result as CandlestickData[];
+      const parsedMessage = JSON.parse(event.data);
 
-      const candleStickData = candleStickDataArr[0];
+      const candleStickData = parsedMessage.k;
 
       const time = dayjs
-        .utc(candleStickData.end)
+        .utc(candleStickData.T)
         .unix();
 
       const localTimezoneOffset = new Date().getTimezoneOffset() * 60;
       const currentMinuteInMs = (time - localTimezoneOffset) as UTCTimestamp;
 
       const { close, open, high, low } = {
-        close: parseFloat(candleStickData.close),
-        open: parseFloat(candleStickData.open),
-        high: parseFloat(candleStickData.high),
-        low: parseFloat(candleStickData.low),
+        close: parseFloat(candleStickData.c),
+        open: parseFloat(candleStickData.o),
+        high: parseFloat(candleStickData.h),
+        low: parseFloat(candleStickData.l),
       };
 
       const dataToUpdate = {
@@ -140,12 +151,14 @@ const ChartWrapper = ({ candleData }: Props) => {
     }
   }, [addPrice]);
 
-  const onClose = useCallback((ws: WebSocket) => {
+  const onClose = useCallback(() => {
     console.log("candle feed closed");
   }, []);
 
+  const intervalSymbol = TIME_INTERVALS.find(item => item.id === timeInterval)?.name;
+
   const { reconnect } = useWebSocket({
-    url: process.env.NEXT_PUBLIC_TWILIGHT_PRICE_WS as string,
+    url: intervalSymbol ? `wss://stream.binance.com/ws/btcusdt@kline_${intervalSymbol}` : '',
     onOpen,
     onMessage,
     onClose,

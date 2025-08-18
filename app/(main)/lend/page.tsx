@@ -151,7 +151,7 @@ const Page = () => {
       const requestId = executeLendRes.result.id_key;
 
       const requestIdRes = await retry<
-        ReturnType<typeof queryTransactionHashByRequestId>,
+        ReturnType<typeof queryTransactionHashes>,
         string
       >(
         queryTransactionHashByRequestId,
@@ -159,8 +159,6 @@ const Page = () => {
         requestId,
         2500,
         (txHash) => {
-          if (!txHash) return false;
-
           const found = txHash.result.find(
             (tx) => tx.order_status === "SETTLED"
           );
@@ -170,13 +168,6 @@ const Page = () => {
       );
 
       if (!requestIdRes.success) {
-        console.error("lend order settle not successful");
-        setIsSettleLoading(false);
-        setSettlingOrderId(null);
-        return;
-      }
-
-      if (!requestIdRes.success || !requestIdRes.data) {
         console.error("lend order settle not successful");
         setIsSettleLoading(false);
         setSettlingOrderId(null);
@@ -241,7 +232,7 @@ const Page = () => {
         orderStatus: "SETTLED",
         timestamp: new Date(),
         tx_hash: tx_hash,
-        value: Math.round(Big(queryLendOrderRes.result.new_lend_state_amount).toNumber()) || order.value,
+        value: Big(queryLendOrderRes.result.new_lend_state_amount).toNumber() || order.value,
         payment: Big(queryLendOrderRes.result.payment).toNumber() || 0,
       })
 
@@ -256,7 +247,7 @@ const Page = () => {
       updateZkAccount(selectedZkAccount.address, {
         ...selectedZkAccount,
         type: "CoinSettled",
-        value: Math.round(Big(queryLendOrderRes.result.new_lend_state_amount).toNumber()) || order.value,
+        value: Big(queryLendOrderRes.result.new_lend_state_amount).toNumber() || order.value,
       });
 
     } catch (err) {

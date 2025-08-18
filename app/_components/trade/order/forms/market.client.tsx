@@ -4,9 +4,8 @@ import { Input, NumberInput } from "@/components/input";
 import { Text } from "@/components/typography";
 import { sendTradeOrder } from "@/lib/api/client";
 import { queryTradeOrder } from '@/lib/api/relayer';
-import { TransactionHash, queryTransactionHashByRequestId, queryTransactionHashes } from "@/lib/api/rest";
+import { TransactionHash, queryTransactionHashes } from "@/lib/api/rest";
 import cn from "@/lib/cn";
-import { retry } from '@/lib/helpers';
 import { useToast } from "@/lib/hooks/useToast";
 import { usePriceFeed } from "@/lib/providers/feed";
 import { useGrid } from "@/lib/providers/grid";
@@ -22,7 +21,7 @@ import Big from "big.js";
 import dayjs from 'dayjs';
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 const OrderMarketForm = () => {
   const { width } = useGrid();
@@ -67,17 +66,44 @@ const OrderMarketForm = () => {
     // Manually trigger the USD calculation that would happen in onChange
     if (btcValue && Big(btcValue).gt(0)) {
       Big.DP = 2;
-      usdRef.current.value = Big(currentPrice)
+      const usdValue = Big(currentPrice)
         .mul(btcValue)
         .toFixed(2);
+      usdRef.current.value = usdValue;
+      setUsdAmount(usdValue);
     } else {
       usdRef.current.value = "";
+      setUsdAmount("");
     }
 
     leverageRef.current.value = "1";
+    setLeverage("1");
   }, [selectedZkAccount, currentPrice, currentZkAccount])
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [usdAmount, setUsdAmount] = useState<string>("");
+  const [leverage, setLeverage] = useState<string>("1");
+
+  const positionSize = useMemo(() => {
+    if (!usdAmount || !leverage) {
+      return "0.00";
+    }
+
+    try {
+      const usdAmountBig = Big(usdAmount || "0");
+      const leverageBig = Big(leverage || "1");
+
+      if (usdAmountBig.lte(0) || leverageBig.lte(0)) {
+        return "0.00";
+      }
+
+      Big.DP = 2;
+      return usdAmountBig.mul(leverageBig).toFixed(2);
+    } catch (error) {
+      console.error("Error calculating position size:", error);
+      return "0.00";
+    }
+  }, [usdAmount, leverage]);
 
   async function submitMarket(type: "SELL" | "BUY") {
     const positionType = type === "BUY" ? "LONG" : "SHORT";
@@ -157,147 +183,131 @@ const OrderMarketForm = () => {
 
       const data = await sendTradeOrder(msg);
 
-      if (!data.result || !data.result.id_key) {
+      if (data.result && data.result.id_key) {
+        console.log(data);
+        toast({
+          title: "Submitting order",
+          description: "Order is being submitted...",
+        });
+
+        let retries = 0;
+        let orderData: TransactionHash | undefined = undefined;
+
+        while (!orderData) {
+          try {
+            if (retries > 4) break;
+            const txHashesRes = await queryTransactionHashes(
+              currentZkAccount.address
+            );
+
+            if (!txHashesRes.result) {
+              retries += 1;
+              continue;
+            }
+
+            orderData = txHashesRes.result[0] as TransactionHash;
+          } catch (err) {
+            console.error(err)
+            break;
+          }
+        }
+
+        if (!orderData || orderData.tx_hash.includes("Error")) {
+          toast({
+            variant: "error",
+            title: "Error",
+            description: "Error with creating trade order",
+          });
+
+          setIsSubmitting(false);
+          return;
+        }
+
+        console.log("orderData", orderData);
+
+        toast({
+          title: "Success",
+          description: (
+            <div className="flex space-x-1 opacity-90">
+              Successfully submitted trade order.{" "}
+              <Button
+                variant="link"
+                className="inline-flex text-sm opacity-90 hover:opacity-100"
+                asChild
+              >
+                <Link
+                  href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${orderData.tx_hash}`}
+                  target={"_blank"}
+                >
+                  Explorer link
+                </Link>
+              </Button>
+            </div>
+          ),
+        });
+
+        const queryTradeOrderMsg = await createQueryTradeOrderMsg({
+          address: currentZkAccount.address,
+          orderStatus: orderData.order_status,
+          signature: privateKey,
+        });
+
+        console.log("queryTradeOrderMsg", queryTradeOrderMsg);
+
+        const queryTradeOrderRes = await queryTradeOrder(queryTradeOrderMsg);
+
+        if (!queryTradeOrderRes) {
+          throw new Error("Failed to query trade order");
+        }
+
+        const traderOrderInfo = queryTradeOrderRes.result;
+
+        console.log("traderOrderInfo", traderOrderInfo)
+
+        const newTradeData = {
+          accountAddress: currentZkAccount.address,
+          orderStatus: orderData.order_status,
+          positionType,
+          orderType: orderData.order_type,
+          tx_hash: orderData.tx_hash,
+          uuid: orderData.order_id,
+          value: satsValue,
+          output: orderData.output,
+          entryPrice: new Big(traderOrderInfo.entryprice).toNumber(),
+          leverage: leverage,
+          isOpen: true,
+          date: dayjs(traderOrderInfo.timestamp).toDate(),
+          availableMargin: new Big(traderOrderInfo.available_margin).toNumber(),
+          bankruptcyPrice: new Big(traderOrderInfo.bankruptcy_price).toNumber(),
+          bankruptcyValue: new Big(traderOrderInfo.bankruptcy_value).toNumber(),
+          entryNonce: traderOrderInfo.entry_nonce,
+          entrySequence: traderOrderInfo.entry_sequence,
+          executionPrice: new Big(traderOrderInfo.execution_price).toNumber(),
+          initialMargin: new Big(traderOrderInfo.initial_margin).toNumber(),
+          liquidationPrice: new Big(traderOrderInfo.liquidation_price).toNumber(),
+          maintenanceMargin: new Big(traderOrderInfo.maintenance_margin).toNumber(),
+          positionSize: new Big(traderOrderInfo.positionsize).toNumber(),
+          settlementPrice: new Big(traderOrderInfo.settlement_price).toNumber(),
+          unrealizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
+          feeFilled: new Big(traderOrderInfo.fee_filled).toNumber(),
+          feeSettled: new Big(traderOrderInfo.fee_settled).toNumber(),
+        }
+
+        addTrade(newTradeData);
+        addTradeHistory(newTradeData);
+
+        updateZkAccount(currentZkAccount.address, {
+          ...currentZkAccount,
+          type: "Memo",
+        });
+
+      } else {
         toast({
           variant: "error",
           title: "Unable to submit trade order",
           description: "An error has occurred, try again later.",
         });
-        setIsSubmitting(false);
-        return;
       }
-
-      console.log("sendTradeOrder", data);
-
-      const requestId = data.result.id_key;
-
-      toast({
-        title: "Submitting order",
-        description: "Order is being submitted...",
-      });
-
-      let orderData: TransactionHash | undefined = undefined;
-
-      const queryTransactionRes = await retry<
-        ReturnType<typeof queryTransactionHashByRequestId>,
-        string
-      >(
-        queryTransactionHashByRequestId,
-        9,
-        requestId,
-        2500,
-        (txHash) => {
-          if (!txHash) return false;
-
-          const found = txHash.result.find(
-            (tx) => tx.order_status === "FILLED"
-          );
-
-          return found ? true : false;
-        }
-      );
-
-      if (!queryTransactionRes.success || !queryTransactionRes.data) {
-        toast({
-          variant: "error",
-          title: "Error",
-          description: "Error with creating trade order",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      orderData = queryTransactionRes.data.result[0] as TransactionHash;
-
-      if (!orderData || orderData.tx_hash.includes("Error")) {
-        toast({
-          variant: "error",
-          title: "Error",
-          description: "Error with creating trade order",
-        });
-
-        setIsSubmitting(false);
-        return;
-      }
-
-      console.log("orderData", orderData);
-
-      toast({
-        title: "Success",
-        description: (
-          <div className="flex space-x-1 opacity-90">
-            Successfully submitted trade order.{" "}
-            <Button
-              variant="link"
-              className="inline-flex text-sm opacity-90 hover:opacity-100"
-              asChild
-            >
-              <Link
-                href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${orderData.tx_hash}`}
-                target={"_blank"}
-              >
-                Explorer link
-              </Link>
-            </Button>
-          </div>
-        ),
-      });
-
-      const queryTradeOrderMsg = await createQueryTradeOrderMsg({
-        address: currentZkAccount.address,
-        orderStatus: orderData.order_status,
-        signature: privateKey,
-      });
-
-      console.log("queryTradeOrderMsg", queryTradeOrderMsg);
-
-      const queryTradeOrderRes = await queryTradeOrder(queryTradeOrderMsg);
-
-      if (!queryTradeOrderRes) {
-        throw new Error("Failed to query trade order");
-      }
-
-      const traderOrderInfo = queryTradeOrderRes.result;
-
-      console.log("traderOrderInfo", traderOrderInfo)
-
-      const newTradeData = {
-        accountAddress: currentZkAccount.address,
-        orderStatus: orderData.order_status,
-        positionType,
-        orderType: orderData.order_type,
-        tx_hash: orderData.tx_hash,
-        uuid: orderData.order_id,
-        value: satsValue,
-        output: orderData.output,
-        entryPrice: new Big(traderOrderInfo.entryprice).toNumber(),
-        leverage: leverage,
-        isOpen: true,
-        date: dayjs(traderOrderInfo.timestamp).toDate(),
-        availableMargin: new Big(traderOrderInfo.available_margin).toNumber(),
-        bankruptcyPrice: new Big(traderOrderInfo.bankruptcy_price).toNumber(),
-        bankruptcyValue: new Big(traderOrderInfo.bankruptcy_value).toNumber(),
-        entryNonce: traderOrderInfo.entry_nonce,
-        entrySequence: traderOrderInfo.entry_sequence,
-        executionPrice: new Big(traderOrderInfo.execution_price).toNumber(),
-        initialMargin: new Big(traderOrderInfo.initial_margin).toNumber(),
-        liquidationPrice: new Big(traderOrderInfo.liquidation_price).toNumber(),
-        maintenanceMargin: new Big(traderOrderInfo.maintenance_margin).toNumber(),
-        positionSize: new Big(traderOrderInfo.positionsize).toNumber(),
-        settlementPrice: new Big(traderOrderInfo.settlement_price).toNumber(),
-        unrealizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
-        feeFilled: new Big(traderOrderInfo.fee_filled).toNumber(),
-        feeSettled: new Big(traderOrderInfo.fee_settled).toNumber(),
-      }
-
-      addTrade(newTradeData);
-      addTradeHistory(newTradeData);
-
-      updateZkAccount(currentZkAccount.address, {
-        ...currentZkAccount,
-        type: "Memo",
-      });
-
 
       setIsSubmitting(false);
     } catch (err) {
@@ -325,7 +335,6 @@ const OrderMarketForm = () => {
             id="input-market-amount-btc"
             placeholder="0.000"
             ref={btcRef}
-            readOnly
             onChange={(e) => {
               if (!usdRef.current) return;
 
@@ -357,14 +366,17 @@ const OrderMarketForm = () => {
 
               if (!value || Big(value).lte(0)) {
                 usdRef.current.value = "";
+                setUsdAmount("");
                 return;
               }
 
               Big.DP = 2;
 
-              usdRef.current.value = Big(currentPrice)
+              const usdValue = Big(currentPrice)
                 .mul(value)
-                .toFixed(2)
+                .toFixed(2);
+              usdRef.current.value = usdValue;
+              setUsdAmount(usdValue);
             }}
           />
         </div>
@@ -380,21 +392,22 @@ const OrderMarketForm = () => {
             id="input-market-amount-usd"
             placeholder="$0.00"
             ref={usdRef}
-            readOnly
             onChange={(e) => {
               if (!btcRef.current) return;
 
+              const usdInput = e.currentTarget.value;
+              setUsdAmount(usdInput);
+
               if (
-                !e.currentTarget.value ||
-                Big(e.currentTarget.value).eq(0) ||
-                Big(e.currentTarget.value).lt(0)
+                !usdInput ||
+                Big(usdInput).eq(0) ||
+                Big(usdInput).lt(0)
               ) {
                 btcRef.current.value = "";
                 return;
               }
               Big.DP = 8;
 
-              const usdInput = e.currentTarget.value;
               btcRef.current.value = new Big(usdInput)
                 .div(currentPrice || 1)
                 .toString();
@@ -411,27 +424,41 @@ const OrderMarketForm = () => {
         </Text>
         <Input
           ref={leverageRef}
-          autoComplete="off"
           onChange={(e) => {
             const value = e.target.value.replace(/[^\d]/, "");
 
             if (leverageRef.current) {
               if (parseInt(value) > 50) {
                 leverageRef.current.value = "50";
+                setLeverage("50");
                 return;
               }
 
               if (parseInt(value) < 1) {
                 leverageRef.current.value = "1";
+                setLeverage("1");
                 return;
               }
 
               leverageRef.current.value = value;
+              setLeverage(value);
             }
           }}
           placeholder="1"
           id="input-market-leverage"
         />
+      </div>
+      <div className="flex justify-between">
+        <Text
+          className={"mb-1 opacity-80 text-xs"}
+        >
+          Position Size (USD)
+        </Text>
+        <Text
+          className={"mb-1 opacity-80 text-xs"}
+        >
+          ${positionSize}
+        </Text>
       </div>
       <ExchangeResource>
         <div

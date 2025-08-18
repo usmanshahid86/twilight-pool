@@ -12,7 +12,7 @@ import { Input, NumberInput } from "@/components/input";
 import { Text } from "@/components/typography";
 import { sendTradeOrder } from "@/lib/api/client";
 import { queryTradeOrder } from '@/lib/api/relayer';
-import { queryTransactionHashByRequestId, queryTransactionHashes } from "@/lib/api/rest";
+import { queryTransactionHashes } from "@/lib/api/rest";
 import cn from "@/lib/cn";
 import { retry } from "@/lib/helpers";
 import { useToast } from "@/lib/hooks/useToast";
@@ -147,19 +147,18 @@ const OrderLimitForm = () => {
       }
 
       const transactionHashCondition = (
-        txHashResult: Awaited<ReturnType<typeof queryTransactionHashByRequestId>>
+        txHashResult: Awaited<ReturnType<typeof queryTransactionHashes>>
       ) => {
-        if (txHashResult && txHashResult.result) {
+        if (txHashResult.result) {
           const transactionHashes = txHashResult.result;
 
           let txResult = false;
 
           transactionHashes.forEach((result) => {
+            console.log(`limit order transaction hashes result`, result)
             if (result.tx_hash.includes("Error")) {
               return;
             }
-
-            console.log(`limit order transaction hashes result`, result)
 
             txResult = !!result.tx_hash;
           });
@@ -170,23 +169,25 @@ const OrderLimitForm = () => {
       };
 
       const transactionHashRes = await retry<
-        ReturnType<typeof queryTransactionHashByRequestId>,
+        ReturnType<typeof queryTransactionHashes>,
         string
       >(
-        queryTransactionHashByRequestId,
+        queryTransactionHashes,
         9,
-        data.result.id_key,
+        currentZkAccount.address,
         1500,
         transactionHashCondition
       );
 
-      if (!transactionHashRes.success || !transactionHashRes.data) {
+      if (!transactionHashRes.success) {
         throw "Unable to get tx hash of order";
       }
 
       const orderData = transactionHashRes.data.result[0];
 
       if (!orderData) throw "Unable to get tx hash of order";
+
+      console.log("orderData", orderData);
 
       const queryTradeOrderMsg = await createQueryTradeOrderMsg({
         address: currentZkAccount.address,
@@ -277,13 +278,13 @@ const OrderLimitForm = () => {
       </div>
       <div>
         <DropdownMenu>
-          {/* <DropdownTrigger className="group"> */}
-          <Text className="mb-1 flex cursor-pointer items-center gap-1 text-xs opacity-80">
-            Order by Qty
-            {/* <ChevronDown className="h-3 w-3 transition-all group-data-[state=open]:-rotate-180" /> */}
-          </Text>
-          {/* </DropdownTrigger> */}
-          {/* <DropdownContent className="mt-1 before:mt-[3px]">
+          <DropdownTrigger className="group">
+            <Text className="mb-1 flex cursor-pointer items-center gap-1 text-xs opacity-80">
+              Order by Qty
+              <ChevronDown className="h-3 w-3 transition-all group-data-[state=open]:-rotate-180" />
+            </Text>
+          </DropdownTrigger>
+          <DropdownContent className="mt-1 before:mt-[3px]">
             <DropdownGroup>
               {limitQtyOptions.map((value) => (
                 <DropdownItem
@@ -309,7 +310,7 @@ const OrderLimitForm = () => {
                 </DropdownItem>
               ))}
             </DropdownGroup>
-          </DropdownContent> */}
+          </DropdownContent>
         </DropdownMenu>
 
         <div className="relative">
@@ -320,7 +321,6 @@ const OrderLimitForm = () => {
             placeholder="BTC Amount"
             step="any"
             name="btc"
-            readOnly
           />
           <label
             className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-primary-accent"
@@ -337,7 +337,6 @@ const OrderLimitForm = () => {
         </label>
         <Input
           ref={leverageRef}
-          autoComplete='off'
           onChange={(e) => {
             const value = e.target.value.replace(/[^\d]/, "");
 
