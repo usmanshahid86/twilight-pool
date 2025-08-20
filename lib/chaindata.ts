@@ -32,6 +32,9 @@ export const twilightTestnet: Chain = {
     {
       kind: "blockExplorer",
       url: "https://explorer.twilight.rest/nyks/",
+      tx_page: "https://explorer.twilight.rest/nyks/tx/%7BtxHash%7D",
+      account_page:
+        "https://explorer.twilight.rest/nyks/account/%7BaccountAddress%7D",
     },
   ],
   bech32_config: {

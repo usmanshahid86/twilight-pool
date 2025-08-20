@@ -50,11 +50,24 @@ const WalletProviderButton = ({ wallet, className }: Props) => {
     const depositAddress = chainWallet.address || "";
 
     if (!depositAddress) {
-      return toast({
+
+      if (wallet.name === "Metamask") {
+
+        toast({
+          title: "Metamask Cosmos Snap is not installed",
+          description: `Please install the Leap Metamask Cosmos Snap before connecting, currently there is a known conflict with the OKX wallet extension`,
+          variant: "error",
+        });
+
+        return;
+      }
+
+      toast({
         title: "Error getting wallet ",
         description: `Please install ${wallet.name} before connecting!`,
         variant: "error",
       });
+      return
     }
 
     // const { success } = await getBTCDepositAddress(depositAddress);
