@@ -26,6 +26,7 @@ const Logo = ({ className }: Props) => {
         alt="Logo"
         width={108}
         height={24}
+        quality={100}
       />
 
       <Image
@@ -34,6 +35,7 @@ const Logo = ({ className }: Props) => {
         alt="Logo"
         width={108}
         height={24}
+        quality={100}
       />
     </>
   );
