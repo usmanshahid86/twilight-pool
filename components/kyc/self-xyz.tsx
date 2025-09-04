@@ -2,8 +2,10 @@ import { SelfApp, SelfAppBuilder, SelfQRcodeWrapper } from '@selfxyz/qrcode';
 import { getUniversalLink } from "@selfxyz/core";
 import { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/button';
+import { v4 as uuidv4 } from 'uuid';
 
-const BACKEND_URL = "https://twilight-self-backend-production.up.railway.app";
+
+const BACKEND_URL = "https://zk-kyc.twilight.rest/";
 
 export default function SelfQRComponent({
   walletAddress,
@@ -14,10 +16,7 @@ export default function SelfQRComponent({
 }) {
   const [selfApp, setSelfApp] = useState<SelfApp | null>(null);
   const [universalLink, setUniversalLink] = useState("");
-
-  const walletAddressHex = useMemo(() => {
-    return "0x" + Buffer.from(walletAddress, "utf-8").toString('hex')
-  }, [walletAddress])
+  const [userId] = useState(uuidv4());
 
   useEffect(() => {
     try {
@@ -27,17 +26,14 @@ export default function SelfQRComponent({
         scope: "twilight-relayer-passport",
         endpoint: `${BACKEND_URL}/api/verify`,
         logoBase64: "https://staging-frontend.twilight.rest/images/twilight.png",
-        userId: walletAddressHex,
-        userIdType: "hex",
+        userId: userId,
+        userIdType: "uuid",
         endpointType: "staging_https",
-        userDefinedData: signature,
+        userDefinedData: walletAddress,
         disclosures: {
-          // 1. what you want to verify from users' identity
-          // minimumAge: 18,
           ofac: false,
           excludedCountries: ['IRN', 'PRK', 'CUB', 'SYR'],
 
-          // 2. what you want users to reveal (Optional)
           nationality: false,
           gender: false,
           date_of_birth: false,
@@ -46,6 +42,7 @@ export default function SelfQRComponent({
           issuing_state: true,
           name: false,
         },
+        devMode: true,
       }).build();
 
       setSelfApp(app);
@@ -54,7 +51,7 @@ export default function SelfQRComponent({
     } catch (error) {
       console.error("Failed to initialize Self app:", error);
     }
-  }, [walletAddressHex, signature]);
+  }, [walletAddress]);
 
 
   if (!selfApp) return null;
