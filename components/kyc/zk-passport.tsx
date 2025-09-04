@@ -1,4 +1,4 @@
-import { ZKPassport } from "@zkpassport/sdk";
+import { SANCTIONED_COUNTRIES, ZKPassport } from "@zkpassport/sdk";
 import { useEffect, useMemo, useState, useRef } from 'react';
 import Button from '@/components/button';
 import { Text } from '@/components/typography';
@@ -26,10 +26,6 @@ export default function ZKPassportComponent({
   const [qrGenerated, setQrGenerated] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const proofsRef = useRef<any[]>([]);
-
-  const walletAddressHex = useMemo(() => {
-    return "0x" + Buffer.from(walletAddress, "utf-8").toString('hex');
-  }, [walletAddress]);
 
   useEffect(() => {
     let mounted = true;
@@ -61,8 +57,7 @@ export default function ZKPassportComponent({
           onReject,
           onError: onSDKError,
         } = request
-          .disclose("firstname")
-          .gte("age", 18)
+          .out("nationality", SANCTIONED_COUNTRIES).disclose("nationality")
           .done();
 
         if (!mounted) return;
@@ -111,8 +106,7 @@ export default function ZKPassportComponent({
             setIsVerifying(true);
             setStatus("Verifying with backend...");
 
-            // TODO: Replace with your actual backend endpoint
-            const response = await fetch("/api/verify-zkpassport", {
+            const response = await fetch("/api/verify/zkpass", {
               method: "POST",
               headers: { "content-type": "application/json" },
               body: JSON.stringify({
@@ -120,8 +114,7 @@ export default function ZKPassportComponent({
                 queryResult,
                 scope: "adult",
                 uniqueIdentifier,
-                walletAddress: walletAddressHex,
-                signature,
+                walletAddress,
               }),
             });
 
@@ -158,7 +151,7 @@ export default function ZKPassportComponent({
     return () => {
       mounted = false;
     };
-  }, [walletAddressHex, signature, onSuccess, onError]);
+  }, [onSuccess, onError]);
 
   // Separate effect to handle QR code generation
   useEffect(() => {

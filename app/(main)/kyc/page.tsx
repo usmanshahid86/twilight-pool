@@ -11,6 +11,7 @@ import ZKPassportComponent from '@/components/kyc/zk-passport';
 import { useWallet } from '@cosmos-kit/react-lite';
 import { useSessionStore } from '@/lib/providers/session';
 import ConnectWallet from '@/app/_components/layout/connect-wallet.client';
+import { useRouter } from 'next/navigation';
 
 const steps = [
   { id: 'step1', label: 'Step 1' },
@@ -41,6 +42,8 @@ const Page = () => {
 
   const chainWallet = mainWallet?.getChainWallet("nyks");
   const privateKey = useSessionStore((state) => state.privateKey);
+
+  const router = useRouter()
 
   // Show wallet connection requirement if not connected
   if (status !== "Connected" || !chainWallet || !privateKey) {
@@ -165,7 +168,7 @@ const Page = () => {
             {selectedPassport === "self-xyz" ? (
               <div className="flex flex-col items-center space-y-6">
                 <div className="p-6 border border-primary/20 bg-primary/5 rounded-lg">
-                  <SelfQRComponent walletAddress={walletAddress} signature={privateKey} />
+                  <SelfQRComponent walletAddress={walletAddress} signature={privateKey} handleSuccess={handleVerificationSuccess} />
                 </div>
 
                 <div className="space-y-4 w-full grid grid-cols-2 gap-4 items-start">
@@ -267,16 +270,6 @@ const Page = () => {
               >
                 Back
               </Button>
-              {(selectedPassport === "self-xyz" || selectedPassport === "zk-passport") && (
-                <Button
-                  onClick={handleNextStep}
-                  variant="primary"
-                  size="default"
-                  disabled={verificationStatus !== 'completed'}
-                >
-                  {verificationStatus === 'completed' ? 'Next' : 'Next (Pending Verification)'}
-                </Button>
-              )}
             </div>
           </div>
         </>;
@@ -284,10 +277,7 @@ const Page = () => {
         return <>
           <div className="space-y-6 items-center text-center">
             <div className="space-y-4">
-              <div className="w-20 h-20 mx-auto bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
-                <Text className="text-3xl">✓</Text>
-              </div>
-              <Text heading="h2" className="mb-0 text-lg font-normal sm:text-2xl">
+              <Text heading="h2" className="mb-0 text-2xl font-normal sm:text-2xl">
                 Verification Complete
               </Text>
               <Text className="text-primary opacity-80 max-w-md">
@@ -304,7 +294,7 @@ const Page = () => {
                   • You can now deposit and trade on the platform
                 </Text>
                 <Text className="text-green-700 dark:text-green-300">
-                  • Access lending and borrowing features
+                  • Access lend and wallet features
                 </Text>
                 <Text className="text-green-700 dark:text-green-300">
                   • Enjoy full platform functionality
@@ -313,7 +303,7 @@ const Page = () => {
             </div>
 
             <Button
-              onClick={() => window.location.href = '/'}
+              onClick={() => router.push('/')}
               variant="primary"
               size="default"
             >

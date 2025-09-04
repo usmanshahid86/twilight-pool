@@ -3,16 +3,19 @@ import { getUniversalLink } from "@selfxyz/core";
 import { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/button';
 import { v4 as uuidv4 } from 'uuid';
+import { toast } from '@/lib/hooks/useToast';
 
 
-const BACKEND_URL = "https://zk-kyc.twilight.rest/";
+const BACKEND_URL = "https://zk-kyc.twilight.rest";
 
 export default function SelfQRComponent({
   walletAddress,
   signature,
+  handleSuccess,
 }: {
   walletAddress: string;
   signature: string;
+  handleSuccess: () => void;
 }) {
   const [selfApp, setSelfApp] = useState<SelfApp | null>(null);
   const [universalLink, setUniversalLink] = useState("");
@@ -51,8 +54,16 @@ export default function SelfQRComponent({
     } catch (error) {
       console.error("Failed to initialize Self app:", error);
     }
-  }, [walletAddress]);
+  }, [walletAddress, userId]);
 
+
+  const onSuccess = () => {
+    toast({
+      title: "Passport verified successfully",
+      description: "Your passport has been verified successfully.",
+    })
+    handleSuccess();
+  }
 
   if (!selfApp) return null;
 
@@ -65,8 +76,16 @@ export default function SelfQRComponent({
   return (
     <div className="flex flex-col items-center gap-4">
       <SelfQRcodeWrapper
-        onSuccess={() => { }}
-        onError={() => { }}
+        onSuccess={() => {
+          console.log("Passport verified successfully");
+          onSuccess();
+        }}
+        onError={() => {
+          toast({
+            title: "Failed to verify passport",
+            description: "An error occurred while verifying your passport, please try again later.",
+          })
+        }}
         selfApp={selfApp}
       />
       <Button
