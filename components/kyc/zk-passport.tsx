@@ -45,8 +45,13 @@ export default function ZKPassportComponent({
           purpose: "adult",
           scope: "adult",
           devMode: true, // Set to false in production
-          validity: 1800,
-        });
+          validity: 180,
+        })
+
+        const builderResult = request
+          .done();
+
+        console.log("builderResult", builderResult);
 
         const {
           url,
@@ -57,8 +62,7 @@ export default function ZKPassportComponent({
           onResult,
           onReject,
           onError: onSDKError,
-        } = request
-          .done();
+        } = builderResult
 
         if (!mounted) return;
 
@@ -103,6 +107,9 @@ export default function ZKPassportComponent({
           if (!mounted) return;
 
           try {
+            console.log("queryResult", queryResult);
+            console.log("proofsRef.current", proofsRef.current);
+            console.log(verified, uniqueIdentifier)
             setIsVerifying(true);
             setStatus("Verifying with backend...");
 
@@ -114,7 +121,8 @@ export default function ZKPassportComponent({
                 queryResult,
                 scope: "adult",
                 uniqueIdentifier,
-                walletAddress,
+                cosmosAddress: walletAddress,
+                devMode: true,
               }),
             });
 
