@@ -45,6 +45,7 @@ export default function ZKPassportComponent({
           purpose: "adult",
           scope: "adult",
           devMode: true, // Set to false in production
+          validity: 1800,
         });
 
         const {
@@ -57,7 +58,6 @@ export default function ZKPassportComponent({
           onReject,
           onError: onSDKError,
         } = request
-          .out("nationality", SANCTIONED_COUNTRIES).disclose("nationality")
           .done();
 
         if (!mounted) return;
