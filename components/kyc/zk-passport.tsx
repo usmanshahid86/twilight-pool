@@ -49,6 +49,7 @@ export default function ZKPassportComponent({
         })
 
         const builderResult = request
+          .eq("document_type", "passport")
           .done();
 
         console.log("builderResult", builderResult);
