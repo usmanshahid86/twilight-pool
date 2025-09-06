@@ -4,9 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/button';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from '@/lib/hooks/useToast';
+import wfetch from '@/lib/http';
 
 
 const BACKEND_URL = "https://zk-kyc.twilight.rest";
+const FAUCET_RPC_URL = "https://faucet-rpc.twilight.rest";
 
 export default function SelfQRComponent({
   walletAddress,
@@ -57,11 +59,54 @@ export default function SelfQRComponent({
   }, [walletAddress, userId]);
 
 
-  const onSuccess = () => {
+  const fetchWhitelistStatus = async (recipientAddress: string) => {
+    try {
+      const body = JSON.stringify({
+        recipientAddress: recipientAddress
+      });
+
+      const { success, data, error } = await wfetch(`${FAUCET_RPC_URL}/whitelist/status`)
+        .post({ body })
+        .json<{
+          data: {
+            address: string;
+            whitelisted: boolean;
+          }
+        }>();
+
+      if (!success) {
+        console.error("Failed to fetch whitelist status:", error);
+        return false;
+      }
+
+      if (!data.data.whitelisted) {
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error fetching whitelist status:", error);
+      return false;
+    }
+  };
+
+  const onSuccess = async () => {
+    // Fetch whitelist status
+    const whitelistStatus = await fetchWhitelistStatus(walletAddress);
+
+    if (!whitelistStatus) {
+      toast({
+        title: "Failed to verify passport",
+        description: "Failed to verify passport, please try again later.",
+      });
+      return;
+    }
+
     toast({
       title: "Passport verified successfully",
       description: "Your passport has been verified successfully.",
-    })
+    });
+
     handleSuccess();
   }
 
