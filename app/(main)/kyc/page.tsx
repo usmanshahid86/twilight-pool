@@ -12,6 +12,7 @@ import { useWallet } from '@cosmos-kit/react-lite';
 import { useSessionStore } from '@/lib/providers/session';
 import ConnectWallet from '@/app/_components/layout/connect-wallet.client';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/lib/hooks/useToast';
 
 const steps = [
   { id: 'step1', label: 'Step 1' },
@@ -24,11 +25,13 @@ const availablePassports = [
     id: "self-xyz",
     name: "Self",
     src: "/images/self-xyz-logo.png",
+    disabled: false,
   },
   {
     id: "zk-passport",
     name: "ZK Passport",
     src: "/images/zk-passport-logo.png",
+    disabled: true,
   },
 ] as const;
 
@@ -39,6 +42,7 @@ const Page = () => {
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'completed' | 'error'>('pending');
 
   const { mainWallet, status } = useWallet();
+  const { toast } = useToast();
 
   const chainWallet = mainWallet?.getChainWallet("nyks");
   const privateKey = useSessionStore((state) => state.privateKey);
@@ -113,16 +117,58 @@ const Page = () => {
               <div className="flex flex-row w-full justify-between gap-4">
                 {
                   availablePassports.map((passport) => (
-                    <button onClick={() => {
-                      setSelectedPassport(passport.id)
-                      handleNextStep()
-                    }
-                    } key={passport.id} className={"w-1/2 flex cursor-pointer flex-col border rounded-md p-1"}>
+                    <button
+                      onClick={() => {
+                        if (passport.disabled) {
+                          toast({
+                            title: "ZK Passport Unavailable",
+                            description: "ZK Passport verification is currently unavailable. Please use Self.xyz verification instead.",
+                            variant: "error",
+                          });
+                          return;
+                        }
+                        setSelectedPassport(passport.id)
+                        handleNextStep()
+                      }}
+                      key={passport.id}
+                      className={cn(
+                        "w-1/2 flex flex-col border rounded-md p-1 transition-all duration-300",
+                        passport.disabled
+                          ? "cursor-not-allowed opacity-50 grayscale"
+                          : "cursor-pointer hover:shadow-md"
+                      )}
+                      disabled={passport.disabled}
+                    >
                       <div
-                        className="flex h-full flex-col items-center justify-center rounded-lg py-2 transition-colors duration-300 hover:bg-primary/10"
+                        className={cn(
+                          "flex h-full flex-col items-center justify-center rounded-lg py-2 transition-colors duration-300",
+                          passport.disabled
+                            ? "bg-gray-100 dark:bg-gray-800"
+                            : "hover:bg-primary/10"
+                        )}
                       >
-                        <NextImage className={cn("p-2", passport.id === "self-xyz" && "dark:bg-primary")} src={passport.src} alt={passport.name} width={100} height={100} />
-                        <Text className="select-none text-2xl font-semibold">{passport.name}</Text>
+                        <NextImage
+                          className={cn(
+                            "p-2",
+                            passport.id === "self-xyz" && "dark:bg-primary",
+                            passport.disabled && "opacity-50"
+                          )}
+                          src={passport.src}
+                          alt={passport.name}
+                          width={100}
+                          height={100}
+                        />
+                        <Text className={cn(
+                          "select-none text-2xl font-semibold",
+                          passport.disabled && "text-gray-500 dark:text-gray-400"
+                        )}>
+                          {passport.name}
+                        </Text>
+                        {passport.disabled && (
+                          <Text className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                            Currently Unavailable
+                          </Text>
+                        )}
                       </div>
                     </button>
                   ))}
