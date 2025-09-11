@@ -1,19 +1,18 @@
+const ZK_KYC_URL = process.env.NEXT_PUBLIC_KYC_ENDPOINT as string;
+
 export async function POST(request: Request) {
   try {
     // Get the request body
     const body = await request.json();
 
     // Forward the request to the external API
-    const response = await fetch(
-      "https://zk-kyc.twilight.rest/api/verify/zkpass",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      }
-    );
+    const response = await fetch(`${ZK_KYC_URL}/api/verify/zkpass`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
 
     // Get the response data
     const data = await response.text();

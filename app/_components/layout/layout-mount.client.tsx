@@ -5,7 +5,7 @@ import { useWallet } from "@cosmos-kit/react-lite";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 
-const FAUCET_RPC_URL = "https://faucet-rpc.twilight.rest";
+const FAUCET_RPC_URL = process.env.NEXT_PUBLIC_FAUCET_ENDPOINT as string;
 
 const fetchWhitelistStatus = async (recipientAddress: string) => {
   try {
