@@ -42,12 +42,10 @@ const faucetSteps = [
 const FAUCET_ENDPOINT = process.env.NEXT_PUBLIC_FAUCET_ENDPOINT as string;
 
 const generateRandomBtcTestnetAddress = (): string => {
-  // Generate a random 32-character hex string for the address
   const randomHex = Array.from({ length: 32 }, () =>
     Math.floor(Math.random() * 16).toString(16)
   ).join('');
 
-  // Return a testnet bech32-style address (tb1 prefix for testnet)
   return `tb1q${randomHex}`
 };
 
@@ -233,7 +231,6 @@ const Page = () => {
       });
 
       try {
-
         const result = await stargateClient.signAndBroadcast(twilightAddress, [msg], "auto");
 
         console.log("result", result)

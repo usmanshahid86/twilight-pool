@@ -7,6 +7,17 @@ type GetRegisteredBTCDepositAddressRes = {
   addresses: registeredBtcAddressStruct[];
 };
 
+type GetRegisteredBTCAddressByTwilightAddressRes = {
+  depositAddress: string;
+  twilightDepositAddress: string;
+};
+
+type ApiError = {
+  code: number;
+  message: string;
+  details: any[];
+};
+
 async function getRegisteredBTCDepositAddress() {
   const { success, data, error } = await wfetch(
     new URL(
@@ -24,4 +35,28 @@ async function getRegisteredBTCDepositAddress() {
   return data.addresses;
 }
 
-export { getRegisteredBTCDepositAddress };
+async function getRegisteredBTCAddress(twilightAddress: string) {
+  try {
+    const { success, data, error } = await wfetch(
+      new URL(
+        REST_URL +
+          `twilight-project/nyks/bridge/registered_btc_deposit_address_by_twilight_address/${twilightAddress}`
+      )
+    )
+      .get()
+      .json<GetRegisteredBTCAddressByTwilightAddressRes>();
+
+    if (!success) {
+      return "";
+    }
+
+    const { depositAddress } = data;
+
+    return depositAddress;
+  } catch (err) {
+    console.error("Error fetching registered BTC address:", err);
+    throw err;
+  }
+}
+
+export { getRegisteredBTCDepositAddress, getRegisteredBTCAddress };

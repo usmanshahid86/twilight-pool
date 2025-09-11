@@ -17,7 +17,9 @@ interface UseTwilightProps {
   colorTheme: string;
   setColorTheme: (val: string) => void;
   hasRegisteredBTC: boolean;
+  setHasRegisteredBTC: (val: boolean) => void;
   hasConfirmedBTC: boolean;
+  setHasConfirmedBTC: (val: boolean) => void;
   checkBTCRegistration: () => void;
 }
 
@@ -32,7 +34,9 @@ const defaultContext: UseTwilightProps = {
   colorTheme: "pink",
   setColorTheme: () => { },
   hasRegisteredBTC: true,
+  setHasRegisteredBTC: () => { },
   hasConfirmedBTC: true,
+  setHasConfirmedBTC: () => { },
   checkBTCRegistration: () => { },
 };
 
@@ -165,7 +169,9 @@ const Twilight: React.FC<TwilightProviderProps> = ({ children }) => {
       // quisPrivateKey,
       // setQuisPrivateKey,
       hasRegisteredBTC,
+      setHasRegisteredBTC,
       hasConfirmedBTC,
+      setHasConfirmedBTC,
       checkBTCRegistration,
     ]
   );

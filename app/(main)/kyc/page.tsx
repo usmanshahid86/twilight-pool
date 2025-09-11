@@ -13,6 +13,9 @@ import { useSessionStore } from '@/lib/providers/session';
 import ConnectWallet from '@/app/_components/layout/connect-wallet.client';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/lib/hooks/useToast';
+import { registerBTCAddress } from '@/lib/utils/btc-registration';
+import { useTwilight } from '@/lib/providers/twilight';
+import { getRegisteredBTCAddress } from '@/lib/twilight/rest';
 
 const steps = [
   { id: 'step1', label: 'Step 1' },
@@ -40,14 +43,71 @@ const Page = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedPassport, setSelectedPassport] = useState<"self-xyz" | "zk-passport" | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'completed' | 'error'>('pending');
+  const [isRegisteringBTC, setIsRegisteringBTC] = useState(false);
 
   const { mainWallet, status } = useWallet();
   const { toast } = useToast();
+  const { setHasRegisteredBTC } = useTwilight();
 
   const chainWallet = mainWallet?.getChainWallet("nyks");
   const privateKey = useSessionStore((state) => state.privateKey);
 
   const router = useRouter()
+
+  const handleBTCRegistration = async () => {
+    if (!chainWallet) {
+      toast({
+        title: "Wallet not connected",
+        description: "Please ensure your wallet is connected",
+        variant: "error",
+      });
+      return false;
+    }
+
+    setIsRegisteringBTC(true);
+
+    try {
+      const registeredBTCAddress = await getRegisteredBTCAddress(chainWallet.address as string);
+
+      console.log("registeredBTCAddress", registeredBTCAddress);
+      if (registeredBTCAddress) {
+        return true
+      }
+
+      toast({
+        title: "Registering Twilight Address",
+        description: "Please approve the transaction in your wallet...",
+      });
+
+      const result = await registerBTCAddress(chainWallet);
+
+      if (result.success) {
+        toast({
+          title: "Twilight Address Registered",
+          description: "Your twilight address has been successfully registered!",
+        });
+        setHasRegisteredBTC(true);
+        return true;
+      } else {
+        toast({
+          title: "Registration Failed",
+          description: result.error || "Failed to register twilight address",
+          variant: "error",
+        });
+        return false;
+      }
+    } catch (error) {
+      toast({
+        title: "Registration Error",
+        description: "An unexpected error occurred during registration",
+        variant: "error",
+      });
+      return false;
+    } finally {
+      setIsRegisteringBTC(false);
+    }
+  };
+
 
   // Show wallet connection requirement if not connected
   if (status !== "Connected" || !chainWallet || !privateKey) {
@@ -91,9 +151,24 @@ const Page = () => {
     }
   };
 
-  const handleVerificationSuccess = () => {
+  const handleVerificationSuccess = async () => {
     setVerificationStatus('completed');
-    setCurrentStep(3); // Move to completion step
+
+    // Automatically register BTC address after successful passport verification
+    const registrationSuccess = await handleBTCRegistration();
+
+    if (registrationSuccess) {
+      setCurrentStep(3); // Move to completion step only if registration succeeds
+    } else {
+      // Stay on current step but show verification as completed
+      // User can manually proceed or retry registration
+      toast({
+        title: "Verification Complete",
+        description: "Passport verified, but BTC registration failed. You can continue and register later.",
+        variant: "default",
+      });
+      setCurrentStep(3);
+    }
   };
 
   const handleVerificationError = (error: any) => {
@@ -174,18 +249,18 @@ const Page = () => {
                   ))}
               </div>
               <div className="!mt-8 rounded-md border border-primary/20 bg-primary/5 p-4 space-y-3">
-                <Text heading="h3" className="mb-2 text-lg">
-                  Please note:
-                </Text>
-                <div className="space-y-2 text-sm">
+                <div className="space-y-3 text-sm">
                   <Text className="text-primary opacity-90">
-                    • Only passports issued by supported countries can be verified.
+                    Due to regulatory restrictions, citizenship verification is required to use Twilight&apos;s services. We use zero-knowledge proofs to ONLY verify your country of citizenship (not proof of residency). No other personal data are retrieved or stored beyond a non-reversible token post successful verification.
                   </Text>
                   <Text className="text-primary opacity-90">
-                    • Your personal data privacy is protected; We use zero-knowledge proofs to verify country information without sharing your full passport details.
+                    • Only passports issued by supported countries can be verified, including:
                   </Text>
-                  <Text className="text-primary opacity-90">
-                    • Verification is mandatory to access and use this financial product.
+                  <Text className="text-primary opacity-90 ml-4">
+                    Asia: China, Singapore, Korea, Thailand
+                  </Text>
+                  <Text className="text-primary opacity-90 ml-2">
+                    For a complete up-to-date list of supported countries, please see here <span className="text-blue-600 dark:text-blue-400 underline cursor-pointer">[link]</span>.
                   </Text>
                   <Text className="text-primary opacity-90">
                     • If you have any questions or need assistance, please contact our support team.
@@ -324,11 +399,19 @@ const Page = () => {
           <div className="space-y-6 items-center text-center">
             <div className="space-y-4">
               <Text heading="h2" className="mb-0 text-2xl font-normal sm:text-2xl">
-                Verification Complete
+                {isRegisteringBTC ? "Completing Setup..." : "Setup Complete"}
               </Text>
               <Text className="text-primary opacity-80 max-w-md">
-                Your passport has been successfully verified. You can now access all features of the Twilight platform.
+                {isRegisteringBTC
+                  ? "Your passport has been verified. We're now registering your Bitcoin deposit address..."
+                  : "Your passport has been successfully verified and your Bitcoin deposit address has been registered. You can now access all features of the Twilight platform."
+                }
               </Text>
+              {isRegisteringBTC && (
+                <Text className="text-primary opacity-60 text-sm max-w-md">
+                  Please approve the transaction in your wallet to complete the setup.
+                </Text>
+              )}
             </div>
 
             <div className="rounded-md border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20 p-4 space-y-2">
@@ -352,8 +435,9 @@ const Page = () => {
               onClick={() => router.push('/')}
               variant="primary"
               size="default"
+              disabled={isRegisteringBTC}
             >
-              Continue to Platform
+              {isRegisteringBTC ? "Setting up..." : "Continue to Platform"}
             </Button>
           </div>
         </>;

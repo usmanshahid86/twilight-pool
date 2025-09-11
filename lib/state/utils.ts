@@ -21,6 +21,8 @@ export interface SessionSlices {
   privateKey: string;
   setPrivateKey: (privateKey: string) => void;
   price: PriceSlice;
+  kycStatus: boolean;
+  setKycStatus: (kycStatus: boolean) => void;
 }
 
 export type StateImmerCreator<SlicesT, SliceT> = StateCreator<

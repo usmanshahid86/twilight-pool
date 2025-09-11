@@ -39,6 +39,8 @@ import useGetTwilightBTCBalance from "@/lib/hooks/useGetTwilightBtcBalance";
 import { twilightproject } from "twilightjs";
 import { ZkPrivateAccount } from "@/lib/zk/account";
 import { safeJSONParse } from "@/lib/helpers";
+import { getRegisteredBTCAddress } from '@/lib/twilight/rest';
+import { registerBTCAddress } from '@/lib/utils/btc-registration';
 
 const renameTag = (tag: string) => tag === "main" ? "Trading Account" : tag;
 
@@ -152,7 +154,23 @@ const TransferDialog = ({
       return;
     }
 
+
     try {
+      const registeredBtcAddress = await getRegisteredBTCAddress(twilightAddress);
+
+      if (!registeredBtcAddress) {
+        const result = await registerBTCAddress(chainWallet);
+
+        if (!result.success) {
+          toast({
+            title: "Unable to register BTC address",
+            description: result.error || "Failed to register BTC address",
+          });
+          setIsSubmitLoading(false);
+          return;
+        }
+      }
+
       // todo: cleanup into seperate function
       if (fromAccountValue === "funding") {
         const depositZkAccount = zkAccounts.filter(
