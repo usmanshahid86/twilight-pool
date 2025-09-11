@@ -23,38 +23,44 @@ export default function SelfQRComponent({
   const [userId] = useState(uuidv4());
 
   useEffect(() => {
-    try {
-      const app = new SelfAppBuilder({
-        version: 2,
-        appName: "Twilight Self Passport",
-        scope: "twilight-relayer-passport",
-        endpoint: `${BACKEND_URL}/api/verify`,
-        logoBase64: "https://staging-frontend.twilight.rest/images/twilight.png",
-        userId: userId,
-        userIdType: "uuid",
-        endpointType: "staging_https",
-        userDefinedData: walletAddress,
-        disclosures: {
-          ofac: false,
-          excludedCountries: ['IRN', 'PRK', 'CUB', 'SYR'],
 
-          nationality: false,
-          gender: false,
-          date_of_birth: false,
-          passport_number: false,
-          expiry_date: true,
-          issuing_state: true,
-          name: false,
-        },
-        devMode: true,
-      }).build();
+    const initializeSelfApp = async () => {
+      try {
 
-      setSelfApp(app);
-      setUniversalLink(getUniversalLink(app));
+        const response = await fetch(`${BACKEND_URL}/disclosures`)
 
-    } catch (error) {
-      console.error("Failed to initialize Self app:", error);
+        const result = await response.json()
+
+        const {
+          status,
+          data: disclosures
+        } = result;
+
+        console.log(disclosures)
+
+        const app = new SelfAppBuilder({
+          version: 2,
+          appName: "Twilight Self Passport",
+          scope: "twilight-relayer-passport",
+          endpoint: `${BACKEND_URL}/api/verify`,
+          logoBase64: "https://staging-frontend.twilight.rest/images/twilight.png",
+          userId: userId,
+          userIdType: "uuid",
+          endpointType: "staging_https",
+          userDefinedData: walletAddress,
+          disclosures: disclosures,
+          devMode: true,
+        }).build();
+
+        setSelfApp(app);
+        setUniversalLink(getUniversalLink(app));
+
+      } catch (error) {
+        console.error("Failed to initialize Self app:", error);
+      }
     }
+
+    initializeSelfApp();
   }, [walletAddress, userId]);
 
 
