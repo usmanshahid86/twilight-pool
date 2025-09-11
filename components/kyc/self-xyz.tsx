@@ -6,9 +6,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { toast } from '@/lib/hooks/useToast';
 import wfetch from '@/lib/http';
 
-
-const BACKEND_URL = "https://zk-kyc.twilight.rest";
-const FAUCET_RPC_URL = "https://faucet-rpc.twilight.rest";
+const BACKEND_URL = process.env.NEXT_PUBLIC_KYC_ENDPOINT as string
+const FAUCET_RPC_URL = process.env.NEXT_PUBLIC_FAUCET_ENDPOINT as string;
 
 export default function SelfQRComponent({
   walletAddress,
