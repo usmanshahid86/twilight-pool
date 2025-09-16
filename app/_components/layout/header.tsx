@@ -10,6 +10,7 @@ import ConnectWallet from "./connect-wallet.client";
 import Settings from "./settings.client";
 import SubaccountSelect from "./subaccount/subaccount-select.client";
 import MobileNav from "./mobile-navigation.client";
+import KycStatus from "./kyc-status";
 import { usePathname } from 'next/navigation';
 import cn from '@/lib/cn';
 
@@ -119,6 +120,7 @@ const Header = () => {
 
           {/* right side */}
           <div className="mx-auto flex flex-row items-center space-x-2 sm:mx-0 md:space-x-4">
+            <KycStatus />
             <SubaccountSelect />
             <ConnectWallet />
             <Settings />
@@ -128,7 +130,8 @@ const Header = () => {
           <Link href="/">
             <Logo className="w-6" />
           </Link>
-          <div className="flex space-x-4">
+          <div className="flex items-center space-x-2">
+            <KycStatus />
             <ConnectWallet />
             <MobileNav />
           </div>

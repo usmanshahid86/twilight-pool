@@ -254,13 +254,16 @@ const Page = () => {
                     Due to regulatory restrictions, citizenship verification is required to use Twilight&apos;s services. We use zero-knowledge proofs to ONLY verify your country of citizenship (not proof of residency). No other personal data are retrieved or stored beyond a non-reversible token post successful verification.
                   </Text>
                   <Text className="text-primary opacity-90">
-                    • Only passports issued by supported countries can be verified, including:
-                  </Text>
-                  <Text className="text-primary opacity-90 ml-4">
-                    Asia: China, Singapore, Korea, Thailand
+                    • Only passports issued by supported APAC countries can be verified.
                   </Text>
                   <Text className="text-primary opacity-90 ml-2">
-                    For a complete up-to-date list of supported countries, please see here <span className="text-blue-600 dark:text-blue-400 underline cursor-pointer">[link]</span>.
+                    You can find the full list of supported countries <span className="text-blue-600 dark:text-blue-400 underline cursor-pointer">here</span>.
+                  </Text>
+                  <Text className="text-primary opacity-90">
+                    • Supported countries include:
+                  </Text>
+                  <Text className="text-primary opacity-90 ml-4">
+                    China (CN), Indonesia (ID), Japan (JP), South Korea (KR), Mongolia (MN), Malaysia (MY), Nepal (NP), Singapore (SG), Thailand (TH), Turkmenistan (TM), Uzbekistan (UZ), Vietnam (VN), Australia (AU), New Zealand (NZ), Bangladesh (BD), India (IN), Kazakhstan (KZ), Maldives (MV), Philippines (PH), Tajikistan (TJ), Taiwan (TW)
                   </Text>
                   <Text className="text-primary opacity-90">
                     • If you have any questions or need assistance, please contact our support team.
