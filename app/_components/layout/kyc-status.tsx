@@ -1,39 +1,34 @@
 "use client";
 
-import { Check, X } from "lucide-react";
+import { useState } from "react";
 import { useSessionStore } from "@/lib/providers/session";
-import cn from "@/lib/cn";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/popover";
 
 const KycStatus = () => {
   const kycStatus = useSessionStore((state) => state.kycStatus);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="flex items-center space-x-1">
-      <div
-        className={cn(
-          "flex h-6 w-6 items-center justify-center rounded-full",
-          kycStatus
-            ? "text-green"
-            : "text-red"
-        )}
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className={`w-3 h-3 rounded-full transition-colors cursor-pointer ${kycStatus ? "bg-green-medium" : "bg-red"
+            }`}
+          aria-label={kycStatus ? "KYC Verified" : "KYC Unverified"}
+          onMouseEnter={() => setIsOpen(true)}
+          onMouseLeave={() => setIsOpen(false)}
+        />
+      </PopoverTrigger>
+      <PopoverContent
+        className="px-2 py-0.5 items-center justify-center inline-flex text-xs w-auto bg-background/80 select-none"
+        side="bottom"
+        align="center"
+        onMouseEnter={() => setIsOpen(true)}
+        onMouseLeave={() => setIsOpen(false)}
       >
-        {kycStatus ? (
-          <Check className="h-4 w-4" />
-        ) : (
-          <X className="h-4 w-4" />
-        )}
-      </div>
-      <span
-        className={cn(
-          "text-sm font-medium",
-          kycStatus
-            ? "text-green"
-            : "text-red"
-        )}
-      >
-        {kycStatus ? "Verified" : "Not Verified"}
-      </span>
-    </div>
+        {kycStatus ? "Verified" : "Unverified"}
+      </PopoverContent>
+    </Popover>
   );
 };
 

@@ -7,7 +7,15 @@ import { toast } from '@/lib/hooks/useToast';
 import wfetch from '@/lib/http';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_KYC_ENDPOINT as string
-const FAUCET_RPC_URL = process.env.NEXT_PUBLIC_FAUCET_ENDPOINT as string;
+
+function buildUserDefinedData(twilightAddress: string): string {
+  return [
+    `Wallet: ${twilightAddress}`,
+    `Only supported Asia-Pacific passports are eligible`,
+    `Full list: frontend.twilight.rest/countries`,
+    `⚠️ Not restricted ≠ eligible`
+  ].join("\n");
+}
 
 export default function SelfQRComponent({
   walletAddress,
@@ -38,6 +46,8 @@ export default function SelfQRComponent({
 
         console.log(disclosures)
 
+        const userDefinedData = buildUserDefinedData(walletAddress);
+
         const app = new SelfAppBuilder({
           version: 2,
           appName: "Twilight Self Passport",
@@ -47,7 +57,7 @@ export default function SelfQRComponent({
           userId: userId,
           userIdType: "uuid",
           endpointType: "staging_https",
-          userDefinedData: walletAddress,
+          userDefinedData: userDefinedData,
           disclosures: disclosures,
           devMode: true,
         }).build();
@@ -70,7 +80,7 @@ export default function SelfQRComponent({
         recipientAddress: recipientAddress
       });
 
-      const { success, data, error } = await wfetch(`${FAUCET_RPC_URL}/whitelist/status`)
+      const { success, data, error } = await wfetch(`${BACKEND_URL}/api/verify/whitelist`)
         .post({ body })
         .json<{
           data: {

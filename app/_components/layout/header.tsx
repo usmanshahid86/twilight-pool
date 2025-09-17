@@ -4,7 +4,6 @@ import Logo from "@/components/logo";
 import { Separator } from "@/components/seperator";
 import Link from "next/link";
 import React from "react";
-import MultiLink from "./multi-link.client";
 import { ArrowUpRight } from "lucide-react";
 import ConnectWallet from "./connect-wallet.client";
 import Settings from "./settings.client";
