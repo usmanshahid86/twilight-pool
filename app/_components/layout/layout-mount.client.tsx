@@ -60,8 +60,7 @@ const LayoutMountWrapper = ({ children }: { children: React.ReactNode }) => {
 
       if (!whitelistStatus) {
         setKycStatus(false);
-        console.log("redirecting to kyc");
-        router.push("/kyc");
+        router.push("/verify-region");
         return;
       }
 

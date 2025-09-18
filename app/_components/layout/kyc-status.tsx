@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useSessionStore } from "@/lib/providers/session";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/popover";
+import { useRouter } from 'next/navigation';
 
 const KycStatus = () => {
   const kycStatus = useSessionStore((state) => state.kycStatus);
   const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter()
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -17,6 +19,7 @@ const KycStatus = () => {
           aria-label={kycStatus ? "KYC Verified" : "KYC Unverified"}
           onMouseEnter={() => setIsOpen(true)}
           onMouseLeave={() => setIsOpen(false)}
+          onClick={() => router.push("/verify-region")}
         />
       </PopoverTrigger>
       <PopoverContent
