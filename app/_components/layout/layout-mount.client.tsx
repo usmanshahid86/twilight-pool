@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 
 const FAUCET_RPC_URL = process.env.NEXT_PUBLIC_FAUCET_ENDPOINT as string;
+const MANDATORY_KYC = process.env.NEXT_PUBLIC_MANDATORY_KYC === "true";
 
 const fetchWhitelistStatus = async (recipientAddress: string) => {
   try {
@@ -57,8 +58,6 @@ const LayoutMountWrapper = ({ children }: { children: React.ReactNode }) => {
 
       const whitelistStatus = await fetchWhitelistStatus(address);
 
-      console.log("whitelistStatus", whitelistStatus);
-
       if (!whitelistStatus) {
         setKycStatus(false);
         console.log("redirecting to kyc");
@@ -68,6 +67,9 @@ const LayoutMountWrapper = ({ children }: { children: React.ReactNode }) => {
 
       setKycStatus(true);
     }
+
+
+    if (!MANDATORY_KYC) return;
 
     autoConnect();
   }, [status, pathname, mainWallet]);
