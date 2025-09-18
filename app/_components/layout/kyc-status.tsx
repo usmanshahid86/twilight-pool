@@ -16,7 +16,7 @@ const KycStatus = () => {
         <button
           className={`w-3 h-3 rounded-full transition-colors cursor-pointer ${kycStatus ? "bg-green-medium" : "bg-red"
             }`}
-          aria-label={kycStatus ? "KYC Verified" : "KYC Unverified"}
+          aria-label={kycStatus ? "Region Verified" : "Region Unverified"}
           onMouseEnter={() => setIsOpen(true)}
           onMouseLeave={() => setIsOpen(false)}
           onClick={() => router.push("/verify-region")}

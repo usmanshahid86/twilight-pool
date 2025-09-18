@@ -116,7 +116,7 @@ const Page = () => {
         <div className="flex w-full flex-col space-y-8">
           <div className="md:space-y-2">
             <Text heading="h1" className="mb-0 text-lg font-normal sm:text-2xl">
-              KYC Verification
+              Region Verification
             </Text>
           </div>
           <div className="w-full max-w-4xl mx-auto flex-col flex items-center space-y-8">
@@ -452,7 +452,7 @@ const Page = () => {
       <div className="flex w-full flex-col space-y-8">
         <div className="md:space-y-2">
           <Text heading="h1" className="mb-0 text-lg font-normal sm:text-2xl">
-            KYC Verification
+            Region Verification
           </Text>
         </div>
         <div className="w-full max-w-4xl mx-auto flex-col flex items-center space-y-8">

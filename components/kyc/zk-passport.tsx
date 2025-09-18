@@ -40,7 +40,7 @@ export default function ZKPassportComponent({
         const zkPassport = new ZKPassport();
 
         const request = await zkPassport.request({
-          name: "Twilight Pool KYC",
+          name: "Twilight Pool Region Verification",
           logo: "https://staging-frontend.twilight.rest/images/twilight.png",
           purpose: "adult",
           scope: "adult",
