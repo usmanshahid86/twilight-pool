@@ -60,7 +60,11 @@ const LayoutMountWrapper = ({ children }: { children: React.ReactNode }) => {
 
       if (!whitelistStatus) {
         setKycStatus(false);
+
+        if (!MANDATORY_KYC) return;
+
         router.push("/verify-region");
+
         return;
       }
 
@@ -68,7 +72,6 @@ const LayoutMountWrapper = ({ children }: { children: React.ReactNode }) => {
     }
 
 
-    if (!MANDATORY_KYC) return;
 
     autoConnect();
   }, [status, pathname, mainWallet]);
