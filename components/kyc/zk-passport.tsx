@@ -49,7 +49,8 @@ export default function ZKPassportComponent({
         })
 
         const builderResult = request
-          .eq("document_type", "passport")
+          .disclose("expiry_date")
+          .disclose("issuing_country")
           .done();
 
         console.log("builderResult", builderResult);
