@@ -34,7 +34,7 @@ const availablePassports = [
     id: "zk-passport",
     name: "ZK Passport",
     src: "/images/zk-passport-logo.png",
-    disabled: true,
+    disabled: false,
   },
 ] as const;
 
@@ -42,12 +42,13 @@ const availablePassports = [
 const Page = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedPassport, setSelectedPassport] = useState<"self-xyz" | "zk-passport" | null>(null);
-  const [verificationStatus, setVerificationStatus] = useState<'pending' | 'completed' | 'error'>('pending');
   const [isRegisteringBTC, setIsRegisteringBTC] = useState(false);
 
   const { mainWallet, status } = useWallet();
   const { toast } = useToast();
   const { setHasRegisteredBTC } = useTwilight();
+
+  const kycStatus = useSessionStore((state) => state.kycStatus);
 
   const chainWallet = mainWallet?.getChainWallet("nyks");
   const privateKey = useSessionStore((state) => state.privateKey);
@@ -108,6 +109,57 @@ const Page = () => {
     }
   };
 
+  if (kycStatus) {
+    return (
+      <div className="mx-4 my-4 space-y-8 md:mx-8">
+        <div className="flex w-full flex-col space-y-8">
+          <div className="md:space-y-2">
+            <Text heading="h1" className="mb-0 text-lg font-normal sm:text-2xl">
+              Region Verification
+            </Text>
+          </div>
+          <div className="w-full max-w-4xl mx-auto flex-col flex items-center space-y-8">
+            <div className="flex flex-col items-center space-y-6 p-8 border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20 rounded-lg">
+              <div className="text-center space-y-4">
+                <Text heading="h2" className="text-xl font-semibold text-green-800 dark:text-green-200">
+                  ✅ Region Already Verified
+                </Text>
+                <Text className="text-green-700 dark:text-green-300 max-w-md">
+                  Your region has already been successfully verified. You cannot verify your region again as this is a one-time process for security and compliance purposes.
+                </Text>
+                <div className="rounded-md border border-green-300 bg-green-100 dark:border-green-700 dark:bg-green-800/30 p-4 space-y-2">
+                  <Text heading="h3" className="text-green-800 dark:text-green-200 font-semibold">
+                    You now have access to:
+                  </Text>
+                  <div className="space-y-1 text-sm">
+                    <Text className="text-green-700 dark:text-green-300">
+                      • Full trading capabilities on the platform
+                    </Text>
+                    <Text className="text-green-700 dark:text-green-300">
+                      • Deposit and withdrawal features
+                    </Text>
+                    <Text className="text-green-700 dark:text-green-300">
+                      • Lending and wallet functionality
+                    </Text>
+                    <Text className="text-green-700 dark:text-green-300">
+                      • All premium platform features
+                    </Text>
+                  </div>
+                </div>
+              </div>
+              <Button
+                onClick={() => router.push('/')}
+                variant="primary"
+                size="default"
+              >
+                Continue to Platform
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // Show wallet connection requirement if not connected
   if (status !== "Connected" || !chainWallet || !privateKey) {
@@ -126,7 +178,7 @@ const Page = () => {
                   Wallet Connection Required
                 </Text>
                 <Text className="text-primary opacity-80 max-w-md">
-                  Please connect your wallet to proceed with KYC verification. This is required to verify your identity and access the platform.
+                  Please connect your wallet to proceed with region verification. This is required to verify your identity and access the platform.
                 </Text>
               </div>
               <ConnectWallet />
@@ -152,8 +204,6 @@ const Page = () => {
   };
 
   const handleVerificationSuccess = async () => {
-    setVerificationStatus('completed');
-
     // Automatically register BTC address after successful passport verification
     const registrationSuccess = await handleBTCRegistration();
 
@@ -172,7 +222,6 @@ const Page = () => {
   };
 
   const handleVerificationError = (error: any) => {
-    setVerificationStatus('error');
     console.error('Verification error:', error);
   };
 

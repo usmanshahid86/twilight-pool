@@ -48,16 +48,18 @@ const LayoutMountWrapper = ({ children }: { children: React.ReactNode }) => {
   const kycStatus = useSessionStore((state) => state.kycStatus);
   const setKycStatus = useSessionStore((state) => state.setKycStatus);
 
+  const chainWallet = mainWallet?.getChainWallet("nyks");
+  const address = chainWallet?.address || "";
+
   useEffect(() => {
     async function autoConnect() {
-      if (status !== "Connected" || !mainWallet) return;
-      const chainWallet = mainWallet.getChainWallet("nyks");
-      const address = chainWallet?.address || "";
+      if (!address) return;
 
       if (kycStatus) return;
 
       const whitelistStatus = await fetchWhitelistStatus(address);
 
+      console.log("whitelistStatus", whitelistStatus);
       if (!whitelistStatus) {
         setKycStatus(false);
 
@@ -71,10 +73,8 @@ const LayoutMountWrapper = ({ children }: { children: React.ReactNode }) => {
       setKycStatus(true);
     }
 
-
-
     autoConnect();
-  }, [status, pathname, mainWallet]);
+  }, [status, pathname, address]);
 
   return <>{children}</>;
 };
