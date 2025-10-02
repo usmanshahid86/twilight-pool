@@ -204,21 +204,7 @@ const Page = () => {
   };
 
   const handleVerificationSuccess = async () => {
-    // Automatically register BTC address after successful passport verification
-    const registrationSuccess = await handleBTCRegistration();
-
-    if (registrationSuccess) {
-      setCurrentStep(3); // Move to completion step only if registration succeeds
-    } else {
-      // Stay on current step but show verification as completed
-      // User can manually proceed or retry registration
-      toast({
-        title: "Verification Complete",
-        description: "Passport verified, but BTC registration failed. You can continue and register later.",
-        variant: "default",
-      });
-      setCurrentStep(3);
-    }
+    setCurrentStep(3);
   };
 
   const handleVerificationError = (error: any) => {
