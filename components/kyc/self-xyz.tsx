@@ -19,19 +19,18 @@ function buildUserDefinedData(twilightAddress: string): string {
 
 export default function SelfQRComponent({
   walletAddress,
-  signature,
   handleSuccess,
+  isMockPassport,
 }: {
   walletAddress: string;
-  signature: string;
   handleSuccess: () => void;
+  isMockPassport: boolean;
 }) {
   const [selfApp, setSelfApp] = useState<SelfApp | null>(null);
   const [universalLink, setUniversalLink] = useState("");
   const [userId] = useState(uuidv4());
 
   useEffect(() => {
-
     const initializeSelfApp = async () => {
       try {
 
@@ -52,14 +51,14 @@ export default function SelfQRComponent({
           version: 2,
           appName: "Twilight Self Passport",
           scope: "twilight-relayer-passport",
-          endpoint: `${BACKEND_URL}/api/verify`,
+          endpoint: `${BACKEND_URL}/api/verify${isMockPassport ? "/self/mock" : ""}`,
           logoBase64: "https://staging-frontend.twilight.rest/images/twilight.png",
           userId: userId,
           userIdType: "uuid",
           endpointType: "staging_https",
           userDefinedData: userDefinedData,
           disclosures: disclosures,
-          devMode: true,
+          devMode: isMockPassport ? true : false,
         }).build();
 
         setSelfApp(app);
@@ -71,7 +70,7 @@ export default function SelfQRComponent({
     }
 
     initializeSelfApp();
-  }, [walletAddress, userId]);
+  }, [walletAddress, userId, isMockPassport]);
 
 
   const fetchWhitelistStatus = async (recipientAddress: string) => {

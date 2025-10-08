@@ -6,16 +6,16 @@ import QRCode from 'qrcode';
 
 interface ZKPassportComponentProps {
   walletAddress: string;
-  signature: string;
+  isMockPassport: boolean;
   onSuccess?: () => void;
   onError?: (error: any) => void;
 }
 
 export default function ZKPassportComponent({
   walletAddress,
-  signature,
   onSuccess,
   onError,
+  isMockPassport,
 }: ZKPassportComponentProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export default function ZKPassportComponent({
           logo: "https://staging-frontend.twilight.rest/images/twilight.png",
           purpose: "adult",
           scope: "adult",
-          devMode: true, // Set to false in production
+          devMode: isMockPassport ? true : false,
           validity: 180,
         })
 

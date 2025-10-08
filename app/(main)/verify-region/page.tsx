@@ -16,6 +16,7 @@ import { useToast } from '@/lib/hooks/useToast';
 import { registerBTCAddress } from '@/lib/utils/btc-registration';
 import { useTwilight } from '@/lib/providers/twilight';
 import { getRegisteredBTCAddress } from '@/lib/twilight/rest';
+import Switch from '@/components/switch';
 
 const steps = [
   { id: 'step1', label: 'Step 1' },
@@ -44,6 +45,8 @@ const Page = () => {
   const [selectedPassport, setSelectedPassport] = useState<"self-xyz" | "zk-passport" | null>(null);
   const [isRegisteringBTC, setIsRegisteringBTC] = useState(false);
 
+  const [isMockPassport, setIsMockPassport] = useState(false);
+
   const { mainWallet, status } = useWallet();
   const { toast } = useToast();
   const { setHasRegisteredBTC } = useTwilight();
@@ -51,7 +54,6 @@ const Page = () => {
   const kycStatus = useSessionStore((state) => state.kycStatus);
 
   const chainWallet = mainWallet?.getChainWallet("nyks");
-  const privateKey = useSessionStore((state) => state.privateKey);
 
   const router = useRouter()
 
@@ -162,7 +164,7 @@ const Page = () => {
   }
 
   // Show wallet connection requirement if not connected
-  if (status !== "Connected" || !chainWallet || !privateKey) {
+  if (status !== "Connected" || !chainWallet) {
     return (
       <div className="mx-4 my-4 space-y-8 md:mx-8">
         <div className="flex w-full flex-col space-y-8">
@@ -316,6 +318,13 @@ const Page = () => {
               <Text heading="h2" className="mb-0 text-lg font-normal sm:text-2xl">
                 {selectedPassport === "self-xyz" ? "Self.xyz Passport Verification" : "ZK Passport Verification"}
               </Text>
+              <div className="flex justify-center items-center space-x-2">
+                <label htmlFor="toggle-mock-passport">Use Mock Passport</label>
+                <Switch id="toggle-mock-passport"
+                  checked={isMockPassport}
+                  onClick={() => setIsMockPassport(!isMockPassport)}
+                />
+              </div>
               <Text className="text-primary opacity-80">
                 {selectedPassport === "self-xyz"
                   ? "Scan the QR code below with your Self.xyz app or click the button to open the verification link directly."
@@ -327,7 +336,11 @@ const Page = () => {
             {selectedPassport === "self-xyz" ? (
               <div className="flex flex-col items-center space-y-6">
                 <div className="p-6 border border-primary/20 bg-primary/5 rounded-lg">
-                  <SelfQRComponent walletAddress={walletAddress} signature={privateKey} handleSuccess={handleVerificationSuccess} />
+                  <SelfQRComponent
+                    walletAddress={walletAddress}
+                    handleSuccess={handleVerificationSuccess}
+                    isMockPassport={isMockPassport}
+                  />
                 </div>
 
                 <div className="space-y-4 w-full grid grid-cols-2 gap-4 items-start">
@@ -368,16 +381,15 @@ const Page = () => {
                   </div>
                 </div>
 
-
               </div>
             ) : (
               <div className="flex flex-col items-center space-y-6">
                 <div className="p-6 border border-primary/20 bg-primary/5 rounded-lg">
                   <ZKPassportComponent
                     walletAddress={walletAddress}
-                    signature={privateKey}
                     onSuccess={handleVerificationSuccess}
                     onError={handleVerificationError}
+                    isMockPassport={isMockPassport}
                   />
                 </div>
 
