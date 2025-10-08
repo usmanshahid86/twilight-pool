@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import Button from '@/components/button';
 import { Text } from '@/components/typography';
 import QRCode from 'qrcode';
+import { useToast } from '@/lib/hooks/useToast';
 
 interface ZKPassportComponentProps {
   walletAddress: string;
@@ -27,9 +28,9 @@ export default function ZKPassportComponent({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const proofsRef = useRef<any[]>([]);
 
-  useEffect(() => {
-    let mounted = true;
+  const { toast } = useToast();
 
+  useEffect(() => {
     const initializeZKPassport = async () => {
       try {
         setIsLoading(true);
@@ -66,7 +67,6 @@ export default function ZKPassportComponent({
           onError: onSDKError,
         } = builderResult
 
-        if (!mounted) return;
 
         setQrUrl(url);
         setRequestId(reqId);
@@ -74,44 +74,45 @@ export default function ZKPassportComponent({
 
         // Set up event handlers
         onRequestReceived(() => {
-          if (mounted) setStatus("Request received on device");
+          setStatus("Request received on device");
         });
 
         onGeneratingProof(() => {
-          if (mounted) setStatus("Generating proof on device...");
+          setStatus("Generating proof on device...");
         });
 
         onProofGenerated((proof) => {
           proofsRef.current.push(proof);
-          if (mounted) setStatus("Proof generated successfully");
+          setStatus("Proof generated successfully");
         });
 
         onReject(() => {
-          if (mounted) {
-            setStatus("User rejected verification");
-            setError("Verification was rejected by user");
-            onError?.("User rejected verification");
-          }
+          setStatus("User rejected verification");
+          setError("Verification was rejected by user");
+          onError?.("User rejected verification");
         });
 
         onSDKError((err) => {
-          if (mounted) {
-            setStatus("Error occurred");
-            const errorMessage = (err && typeof err === 'object' && 'message' in err)
-              ? (err as Error).message
-              : (typeof err === 'string' ? err : "An error occurred during verification");
-            setError(errorMessage);
-            onError?.(err);
-          }
+          setStatus("Error occurred");
+          const errorMessage = (err && typeof err === 'object' && 'message' in err)
+            ? (err as Error).message
+            : (typeof err === 'string' ? err : "An error occurred during verification");
+          setError(errorMessage);
+          onError?.(err);
         });
 
         onResult(async ({ uniqueIdentifier, verified, result: queryResult }) => {
-          if (!mounted) return;
-
           try {
             console.log("queryResult", queryResult);
             console.log("proofsRef.current", proofsRef.current);
             console.log(verified, uniqueIdentifier)
+            if (!verified) {
+              toast({
+                title: "Failed to verify passport",
+                description: "Failed to verify passport, please try again later.",
+              });
+              return;
+            }
             setIsVerifying(true);
             setStatus("Verifying with backend...");
 
@@ -146,22 +147,17 @@ export default function ZKPassportComponent({
 
         setIsLoading(false);
       } catch (err) {
-        if (mounted) {
-          const errorMessage = err instanceof Error ? err.message : "Failed to initialize ZK Passport";
-          setError(errorMessage);
-          setStatus("Initialization failed");
-          setIsLoading(false);
-          onError?.(err);
-        }
+        const errorMessage = err instanceof Error ? err.message : "Failed to initialize ZK Passport";
+        setError(errorMessage);
+        setStatus("Initialization failed");
+        setIsLoading(false);
+        onError?.(err);
       }
     };
 
     initializeZKPassport();
 
-    return () => {
-      mounted = false;
-    };
-  }, [onSuccess, onError]);
+  }, [onSuccess, onError, isMockPassport]);
 
   // Separate effect to handle QR code generation
   useEffect(() => {
