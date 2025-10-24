@@ -12,6 +12,8 @@ interface ZKPassportComponentProps {
   onError?: (error: any) => void;
 }
 
+const ZK_KYC_URL = process.env.NEXT_PUBLIC_KYC_ENDPOINT as string;
+
 export default function ZKPassportComponent({
   walletAddress,
   onSuccess,
@@ -31,6 +33,7 @@ export default function ZKPassportComponent({
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log("isMockPassport", isMockPassport)
     const initializeZKPassport = async () => {
       try {
         setIsLoading(true);
@@ -105,7 +108,9 @@ export default function ZKPassportComponent({
           try {
             console.log("queryResult", queryResult);
             console.log("proofsRef.current", proofsRef.current);
-            console.log(verified, uniqueIdentifier)
+            console.log("verified", verified, "uniqueIdentifier", uniqueIdentifier)
+            console.log("isMockPassport", isMockPassport)
+
             if (!verified) {
               toast({
                 title: "Failed to verify passport",
@@ -116,9 +121,11 @@ export default function ZKPassportComponent({
             setIsVerifying(true);
             setStatus("Verifying with backend...");
 
-            const response = await fetch("/api/verify/zkpass", {
+            const response = await fetch(`${ZK_KYC_URL}/api/verify/zkpass`, {
               method: "POST",
-              headers: { "content-type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+              },
               body: JSON.stringify({
                 proofs: proofsRef.current,
                 queryResult,
@@ -176,7 +183,7 @@ export default function ZKPassportComponent({
       }
     };
 
-    if (qrUrl && !qrGenerated) {
+    if (qrUrl) {
       generateQRCode();
     }
   }, [qrUrl, isLoading, error, qrGenerated]);
