@@ -1,32 +1,43 @@
 import Button from "@/components/button";
 import ExchangeResource from "@/components/exchange-resource";
 import { Input, NumberInput } from "@/components/input";
+import { Slider } from '@/components/slider';
 import { Text } from "@/components/typography";
 import { sendTradeOrder } from "@/lib/api/client";
 import { queryTradeOrder } from '@/lib/api/relayer';
 import { TransactionHash, queryTransactionHashes } from "@/lib/api/rest";
 import cn from "@/lib/cn";
+import useGetTwilightBTCBalance from '@/lib/hooks/useGetTwilightBtcBalance';
 import { useToast } from "@/lib/hooks/useToast";
 import { usePriceFeed } from "@/lib/providers/feed";
 import { useGrid } from "@/lib/providers/grid";
 import { useSessionStore } from "@/lib/providers/session";
 import { useTwilightStore } from "@/lib/providers/store";
 import { useTwilight } from "@/lib/providers/twilight";
-import BTC from "@/lib/twilight/denoms";
-import { createZkOrder } from "@/lib/twilight/zk";
+import BTC, { BTCDenoms } from "@/lib/twilight/denoms";
+import { createFundingToTradingTransferMsg } from '@/lib/twilight/wallet';
+import { createZkAccountWithBalance, createZkOrder } from "@/lib/twilight/zk";
 import { createQueryTradeOrderMsg } from '@/lib/twilight/zkos';
+import { ZkAccount } from '@/lib/types';
 import { WalletStatus } from "@cosmos-kit/core";
 import { useWallet } from "@cosmos-kit/react-lite";
 import Big from "big.js";
 import dayjs from 'dayjs';
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const OrderMarketForm = () => {
   const { width } = useGrid();
 
   const privateKey = useSessionStore((state) => state.privateKey);
+
+  const { twilightSats } =
+    useGetTwilightBTCBalance();
+
+  const twilightBTCBalanceString = new BTC("sats", Big(twilightSats))
+    .convert("BTC")
+    .toString();
 
   const { hasRegisteredBTC } = useTwilight();
   const { getCurrentPrice } = usePriceFeed();
@@ -40,49 +51,26 @@ const OrderMarketForm = () => {
   const usdRef = useRef<HTMLInputElement>(null);
   const leverageRef = useRef<HTMLInputElement>(null);
 
-  const zKAccounts = useTwilightStore((state) => state.zk.zkAccounts);
-  const selectedZkAccount = useTwilightStore(
-    (state) => state.zk.selectedZkAccount
-  );
+  const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
+
+  const { mainWallet } = useWallet();
 
   const addTrade = useTwilightStore((state) => state.trade.addTrade);
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount)
   const addTradeHistory = useTwilightStore((state) => state.trade_history.addTrade)
 
-  const currentZkAccount = zKAccounts[selectedZkAccount];
-
-  useEffect(() => {
-    if (!currentZkAccount ||
-      !currentZkAccount.value ||
-      !btcRef.current ||
-      !usdRef.current ||
-      !leverageRef.current) return;
-
-    const userBtcBalance = new BTC("sats", Big(currentZkAccount.value)).convert("BTC")
-    const btcValue = BTC.format(userBtcBalance);
-
-    btcRef.current.value = btcValue;
-
-    // Manually trigger the USD calculation that would happen in onChange
-    if (btcValue && Big(btcValue).gt(0)) {
-      Big.DP = 2;
-      const usdValue = Big(currentPrice)
-        .mul(btcValue)
-        .toFixed(2);
-      usdRef.current.value = usdValue;
-      setUsdAmount(usdValue);
-    } else {
-      usdRef.current.value = "";
-      setUsdAmount("");
-    }
-
-    leverageRef.current.value = "1";
-    setLeverage("1");
-  }, [selectedZkAccount, currentPrice, currentZkAccount])
+  const addZkAccount = useTwilightStore((state) => state.zk.addZkAccount);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usdAmount, setUsdAmount] = useState<string>("");
   const [leverage, setLeverage] = useState<string>("1");
+
+  const [percent, setPercent] = useState<number>(0);
+
+  const updatePercent = useCallback((value: number) => {
+    const finalValue = Math.max(0, Math.min(value, 100))
+    setPercent(finalValue);
+  }, [])
 
   const positionSize = useMemo(() => {
     if (!usdAmount || !leverage) {
@@ -98,7 +86,8 @@ const OrderMarketForm = () => {
       }
 
       Big.DP = 2;
-      return usdAmountBig.mul(leverageBig).toFixed(2);
+      return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        .format(Number(usdAmountBig.mul(leverageBig).toFixed(2)));
     } catch (error) {
       console.error("Error calculating position size:", error);
       return "0.00";
@@ -107,37 +96,56 @@ const OrderMarketForm = () => {
 
   async function submitMarket(type: "SELL" | "BUY") {
     const positionType = type === "BUY" ? "LONG" : "SHORT";
+    toast({
+      title: "Approval Pending",
+      description: "Please approve the transaction in your wallet.",
+    })
 
-    if (currentZkAccount.type !== "Coin") {
+    const tag = `Subaccount ${zkAccounts.length}`
+
+    const chainWallet = mainWallet?.getChainWallet("nyks");
+
+    if (!chainWallet) {
       toast({
-        variant: "error",
-        title: "Unable to submit trade order",
-        description: currentZkAccount.type === "Memo" ?
-          "Account is locked for trading, please use a new account to trade" :
-          "Account has been used for trading, please transfer funds to a new trading account to trade",
-      });
+        title: "Wallet is not connected",
+        description: "Please connect your wallet to deposit.",
+      })
+      return;
+    }
+
+    if (!btcRef.current?.value) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter an amount to trade.",
+      })
+      return;
+    }
+
+    const btcValue = btcRef.current?.value;
+
+    if (btcValue && Big(btcValue).lte(0.00001)) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter an amount greater than 0.00001 BTC.",
+      })
+      return;
+    }
+
+    const twilightAddress = chainWallet.address;
+
+    if (!twilightAddress) {
+      console.error("no twilightAddress");
       return;
     }
 
     try {
       if (!hasRegisteredBTC) return;
 
-      const btcValue = btcRef.current?.value;
-
-      if (!btcValue) {
-        toast({
-          variant: "error",
-          title: "Missing BTC value",
-          description: "Please enter a valid value",
-        });
-        return;
-      }
-
       const satsValue = new BTC("BTC", Big(btcValue))
         .convert("sats")
         .toNumber();
 
-      if (!currentZkAccount.value || currentZkAccount.value < satsValue) {
+      if (twilightSats < satsValue) {
         toast({
           variant: "error",
           title: "Insufficient funds",
@@ -146,28 +154,61 @@ const OrderMarketForm = () => {
         return;
       }
 
-      if (currentZkAccount.value - satsValue !== 0) {
-        toast({
-          variant: "error",
-          title: "Unable to submit trade order",
-          description: "You can only enter the full balance of the account to submit a trade order",
+      setIsSubmitting(true);
+
+      toast({
+        title: "Submitting deposit",
+        description: "Please do not close this page while your deposit is being submitted...",
+      })
+
+      const stargateClient = await chainWallet.getSigningStargateClient();
+
+      console.log("funding transfer signature", privateKey);
+      const { account: newTradingAccount, accountHex: newTradingAccountHex } =
+        await createZkAccountWithBalance({
+          tag: tag,
+          balance: satsValue,
+          signature: privateKey,
         });
-        return;
+
+      const depositMsg = await createFundingToTradingTransferMsg({
+        twilightAddress,
+        transferAmount: satsValue,
+        account: newTradingAccount,
+        accountHex: newTradingAccountHex,
+      });
+
+      console.log("msg", depositMsg);
+
+      const res = await stargateClient.signAndBroadcast(
+        twilightAddress,
+        [depositMsg],
+        "auto"
+      );
+
+      console.log("sent sats from funding to trading", satsValue);
+      console.log("res", res)
+
+      const newZkAccount = {
+        scalar: newTradingAccount.scalar,
+        type: "Coin",
+        address: newTradingAccount.address,
+        tag: tag,
+        isOnChain: true,
+        value: satsValue,
       }
 
-      setIsSubmitting(true);
+      addZkAccount(newZkAccount as ZkAccount);
 
       const leverage = parseInt(leverageRef.current?.value || "1");
 
-      console.log("lev", leverage);
-      // return;
       const { success, msg } = await createZkOrder({
         leverage: leverage,
         orderType: "MARKET",
         positionType,
         signature: privateKey,
         timebounds: 1,
-        zkAccount: currentZkAccount,
+        zkAccount: newZkAccount as ZkAccount,
         value: satsValue,
       });
 
@@ -197,7 +238,7 @@ const OrderMarketForm = () => {
           try {
             if (retries > 4) break;
             const txHashesRes = await queryTransactionHashes(
-              currentZkAccount.address
+              newZkAccount.address
             );
 
             if (!txHashesRes.result) {
@@ -247,7 +288,7 @@ const OrderMarketForm = () => {
         });
 
         const queryTradeOrderMsg = await createQueryTradeOrderMsg({
-          address: currentZkAccount.address,
+          address: newZkAccount.address,
           orderStatus: orderData.order_status,
           signature: privateKey,
         });
@@ -265,7 +306,7 @@ const OrderMarketForm = () => {
         console.log("traderOrderInfo", traderOrderInfo)
 
         const newTradeData = {
-          accountAddress: currentZkAccount.address,
+          accountAddress: newZkAccount.address,
           orderStatus: orderData.order_status,
           positionType,
           orderType: orderData.order_type,
@@ -296,8 +337,8 @@ const OrderMarketForm = () => {
         addTrade(newTradeData);
         addTradeHistory(newTradeData);
 
-        updateZkAccount(currentZkAccount.address, {
-          ...currentZkAccount,
+        updateZkAccount(newZkAccount.address, {
+          ...newZkAccount,
           type: "Memo",
         });
 
@@ -320,8 +361,9 @@ const OrderMarketForm = () => {
   return (
     <form
       onSubmit={(e) => e.preventDefault()}
-      className="flex flex-col space-y-3 px-3"
+      className="flex flex-col space-y-2 px-3"
     >
+      <div className="flex justify-between text-xs"><span className="opacity-80">Avbl to trade</span><span>{twilightBTCBalanceString} BTC</span></div>
       <div className="flex justify-between space-x-4">
         <div>
           <Text
@@ -377,6 +419,8 @@ const OrderMarketForm = () => {
                 .toFixed(2);
               usdRef.current.value = usdValue;
               setUsdAmount(usdValue);
+
+              updatePercent(Big(value).div(Big(twilightBTCBalanceString)).mul(100).toNumber());
             }}
           />
         </div>
@@ -415,6 +459,24 @@ const OrderMarketForm = () => {
           />
         </div>
       </div>
+
+      <div className="flex items-center space-x-2">
+        <Slider onValueChange={(value) => {
+          if (!btcRef.current || !usdRef.current) return;
+          const newBtcAmount = new Big(twilightBTCBalanceString).mul(value[0] / 100).toString();
+          btcRef.current.value = newBtcAmount;
+          setPercent(value[0])
+
+          const usdValue = Big(currentPrice)
+            .mul(newBtcAmount)
+            .toFixed(2);
+
+          usdRef.current.value = usdValue;
+          setUsdAmount(usdValue);
+        }
+        } value={[percent]} defaultValue={[0]} max={100} step={1} />
+        <span className="w-10 text-right text-xs opacity-80">{percent}%</span>
+      </div>
       <div>
         <Text
           className={cn("mb-1 text-sm opacity-80", width < 350 && "text-xs")}
@@ -448,6 +510,13 @@ const OrderMarketForm = () => {
           id="input-market-leverage"
         />
       </div>
+
+      <Slider onValueChange={(value) => {
+        if (!leverageRef.current) return;
+        leverageRef.current.value = value[0].toString();
+        setLeverage(value[0].toString());
+      }
+      } value={[parseInt(leverage)]} defaultValue={[1]} max={50} step={1} />
       <div className="flex justify-between">
         <Text
           className={"mb-1 opacity-80 text-xs"}

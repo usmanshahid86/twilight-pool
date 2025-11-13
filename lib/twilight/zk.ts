@@ -178,7 +178,7 @@ async function createZkBurnTx({
   );
 
   if (!utxoDataResult.success) {
-    console.error("no utxoData");
+    console.error("no utxoData", utxoDataResult);
 
     return {
       success: false,
@@ -265,7 +265,7 @@ async function createZkOrder({
   const utxoData = await queryUtxoForAddress(zkAccountAddress);
 
   if (!Object.hasOwn(utxoData, "output_index")) {
-    console.error("no utxoData");
+    console.error("no utxoData", utxoData);
     return {
       success: false,
     };
@@ -328,7 +328,7 @@ async function createZkLendOrder({
   const utxoData = await queryUtxoForAddress(zkAccountAddress);
 
   if (!Object.hasOwn(utxoData, "output_index")) {
-    console.error("no utxoData");
+    console.error("no utxoData", utxoData);
     return {
       success: false,
     };
