@@ -93,6 +93,7 @@ const DetailsPanel = () => {
     }
 
     const updatedAccount = zkAccounts.find(account => account.address === trade.accountAddress);
+    console.log(`zkAccounts`, zkAccounts)
 
     const balance = Big(settledData.available_margin).toNumber();
 
