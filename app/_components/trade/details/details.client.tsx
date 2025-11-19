@@ -93,7 +93,6 @@ const DetailsPanel = () => {
     }
 
     const updatedAccount = zkAccounts.find(account => account.address === trade.accountAddress);
-    console.log(`zkAccounts`, zkAccounts)
 
     const balance = Big(settledData.available_margin).toNumber();
 
@@ -130,7 +129,7 @@ const DetailsPanel = () => {
       </div>
     })
 
-  }, [privateKey])
+  }, [privateKey, zkAccounts])
 
   const cancelOrder = useCallback(async (order: TradeOrder) => {
     toast({
@@ -207,7 +206,7 @@ const DetailsPanel = () => {
       type: "Coin",
     });
 
-  }, [privateKey])
+  }, [privateKey, zkAccounts])
 
   function RenderTabs() {
     switch (currentTab) {
