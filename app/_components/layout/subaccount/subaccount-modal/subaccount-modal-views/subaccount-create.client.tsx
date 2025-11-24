@@ -11,6 +11,7 @@ import { createZkAccount } from "@/lib/twilight/zk";
 import { useTwilightStore } from "@/lib/providers/store";
 import { useSessionStore } from "@/lib/providers/session";
 import { useToast } from "@/lib/hooks/useToast";
+import dayjs from "dayjs";
 
 const SubaccountCreateView = () => {
   const { setView } = useSubaccountDialog();
@@ -76,6 +77,7 @@ const SubaccountCreateView = () => {
       ...newZkAccount,
       isOnChain: false,
       value: 0,
+      createdAt: dayjs().unix(),
     });
 
     setView("list");

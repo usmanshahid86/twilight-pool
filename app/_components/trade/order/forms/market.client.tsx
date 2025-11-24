@@ -196,6 +196,7 @@ const OrderMarketForm = () => {
         tag: tag,
         isOnChain: true,
         value: satsValue,
+        createdAt: dayjs().unix(),
       }
 
       addZkAccount(newZkAccount as ZkAccount);

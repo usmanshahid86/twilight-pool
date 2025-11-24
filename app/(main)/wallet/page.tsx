@@ -22,10 +22,17 @@ import { WalletStatus } from "@cosmos-kit/core";
 import { useWallet } from "@cosmos-kit/react-lite";
 import useIsMounted from "@/lib/hooks/useIsMounted";
 import { useToast } from "@/lib/hooks/useToast";
+import { Tabs, TabsList, TabsTrigger } from '@/components/tabs';
+import { AccountSummaryDataTable } from './account-summary/data-table';
+import { accountSummaryColumns } from './account-summary/columns';
+
+type TabType = "account-summary" | "transaction-history";
 
 const Page = () => {
+  const [currentTab, setCurrentTab] = useState<TabType>("account-summary");
   const isMounted = useIsMounted();
   const { toast } = useToast();
+
 
   const privateKey = useSessionStore((state) => state.privateKey);
   const btcPrice = useSessionStore((state) => state.price.btcPrice);
@@ -98,26 +105,50 @@ const Page = () => {
     .convert("BTC")
     .toFixed(8);
 
-  const totalBalanceUSDString = Big(totalBTCBalanceString)
-    .mul(finalPrice)
-    .toFixed(2);
+  const totalBalanceUSDString = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Big(totalBTCBalanceString)
+    .mul(finalPrice).toNumber())
+
+  function renderTableContent() {
+    switch (currentTab) {
+      case "account-summary":
+        return (
+          <div>
+            <AccountSummaryDataTable
+              columns={accountSummaryColumns}
+              data={zkAccounts}
+            />
+          </div>
+
+        );
+      case "transaction-history":
+        return (
+          <TransactionHistoryDataTable
+            columns={transactionHistoryColumns}
+            data={transactionHistory}
+          />
+        );
+    }
+  }
 
   return (
     <div className="mx-4 mt-4 space-y-8 md:mx-8">
-      <div className="flex w-full max-w-4xl flex-row items-baseline justify-between space-x-6 md:space-x-0">
-        <div className="md:space-y-2">
-          <Text heading="h1" className="mb-0 text-lg font-normal sm:text-2xl">
-            Assets Overview
-          </Text>
+      <div className="grid grid-cols-12 gap-8">
+        <div className="col-span-7 md:space-y-4 border rounded-md p-4 md:p-6">
           <div className="space-y-1">
-            <Text className="text-sm md:text-4xl">
-              {totalBTCBalanceString}
-              <span className="ml-0 inline-flex text-sm md:ml-1">BTC</span>
+            <Text heading="h1" className="mb-0 text-lg font-normal">
+              Assets Overview
             </Text>
-            <Text className="text-xs text-primary-accent">
-              = {totalBalanceUSDString} USD
-            </Text>
+            <div>
+              <Text className="text-sm md:text-4xl">
+                {totalBTCBalanceString}
+                <span className="ml-0 inline-flex text-sm md:ml-1">BTC</span>
+              </Text>
+              <Text className="text-xs text-primary-accent">
+                = {totalBalanceUSDString} USD
+              </Text>
+            </div>
           </div>
+
 
           {twilightAddress && (
             <div className="space-y-1">
@@ -140,8 +171,8 @@ const Page = () => {
             </div>
           )}
         </div>
-        <div className="flex w-full max-w-sm flex-col">
-          <Text heading="h2" className="text-lg font-normal sm:text-2xl">
+        <div className="col-span-5 flex flex-col rounded-md p-4 md:p-6 border">
+          <Text heading="h2" className="text-lg font-normal">
             My Assets
           </Text>
           <div className="space-y-4">
@@ -222,15 +253,30 @@ const Page = () => {
           </div>
         </div>
       </div>
-      <div className="space-y-1 md:space-y-2">
-        <Text heading="h2" className="text-xl font-normal sm:text-2xl">
-          Account History
-        </Text>
-        <div className="h-full min-h-[500px] w-full overflow-auto rounded-md border py-1">
-          <TransactionHistoryDataTable
-            columns={transactionHistoryColumns}
-            data={transactionHistory}
-          />
+      <div className="space-y-1 md:space-y-2 border rounded-md p-4 md:p-6">
+        <div className="flex w-full border-b">
+          <Tabs defaultValue={currentTab}>
+            <TabsList className="flex w-full border-b-0" variant="underline">
+              <TabsTrigger
+                onClick={() => setCurrentTab("account-summary")}
+                value="account-summary"
+                variant="underline"
+              >
+                Account Summary
+              </TabsTrigger>
+              <TabsTrigger
+                onClick={() => setCurrentTab("transaction-history")}
+                value="transaction-history"
+                variant="underline"
+              >
+                Transaction History
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+
+        <div className="h-full min-h-[500px] w-full py-1">
+          {renderTableContent()}
         </div>
       </div>
     </div>

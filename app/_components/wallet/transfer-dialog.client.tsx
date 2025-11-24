@@ -41,6 +41,7 @@ import { ZkPrivateAccount } from "@/lib/zk/account";
 import { safeJSONParse } from "@/lib/helpers";
 import { getRegisteredBTCAddress } from '@/lib/twilight/rest';
 import { registerBTCAddress } from '@/lib/utils/btc-registration';
+import dayjs from "dayjs";
 
 const renameTag = (tag: string) => tag === "main" ? "Trading Account" : tag;
 
@@ -921,6 +922,7 @@ const TransferDialog = ({
                           ...newZkAccount,
                           isOnChain: false,
                           value: 0,
+                          createdAt: dayjs().unix(),
                         });
 
                         toast({

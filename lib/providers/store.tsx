@@ -11,14 +11,12 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useTwilight } from "./twilight";
 import { useWallet } from "@cosmos-kit/react-lite";
-import { createZkAccount, syncOnChainZkAccounts } from "../twilight/zk";
+import { createZkAccount } from "../twilight/zk";
 import { ZK_ACCOUNT_INDEX } from "../constants";
 import { useSessionStore } from "./session";
 import { getBlockHeight } from "../twilight/chain";
-import { useQuery } from '@tanstack/react-query';
-import { useSyncTrades } from '../hooks/useSyncTrades';
+import dayjs from "dayjs";
 
 export const twilightStoreContext =
   createContext<StoreApi<AccountSlices> | null>(null);
@@ -135,6 +133,7 @@ export const TwilightStoreProvider = ({
             ...account,
             value: 0,
             isOnChain: false,
+            createdAt: dayjs().unix(),
           });
         }
       }

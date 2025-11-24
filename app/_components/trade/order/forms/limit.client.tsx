@@ -185,6 +185,7 @@ const OrderLimitForm = () => {
         tag: tag,
         isOnChain: true,
         value: btcAmountInSats,
+        createdAt: dayjs().unix(),
       }
 
       addZkAccount(newZkAccount as ZkAccount);

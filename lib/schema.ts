@@ -7,6 +7,7 @@ export const ZkAccountSchema = z.object({
   type: z.literal("Coin").or(z.literal("Memo")).or(z.literal("CoinSettled")),
   isOnChain: z.boolean().optional(),
   value: z.number().optional(), // note: sats value
+  createdAt: z.number().optional(),
 });
 
 export const TradeOrderSchema = z.object({

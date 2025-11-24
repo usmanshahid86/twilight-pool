@@ -29,6 +29,7 @@ import Big from "big.js";
 import { Loader2 } from "lucide-react";
 import Link from 'next/link';
 import React, { useCallback, useMemo, useRef, useState } from "react";
+import dayjs from "dayjs";
 
 const LendManagement = () => {
   const { toast } = useToast();
@@ -154,6 +155,7 @@ const LendManagement = () => {
         tag: tag,
         isOnChain: true,
         value: transferAmount,
+        createdAt: dayjs().unix(),
       }
 
       addZkAccount(zkAccountToUse);

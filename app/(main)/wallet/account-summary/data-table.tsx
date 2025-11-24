@@ -16,12 +16,12 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
 }
 
-export function TransactionHistoryDataTable<TData, TValue>({
+export function AccountSummaryDataTable<TData, TValue>({
   columns,
   data,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([
-    { id: "date", desc: true },
+    { id: "createdAt", desc: true },
   ]);
 
   const table = useReactTable({
