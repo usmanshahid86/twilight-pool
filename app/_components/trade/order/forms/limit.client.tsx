@@ -52,6 +52,7 @@ const OrderLimitForm = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [leverage, setLeverage] = useState<string>("1");
+  const [percent, setPercent] = useState<number>(0);
 
   const [orderSats, setOrderSats] = useState(0);
 
@@ -416,6 +417,21 @@ const OrderLimitForm = () => {
           >
             BTC
           </label>
+        </div>
+
+        <div className="flex items-center space-x-2 mt-1">
+          <Slider onValueChange={(value) => {
+            if (!btcAmountRef.current) return;
+            const newBtcAmount = new Big(twilightBTCBalanceString).mul(value[0] / 100).toString();
+            btcAmountRef.current.value = newBtcAmount;
+
+            const convertedToSats = new BTC("BTC", Big(newBtcAmount)).convert("sats").toNumber();
+            setOrderSats(convertedToSats)
+
+            setPercent(value[0])
+          }
+          } value={[percent]} defaultValue={[1]} min={1} max={100} step={1} />
+          <span className="w-10 text-right text-xs opacity-80">{percent}%</span>
         </div>
       </div>
 
