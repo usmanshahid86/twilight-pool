@@ -10,7 +10,7 @@ interface TraderHistoryTableProps {
   data: TradeOrder[];
 }
 
-const TraderHistoryTable = React.memo(function TraderHistoryTable({ data }: TraderHistoryTableProps) {
+const TraderHistoryTable = function TraderHistoryTable({ data }: TraderHistoryTableProps) {
   const { getCurrentPrice } = usePriceFeed()
 
   return (
@@ -20,6 +20,6 @@ const TraderHistoryTable = React.memo(function TraderHistoryTable({ data }: Trad
       getCurrentPrice={getCurrentPrice}
     />
   );
-});
+}
 
 export default TraderHistoryTable;

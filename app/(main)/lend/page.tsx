@@ -26,6 +26,7 @@ import { LendOrder } from "@/lib/types";
 import { useGetLendPoolInfo } from '@/lib/hooks/useGetLendPoolInfo';
 import { queryLendOrder } from '@/lib/api/relayer';
 import Big from 'big.js';
+import { usePriceFeed } from '@/lib/providers/feed';
 
 const formatTag = (tag: string) => {
   if (tag === "main") {
@@ -48,7 +49,8 @@ const Page = () => {
   const [isSettleLoading, setIsSettleLoading] = useState(false);
   const [settlingOrderId, setSettlingOrderId] = useState<string | null>(null);
 
-  const currentPrice = useSessionStore((state) => state.price.btcPrice);
+  const { getCurrentPrice } = usePriceFeed();
+
   const privateKey = useSessionStore((state) => state.privateKey);
   const lendOrders = useTwilightStore((state) => state.lend.lends);
 
@@ -83,8 +85,6 @@ const Page = () => {
       accountTag: getAccountTag(order.accountAddress)
     }));
   }, [lendHistoryData]);
-
-  const getCurrentPrice = () => currentPrice || 0;
 
   const getPoolSharePrice = () => poolInfo?.pool_share || 0
 

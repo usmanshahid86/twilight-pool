@@ -10,7 +10,7 @@ interface OrderHistoryTableProps {
   data: TradeOrder[];
 }
 
-const OrderHistoryTable = React.memo(function OrderHistoryTable({ data }: OrderHistoryTableProps) {
+const OrderHistoryTable = function OrderHistoryTable({ data }: OrderHistoryTableProps) {
   const { getCurrentPrice } = usePriceFeed()
 
   return (
@@ -20,6 +20,6 @@ const OrderHistoryTable = React.memo(function OrderHistoryTable({ data }: OrderH
       getCurrentPrice={getCurrentPrice}
     />
   );
-});
+}
 
 export default OrderHistoryTable;

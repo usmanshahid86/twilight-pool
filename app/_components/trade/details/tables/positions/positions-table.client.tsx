@@ -12,10 +12,11 @@ interface PositionsTableProps {
   settleMarketOrder: (trade: TradeOrder, currentPrice: number) => Promise<void>;
 }
 
-const PositionsTable = React.memo(function PositionsTable({ data, settleMarketOrder }: PositionsTableProps) {
+const PositionsTable = function PositionsTable({ data, settleMarketOrder }: PositionsTableProps) {
   const { openLimitDialog } = useLimitDialog();
 
   const { getCurrentPrice } = usePriceFeed()
+
   return (
     <PositionsDataTable
       columns={positionsColumns}
@@ -26,6 +27,6 @@ const PositionsTable = React.memo(function PositionsTable({ data, settleMarketOr
     />
 
   );
-});
+}
 
 export default PositionsTable;

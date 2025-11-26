@@ -98,7 +98,7 @@ export const positionsColumns: ColumnDef<MyTradeOrder, any>[] = [
       const currentPrice = meta.getCurrentPrice();
 
       const positionSize = trade.positionSize;
-      const calculatedUnrealizedPnl = calculateUpnl(trade.entryPrice, currentPrice || trade.entryPrice, trade.positionType, positionSize);
+      const calculatedUnrealizedPnl = calculateUpnl(trade.entryPrice, currentPrice, trade.positionType, positionSize);
 
       if (calculatedUnrealizedPnl === undefined || calculatedUnrealizedPnl === null) {
         return <span className="text-xs text-gray-500">—</span>;
