@@ -63,9 +63,9 @@ const PriceFeed: React.FC<PriceFeedProviderProps> = ({ children }) => {
     []
   );
 
-  const getCurrentPrice = useCallback(() => {
+  const getCurrentPrice = () => {
     return feedRef.current.length > 1 ? feedRef.current[feedRef.current.length - 1] : 0;
-  }, []);
+  }
 
   const subscribe = useCallback((callback: PriceUpdateCallback) => {
     subscribersRef.current.add(callback);

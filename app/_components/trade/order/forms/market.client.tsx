@@ -67,6 +67,8 @@ const OrderMarketForm = () => {
 
   const [percent, setPercent] = useState<number>(0);
 
+  const isPageLoaded = currentPrice > 0;
+
   const updatePercent = useCallback((value: number) => {
     const finalValue = Math.max(0, Math.min(value, 100))
     setPercent(finalValue);
@@ -359,6 +361,16 @@ const OrderMarketForm = () => {
     // todo: get this data and put it into "my trades"
   }
 
+  if (!isPageLoaded) {
+    return (
+      <div className="flex flex-col space-y-2 px-3 h-full">
+        <div className="flex justify-center items-center h-full">
+          <Loader2 className="animate-spin text-primary opacity-60" />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <form
       onSubmit={(e) => e.preventDefault()}
@@ -475,7 +487,7 @@ const OrderMarketForm = () => {
           usdRef.current.value = usdValue;
           setUsdAmount(usdValue);
         }
-        } value={[percent]} defaultValue={[0]} max={100} step={1} />
+        } value={[percent]} defaultValue={[1]} min={1} max={100} step={1} />
         <span className="w-10 text-right text-xs opacity-80">{percent}%</span>
       </div>
       <div>
