@@ -1,14 +1,84 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSessionStore } from "@/lib/providers/session";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/popover";
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useWallet } from '@cosmos-kit/react-lite';
+import wfetch from '@/lib/http';
+
+const FAUCET_RPC_URL = process.env.NEXT_PUBLIC_FAUCET_ENDPOINT as string;
+const MANDATORY_KYC = process.env.NEXT_PUBLIC_MANDATORY_KYC === "true";
 
 const KycStatus = () => {
   const kycStatus = useSessionStore((state) => state.kycStatus);
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter()
+
+  const setKycStatus = useSessionStore((state) => state.setKycStatus);
+
+  const { mainWallet } = useWallet();
+
+  const chainWallet = mainWallet?.getChainWallet("nyks");
+  const address = chainWallet?.address || "";
+
+  const fetchWhitelistStatus = async (recipientAddress: string) => {
+    try {
+      const body = JSON.stringify({
+        recipientAddress: recipientAddress
+      });
+
+      const { success, data, error } = await wfetch(`${FAUCET_RPC_URL}/whitelist/status`)
+        .post({ body })
+        .json<{
+          data: {
+            address: string;
+            whitelisted: boolean;
+          }
+        }>();
+
+      if (!success) {
+        console.error("Failed to fetch whitelist status:", error);
+        return false;
+      }
+
+      if (!data.data.whitelisted) {
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error fetching whitelist status:", error);
+      return false;
+    }
+  };
+
+
+  useEffect(() => {
+    async function autoConnect() {
+      if (!address) return;
+
+      if (kycStatus) return;
+
+      const whitelistStatus = await fetchWhitelistStatus(address);
+
+      console.log("whitelistStatus", whitelistStatus);
+      if (!whitelistStatus) {
+        setKycStatus(false);
+
+        if (!MANDATORY_KYC) return;
+
+        router.push("/verify-region");
+
+        return;
+      }
+
+      setKycStatus(true);
+    }
+
+    autoConnect();
+  }, [kycStatus, address]);
+
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
