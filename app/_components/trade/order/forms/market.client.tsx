@@ -529,7 +529,7 @@ const OrderMarketForm = () => {
         leverageRef.current.value = value[0].toString();
         setLeverage(value[0].toString());
       }
-      } value={[parseInt(leverage)]} defaultValue={[1]} max={50} step={1} />
+      } value={[parseInt(leverage)]} defaultValue={[1]} min={1} max={50} step={1} />
       <div className="flex justify-between">
         <Text
           className={"mb-1 opacity-80 text-xs"}
