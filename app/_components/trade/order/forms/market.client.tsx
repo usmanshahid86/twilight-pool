@@ -361,15 +361,15 @@ const OrderMarketForm = () => {
     // todo: get this data and put it into "my trades"
   }
 
-  if (!isPageLoaded) {
-    return (
-      <div className="flex flex-col space-y-2 px-3 h-full">
-        <div className="flex justify-center items-center h-full">
-          <Loader2 className="animate-spin text-primary opacity-60" />
-        </div>
-      </div>
-    )
-  }
+  // if (!isPageLoaded) {
+  //   return (
+  //     <div className="flex flex-col space-y-2 px-3 h-full">
+  //       <div className="flex justify-center items-center h-full">
+  //         <Loader2 className="animate-spin text-primary opacity-60" />
+  //       </div>
+  //     </div>
+  //   )
+  // }
 
   return (
     <form
