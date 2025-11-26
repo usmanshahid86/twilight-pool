@@ -12,7 +12,7 @@ export const accountSummaryColumns: ColumnDef<ZkAccount, any>[] = [
   {
     accessorKey: "createdAt",
     header: "Created",
-    accessorFn: (row) => row.createdAt ? dayjs(row.createdAt).format("DD/MM/YYYY HH:mm:ss") : "",
+    accessorFn: (row) => row.createdAt ? dayjs.unix(row.createdAt).format("DD/MM/YYYY HH:mm:ss") : "",
   },
   {
     accessorKey: "tag",
