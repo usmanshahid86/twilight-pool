@@ -9,11 +9,17 @@ import wfetch from "@/lib/http";
 import { useWallet } from '@cosmos-kit/react-lite';
 import { twilightproject } from "twilightjs";
 import Long from 'long';
+import { useRouter } from 'next/navigation';
+import { useTwilightStore } from '@/lib/providers/store';
+import useVerifyStatus from '@/lib/hooks/useVerifyStatus';
 
 interface FaucetResponse {
   success: boolean;
   message?: string;
   error?: string;
+  data?: {
+    txHash: string;
+  }
 }
 
 const faucetSteps = [
@@ -59,9 +65,19 @@ const Page = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const { mainWallet } = useWallet();
+
+  const addTransactionHistory = useTwilightStore(
+    (state) => state.history.addTransaction
+  );
+
   const chainWallet = mainWallet?.getChainWallet("nyks");
 
+  const router = useRouter()
+
   const [twilightAddress, setTwilightAddress] = useState(chainWallet?.address || "");
+
+  const MANDATORY_KYC = process.env.NEXT_PUBLIC_MANDATORY_KYC === "true";
+  const { isVerified } = useVerifyStatus();
 
   // Update twilight address when wallet connects/disconnects
   useEffect(() => {
@@ -69,6 +85,17 @@ const Page = () => {
       setTwilightAddress(chainWallet.address);
     }
   }, [chainWallet?.address]);
+
+  useEffect(() => {
+    if (MANDATORY_KYC && isVerified !== undefined && isVerified === false) {
+      toast({
+        title: "Verification required",
+        description: "Please verify your country to continue",
+      });
+
+      router.push("/verify-region");
+    }
+  }, [isVerified, MANDATORY_KYC])
 
   const markStepCompleted = (stepId: number) => {
     if (!completedSteps.includes(stepId)) {
@@ -99,15 +126,30 @@ const Page = () => {
 
   const callMintEndpoint = async (address: string): Promise<FaucetResponse> => {
     try {
-      const { success, error } = await wfetch(`${FAUCET_ENDPOINT}/mint`)
+      const { success, error, data } = await wfetch(`${FAUCET_ENDPOINT}/mint`)
         .post({
           body: JSON.stringify({ recipientAddress: address }),
         })
-        .text()
+        .json<{ data: { txHash?: string } }>()
 
-      if (!success) {
+      const txHash = data?.data?.txHash;
+
+      console.log("data", data, txHash)
+      if (!success || !txHash) {
         return { success: false, error: error?.toString() || "Request failed" };
       }
+
+      console.log("adding transaction history")
+      addTransactionHistory({
+        date: new Date(),
+        from: "twilight1k5knhhd6p9zxxwug77aqgrayvyt8yh6nw8ca7h",
+        fromTag: "Faucet",
+        to: twilightAddress,
+        toTag: "Funding",
+        tx_hash: txHash,
+        type: "Transfer",
+        value: 50_000,
+      })
 
       return { success: true, message: "Successfully received 50,000 sats" };
     } catch (error) {

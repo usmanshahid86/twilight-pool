@@ -17,6 +17,7 @@ import { registerBTCAddress } from '@/lib/utils/btc-registration';
 import { useTwilight } from '@/lib/providers/twilight';
 import { getRegisteredBTCAddress } from '@/lib/twilight/rest';
 import Switch from '@/components/switch';
+import useVerifyStatus from '@/lib/hooks/useVerifyStatus';
 
 const steps = [
   { id: 'step1', label: 'Step 1' },
@@ -51,7 +52,7 @@ const Page = () => {
   const { toast } = useToast();
   const { setHasRegisteredBTC } = useTwilight();
 
-  const kycStatus = useSessionStore((state) => state.kycStatus);
+  const { isVerified } = useVerifyStatus();
 
   const chainWallet = mainWallet?.getChainWallet("nyks");
 
@@ -111,7 +112,7 @@ const Page = () => {
     }
   };
 
-  if (kycStatus) {
+  if (isVerified) {
     return (
       <div className="mx-4 my-4 space-y-8 md:mx-8">
         <div className="flex w-full flex-col space-y-8">

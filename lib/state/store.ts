@@ -108,13 +108,6 @@ export const createSessionStore = () => {
         trade: createSessionTradeSlice(...actions),
         twilightAddress: "",
         privateKey: "",
-        kycStatus: false,
-        setKycStatus: (kycStatus) => {
-          const [set] = actions;
-          set((state) => {
-            state.kycStatus = kycStatus;
-          });
-        },
         setPrivateKey: (privateKey) => {
           const [set] = actions;
           set((state) => {
@@ -139,8 +132,6 @@ export const createSessionStore = () => {
               setPrivateKey: currentState.setPrivateKey,
               privateKey: "",
               price: currentState.price,
-              kycStatus: currentState.kycStatus,
-              setKycStatus: currentState.setKycStatus,
             },
             persistedState as SessionSlices
           );

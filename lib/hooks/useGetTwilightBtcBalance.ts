@@ -45,8 +45,6 @@ export default function useGetTwilightBTCBalance() {
     staleTime: 2500, // Consider data stale after 10 seconds
   });
 
-  console.log("loading balance", isLoading);
-
   return {
     twilightSats,
     isLoading,
