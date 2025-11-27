@@ -22,6 +22,8 @@ const KycStatus = () => {
   const chainWallet = mainWallet?.getChainWallet("nyks");
   const address = chainWallet?.address || "";
 
+  const pathname = usePathname();
+
   const fetchWhitelistStatus = async (recipientAddress: string) => {
     try {
       const body = JSON.stringify({
@@ -53,7 +55,6 @@ const KycStatus = () => {
     }
   };
 
-
   useEffect(() => {
     async function autoConnect() {
       if (!address) return;
@@ -62,13 +63,14 @@ const KycStatus = () => {
 
       const whitelistStatus = await fetchWhitelistStatus(address);
 
-      console.log("whitelistStatus", whitelistStatus);
       if (!whitelistStatus) {
         setKycStatus(false);
 
         if (!MANDATORY_KYC) return;
 
-        router.push("/verify-region");
+        if (pathname === "/faucet") {
+          router.push("/verify-region");
+        }
 
         return;
       }
