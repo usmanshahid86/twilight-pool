@@ -476,7 +476,7 @@ const OrderMarketForm = () => {
       <div className="flex items-center space-x-2">
         <Slider onValueChange={(value) => {
           if (!btcRef.current || !usdRef.current) return;
-          const newBtcAmount = new Big(twilightBTCBalanceString).mul(value[0] / 100).toString();
+          const newBtcAmount = new Big(twilightBTCBalanceString).mul(value[0] / 100).toFixed(8)
           btcRef.current.value = newBtcAmount;
           setPercent(value[0])
 

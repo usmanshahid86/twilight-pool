@@ -7,7 +7,6 @@ import Skeleton from "@/components/skeleton";
 import { Text } from "@/components/typography";
 import { ZK_ACCOUNT_INDEX } from "@/lib/constants";
 import useGetTwilightBTCBalance from "@/lib/hooks/useGetTwilightBtcBalance";
-import useRedirectUnconnected from "@/lib/hooks/useRedirectUnconnected";
 import { usePriceFeed } from "@/lib/providers/feed";
 import { useSessionStore } from "@/lib/providers/session";
 import { useTwilightStore } from "@/lib/providers/store";
@@ -33,7 +32,6 @@ const Page = () => {
   const isMounted = useIsMounted();
   const { toast } = useToast();
 
-
   const privateKey = useSessionStore((state) => state.privateKey);
   const btcPrice = useSessionStore((state) => state.price.btcPrice);
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
@@ -52,22 +50,7 @@ const Page = () => {
 
   const finalPrice = getCurrentPrice() || btcPrice;
 
-  // note: incomplete
-  function useGetTradingBTCBalance() {
-    useEffect(() => {
-      async function getTradingBTCBalance() {
-        if (!privateKey) return;
-
-        // queryUtxoForAddress("");
-
-        // console.log("trading addresses on chain", tradingAddresses);
-      }
-
-      getTradingBTCBalance();
-    }, [privateKey]);
-  }
-
-  const { twilightSats } =
+  const { twilightSats, isLoading: satsLoading } =
     useGetTwilightBTCBalance();
 
   const { status, mainWallet } = useWallet();
@@ -75,7 +58,6 @@ const Page = () => {
   const twilightAddress = mainWallet?.getChainWallet("nyks")?.address || "";
 
   // useRedirectUnconnected();
-  useGetTradingBTCBalance();
 
   const twilightBTCBalanceString = new BTC("sats", Big(twilightSats))
     .convert("BTC")
@@ -139,10 +121,18 @@ const Page = () => {
               Assets Overview
             </Text>
             <div>
-              <Text className="text-sm md:text-4xl">
-                {totalBTCBalanceString}
-                <span className="ml-0 inline-flex text-sm md:ml-1">BTC</span>
-              </Text>
+              <Resource
+                isLoaded={
+                  !satsLoading
+                }
+                placeholder={<Skeleton className="h-10 w-[200px]" />}
+              >
+                <Text className="text-sm md:text-4xl">
+                  {totalBTCBalanceString}
+                  <span className="ml-0 inline-flex text-sm md:ml-1">BTC</span>
+                </Text>
+              </Resource>
+
               <Text className="text-xs text-primary-accent">
                 = {totalBalanceUSDString} USD
               </Text>
@@ -254,7 +244,7 @@ const Page = () => {
         </div>
       </div>
       <div className="space-y-1 md:space-y-2 border rounded-md p-4 md:p-6">
-        <div className="flex w-full border-b">
+        <div className="flex w-full border-b justify-between">
           <Tabs defaultValue={currentTab}>
             <TabsList className="flex w-full border-b-0" variant="underline">
               <TabsTrigger
@@ -273,6 +263,10 @@ const Page = () => {
               </TabsTrigger>
             </TabsList>
           </Tabs>
+          <div className="flex space-x-2">
+            <button className="text-xs">Import</button>
+            <button className="text-xs">Export</button>
+          </div>
         </div>
 
         <div className="h-full min-h-[500px] w-full py-1">

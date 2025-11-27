@@ -8,6 +8,12 @@ import { useRouter } from "next/navigation";
 import { useWalletDialog } from "../connect-wallet.client";
 import { useToast } from "@/lib/hooks/useToast";
 
+declare global {
+  interface Window {
+    okxwallet?: unknown;
+  }
+}
+
 type Wallet = {
   id: string;
   name: string;
@@ -45,6 +51,15 @@ const WalletProviderButton = ({ wallet, className }: Props) => {
       });
     }
 
+    if (wallet.name === "Metamask" && typeof window !== "undefined" && window.okxwallet) {
+      toast({
+        title: "OKX wallet is currently not supported",
+        description: `Please disable the OKX wallet extension before connecting, currently only the Leap Metamask Cosmos Snap is supported.`,
+        variant: "error",
+      });
+      return;
+    }
+
     await chainWallet.connect(true);
 
     const depositAddress = chainWallet.address || "";
@@ -52,7 +67,6 @@ const WalletProviderButton = ({ wallet, className }: Props) => {
     if (!depositAddress) {
 
       if (wallet.name === "Metamask") {
-
         toast({
           title: "Metamask Cosmos Snap is not installed",
           description: `Please install the Leap Metamask Cosmos Snap before connecting, currently there is a known conflict with the OKX wallet extension`,

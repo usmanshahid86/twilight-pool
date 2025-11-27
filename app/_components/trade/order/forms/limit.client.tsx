@@ -422,7 +422,7 @@ const OrderLimitForm = () => {
         <div className="flex items-center space-x-2 mt-1">
           <Slider onValueChange={(value) => {
             if (!btcAmountRef.current) return;
-            const newBtcAmount = new Big(twilightBTCBalanceString).mul(value[0] / 100).toString();
+            const newBtcAmount = new Big(twilightBTCBalanceString).mul(value[0] / 100).toFixed(8)
             btcAmountRef.current.value = newBtcAmount;
 
             const convertedToSats = new BTC("BTC", Big(newBtcAmount)).convert("sats").toNumber();

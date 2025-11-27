@@ -28,20 +28,24 @@ export default function useGetTwilightBTCBalance() {
     return parseInt(amount);
   };
 
+  const chainWallet = mainWallet?.getChainWallet("nyks");
+
+  const twilightAddress = chainWallet?.address;
+
   const {
     data: twilightSats = 0,
     isLoading,
     refetch,
     error,
   } = useQuery({
-    queryKey: ["twilightBtcBalance", mainWallet?.walletName, status],
+    queryKey: ["twilightBtcBalance", twilightAddress],
     queryFn: fetchTwilightBalance,
-    enabled: status === WalletStatus.Connected,
-    refetchInterval: 5000,
-    staleTime: 5000, // Consider data stale after 10 seconds
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    enabled: !!twilightAddress,
+    refetchInterval: 2500,
+    staleTime: 2500, // Consider data stale after 10 seconds
   });
+
+  console.log("loading balance", isLoading);
 
   return {
     twilightSats,
