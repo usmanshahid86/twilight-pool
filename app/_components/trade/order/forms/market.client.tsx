@@ -1,6 +1,8 @@
 import Button from "@/components/button";
 import ExchangeResource from "@/components/exchange-resource";
 import { Input, NumberInput } from "@/components/input";
+import Resource from '@/components/resource';
+import Skeleton from '@/components/skeleton';
 import { Slider } from '@/components/slider';
 import { Text } from "@/components/typography";
 import { sendTradeOrder } from "@/lib/api/client";
@@ -32,7 +34,7 @@ const OrderMarketForm = () => {
 
   const privateKey = useSessionStore((state) => state.privateKey);
 
-  const { twilightSats } =
+  const { twilightSats, isLoading: isSatsLoading } =
     useGetTwilightBTCBalance();
 
   const twilightBTCBalanceString = new BTC("sats", Big(twilightSats))
@@ -41,7 +43,12 @@ const OrderMarketForm = () => {
 
   const { hasRegisteredBTC } = useTwilight();
   const { getCurrentPrice } = usePriceFeed();
-  const currentPrice = getCurrentPrice()
+
+  const liveBtcPrice = getCurrentPrice()
+  const storedBtcPrice = useSessionStore((state) => state.price.btcPrice);
+
+  const currentPrice = liveBtcPrice || storedBtcPrice; // binance websocket stream does not work for USA Ip address
+  const isPageLoaded = currentPrice > 0 && !isSatsLoading;
 
   const { toast } = useToast();
 
@@ -66,8 +73,6 @@ const OrderMarketForm = () => {
   const [leverage, setLeverage] = useState<string>("1");
 
   const [percent, setPercent] = useState<number>(0);
-
-  const isPageLoaded = currentPrice > 0;
 
   const updatePercent = useCallback((value: number) => {
     const finalValue = Math.max(0, Math.min(value, 100))
@@ -361,22 +366,22 @@ const OrderMarketForm = () => {
     // todo: get this data and put it into "my trades"
   }
 
-  // if (!isPageLoaded) {
-  //   return (
-  //     <div className="flex flex-col space-y-2 px-3 h-full">
-  //       <div className="flex justify-center items-center h-full">
-  //         <Loader2 className="animate-spin text-primary opacity-60" />
-  //       </div>
-  //     </div>
-  //   )
-  // }
+  console.log("isPageLoaded", currentPrice, isSatsLoading)
 
   return (
     <form
       onSubmit={(e) => e.preventDefault()}
       className="flex flex-col space-y-2 px-3"
     >
-      <div className="flex justify-between text-xs"><span className="opacity-80">Avbl to trade</span><span>{twilightBTCBalanceString} BTC</span></div>
+      <div className="flex justify-between text-xs">
+        <span className="opacity-80">Avbl to trade</span>
+        <Resource
+          isLoaded={!isSatsLoading}
+          placeholder={<Skeleton className="h-4 w-[80px]" />}
+        >
+          <span>{twilightBTCBalanceString} BTC</span>
+        </Resource>
+      </div>
       <div className="flex justify-between space-x-4">
         <div>
           <Text
@@ -435,7 +440,9 @@ const OrderMarketForm = () => {
 
               updatePercent(Big(value).div(Big(twilightBTCBalanceString)).mul(100).toNumber());
             }}
+            disabled={!isPageLoaded}
           />
+
         </div>
         <div>
           <Text
@@ -444,6 +451,7 @@ const OrderMarketForm = () => {
           >
             <label htmlFor="input-market-amount-usd">Amount (USD)</label>
           </Text>
+
           <Input
             type="text"
             id="input-market-amount-usd"
@@ -469,7 +477,9 @@ const OrderMarketForm = () => {
                 .div(currentPrice || 1)
                 .toString();
             }}
+            disabled={!isPageLoaded}
           />
+
         </div>
       </div>
 
@@ -487,7 +497,9 @@ const OrderMarketForm = () => {
           usdRef.current.value = usdValue;
           setUsdAmount(usdValue);
         }
-        } value={[percent]} defaultValue={[1]} min={1} max={100} step={1} />
+        } value={[percent]} defaultValue={[1]} min={1} max={100} step={1}
+          disabled={!isPageLoaded}
+        />
         <span className="w-10 text-right text-xs opacity-80">{percent}%</span>
       </div>
       <div>
@@ -521,6 +533,7 @@ const OrderMarketForm = () => {
           }}
           placeholder="1"
           id="input-market-leverage"
+          disabled={!isPageLoaded}
         />
       </div>
 
@@ -529,7 +542,9 @@ const OrderMarketForm = () => {
         leverageRef.current.value = value[0].toString();
         setLeverage(value[0].toString());
       }
-      } value={[parseInt(leverage)]} defaultValue={[1]} min={1} max={50} step={1} />
+      } value={[parseInt(leverage)]} defaultValue={[1]} min={1} max={50} step={1}
+        disabled={!isPageLoaded}
+      />
       <div className="flex justify-between">
         <Text
           className={"mb-1 opacity-80 text-xs"}
@@ -554,7 +569,7 @@ const OrderMarketForm = () => {
             id="btn-market-buy"
             className="border-green-medium py-2 text-green-medium opacity-70 transition-opacity hover:border-green-medium hover:text-green-medium hover:opacity-100 disabled:opacity-40 disabled:hover:border-green-medium disabled:hover:opacity-40"
             variant="ui"
-            disabled={isSubmitting || status === WalletStatus.Disconnected}
+            disabled={isSubmitting || status === WalletStatus.Disconnected || !isPageLoaded}
           >
             {isSubmitting ? (
               <Loader2 className="animate-spin text-primary opacity-60" />
@@ -567,7 +582,7 @@ const OrderMarketForm = () => {
             id="btn-market-sell"
             variant="ui"
             className="border-red py-2 text-red opacity-70 transition-opacity hover:border-red hover:text-red hover:opacity-100 disabled:opacity-40 disabled:hover:border-red disabled:hover:opacity-40"
-            disabled={isSubmitting || status === WalletStatus.Disconnected}
+            disabled={isSubmitting || status === WalletStatus.Disconnected || !isPageLoaded}
           >
             {isSubmitting ? (
               <Loader2 className="animate-spin text-primary opacity-60" />
