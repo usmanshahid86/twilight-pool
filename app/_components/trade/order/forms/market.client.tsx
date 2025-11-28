@@ -363,10 +363,7 @@ const OrderMarketForm = () => {
       console.error(err);
       setIsSubmitting(false);
     }
-    // todo: get this data and put it into "my trades"
   }
-
-  console.log("isPageLoaded", currentPrice, isSatsLoading)
 
   return (
     <form

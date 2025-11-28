@@ -152,6 +152,7 @@ const TradeWrapper = () => {
         name="order"
         title="Orders"
         key="order"
+        id="order"
       >
         <Order />
       </DragWrapper>
@@ -160,6 +161,7 @@ const TradeWrapper = () => {
         name="chart"
         title="Chart"
         key="chart"
+        id="chart"
       >
         {candleData.length > 0 ? (
           <ChartWrapper candleData={candleData} />
@@ -174,6 +176,7 @@ const TradeWrapper = () => {
         name="orderbook"
         title="Trades"
         key="orderbook"
+        id="orderbook"
       >
         <Orderbook />
       </DragWrapper>
@@ -182,6 +185,7 @@ const TradeWrapper = () => {
         name="details"
         title="Details"
         key="details"
+        id="details"
       >
         <DetailsPanel />
       </DragWrapper>
