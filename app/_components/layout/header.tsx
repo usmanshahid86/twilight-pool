@@ -120,7 +120,7 @@ const Header = () => {
           {/* right side */}
           <div className="mx-auto flex flex-row items-center space-x-2 sm:mx-0 md:space-x-4">
             <KycStatus />
-            <SubaccountSelect />
+            {/* <SubaccountSelect /> */}
             <ConnectWallet />
             <Settings />
           </div>

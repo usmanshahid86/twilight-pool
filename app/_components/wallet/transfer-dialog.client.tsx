@@ -51,6 +51,10 @@ type Props = {
   defaultAccount: "funding" | "trading";
 };
 
+async function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 const TransferDialog = ({
   defaultAccount,
   tradingAccountAddress,
@@ -930,6 +934,7 @@ const TransferDialog = ({
                           description: `Successfully created ${tag}`,
                         });
 
+                        await delay(200)
                         setSelectedTradingAccountTo(newZkAccount.address);
                         return;
                       }
