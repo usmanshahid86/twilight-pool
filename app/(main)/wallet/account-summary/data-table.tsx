@@ -1,6 +1,8 @@
 "use client";
 
+import { ToastProps } from '@/components/toast';
 import cn from "@/lib/cn";
+import { useToast } from '@/lib/hooks/useToast';
 import {
   ColumnDef,
   SortingState,
@@ -16,6 +18,10 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
 }
 
+export interface AccountSummaryTableMeta {
+  toast: (options: any) => void;
+}
+
 export function AccountSummaryDataTable<TData, TValue>({
   columns,
   data,
@@ -23,6 +29,12 @@ export function AccountSummaryDataTable<TData, TValue>({
   const [sorting, setSorting] = useState<SortingState>([
     { id: "createdAt", desc: true },
   ]);
+
+  const { toast } = useToast()
+
+  const tableMeta: AccountSummaryTableMeta = {
+    toast
+  };
 
   const table = useReactTable({
     data,
@@ -32,6 +44,7 @@ export function AccountSummaryDataTable<TData, TValue>({
       sorting,
     },
     getSortedRowModel: getSortedRowModel(),
+    meta: tableMeta,
   });
 
   return (
@@ -47,7 +60,7 @@ export function AccountSummaryDataTable<TData, TValue>({
                 return (
                   <th
                     className={cn(
-                      "font-medium",
+                      "px-1 font-medium",
                       index === headerGroup.headers.length - 1
                         ? "text-end"
                         : "text-start"
@@ -76,7 +89,12 @@ export function AccountSummaryDataTable<TData, TValue>({
               >
                 {row.getVisibleCells().map((cell, index) => (
                   <td
-                    className={cn("px-1 py-2 whitespace-nowrap")}
+                    className={cn("px-1 py-2 whitespace-nowrap",
+                      index === row.getVisibleCells().length - 1
+                        ? "text-end"
+                        : "text-start"
+                    )}
+
                     key={cell.id}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

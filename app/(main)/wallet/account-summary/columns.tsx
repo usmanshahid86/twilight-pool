@@ -7,6 +7,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import Big from "big.js";
 import dayjs from "dayjs";
 import { truncateHash } from '@/lib/helpers';
+import { AccountSummaryTableMeta } from './data-table';
 
 export const accountSummaryColumns: ColumnDef<ZkAccount, any>[] = [
   {
@@ -23,7 +24,12 @@ export const accountSummaryColumns: ColumnDef<ZkAccount, any>[] = [
     header: "Address",
     cell: (row) => (
       <Button onClick={(e) => {
+        const meta = row.table.options.meta as AccountSummaryTableMeta;
         e.preventDefault();
+        meta.toast({
+          title: "Copied to clipboard",
+          description: `${row.row.original.tag} address copied to clipboard`,
+        })
         navigator.clipboard.writeText(row.getValue());
       }} variant="link">
         {truncateHash(row.getValue() as string)}
@@ -39,21 +45,5 @@ export const accountSummaryColumns: ColumnDef<ZkAccount, any>[] = [
   {
     accessorKey: "type",
     header: "Type",
-  },
-  {
-    id: "action",
-    header: "",
-    cell: (row) => {
-      return (
-        <div className="flex space-x-2 justify-end">
-          <Button
-            size="small"
-            className="px-3 py-1"
-          >
-            Actions
-          </Button>
-        </div>
-      );
-    },
   },
 ];

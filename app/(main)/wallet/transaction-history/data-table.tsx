@@ -24,6 +24,7 @@ export function TransactionHistoryDataTable<TData, TValue>({
     { id: "date", desc: true },
   ]);
 
+
   const table = useReactTable({
     data,
     columns,
@@ -47,7 +48,7 @@ export function TransactionHistoryDataTable<TData, TValue>({
                 return (
                   <th
                     className={cn(
-                      "font-medium",
+                      "px-1 font-medium",
                       index === headerGroup.headers.length - 1
                         ? "text-end"
                         : "text-start"
