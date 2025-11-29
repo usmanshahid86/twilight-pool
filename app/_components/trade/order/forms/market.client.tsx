@@ -79,6 +79,10 @@ const OrderMarketForm = () => {
     setPercent(finalValue);
   }, [])
 
+  const addTransactionHistory = useTwilightStore(
+    (state) => state.history.addTransaction
+  );
+
   const positionSize = useMemo(() => {
     if (!usdAmount || !leverage) {
       return "0.00";
@@ -108,7 +112,7 @@ const OrderMarketForm = () => {
       description: "Please approve the transaction in your wallet.",
     })
 
-    const tag = `Subaccount ${zkAccounts.length}`
+    const tag = `BTC ${type.toLowerCase()} ${zkAccounts.length}`
 
     const chainWallet = mainWallet?.getChainWallet("nyks");
 
@@ -206,7 +210,19 @@ const OrderMarketForm = () => {
         createdAt: dayjs().unix(),
       }
 
+      // note: add zk account in case submit order fails
       addZkAccount(newZkAccount as ZkAccount);
+
+      addTransactionHistory({
+        date: new Date(),
+        from: twilightAddress,
+        fromTag: "Funding",
+        to: newZkAccount.address,
+        toTag: newZkAccount.tag,
+        tx_hash: res.transactionHash,
+        type: "Transfer",
+        value: satsValue,
+      });
 
       const leverage = parseInt(leverageRef.current?.value || "1");
 
@@ -244,7 +260,7 @@ const OrderMarketForm = () => {
 
         while (!orderData) {
           try {
-            if (retries > 4) break;
+            if (retries > 10) break;
             const txHashesRes = await queryTransactionHashes(
               newZkAccount.address
             );

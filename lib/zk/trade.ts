@@ -67,9 +67,9 @@ export async function settleOrder(
         string
       >(
         queryTransactionHashes,
-        9,
+        30,
         trade.accountAddress,
-        2000,
+        1000,
         transactionHashCondition
       );
 
@@ -156,9 +156,9 @@ export async function settleOrder(
         string
       >(
         queryTransactionHashes,
-        9,
+        30,
         trade.accountAddress,
-        2500,
+        1000,
         transactionHashCondition
       );
 
@@ -282,9 +282,9 @@ export async function cancelZkOrder(
       string
     >(
       queryTransactionHashes,
-      9,
+      30,
       trade.accountAddress,
-      2500,
+      1000,
       transactionHashCondition
     );
 

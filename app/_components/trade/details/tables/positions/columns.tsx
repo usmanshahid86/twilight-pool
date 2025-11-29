@@ -170,7 +170,8 @@ export const positionsColumns: ColumnDef<MyTradeOrder, any>[] = [
     accessorKey: "positionType",
     header: "Side",
     cell: (row) => {
-      const positionType = row.getValue() as string;
+      const positionType = row.row.original.positionType;
+
       return (
         <span
           className={cn(

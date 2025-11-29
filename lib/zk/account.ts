@@ -62,7 +62,7 @@ async function getUtxoFromAddress(
     const utxoDataResult = await retry<
       ReturnType<typeof queryUtxoForAddress>,
       string
-    >(queryUtxoForAddress, 9, address, 2500, (utxoObj) =>
+    >(queryUtxoForAddress, 30, address, 1000, (utxoObj) =>
       Object.hasOwn(utxoObj, "output_index")
     );
 
@@ -124,6 +124,7 @@ async function getZkAccountHexFromAddress(
   address: string
 ): Promise<SuccessResult<string> | FailureResult> {
   try {
+    console.log("getCoinOutputFromAddress", address);
     const coinOutputResult = await getCoinOutputFromAddress(address);
 
     if (!coinOutputResult.success) {
@@ -137,6 +138,7 @@ async function getZkAccountHexFromAddress(
 
     const outputString = JSON.stringify(coinOutput);
 
+    console.log("getZKAccountHexFromOutputString", outputString);
     const zkAccountHex = await getZKAccountHexFromOutputString({
       outputString: outputString,
     });
@@ -189,6 +191,7 @@ export class ZkPrivateAccount {
     existingAccount?: ZkAccount;
   }) {
     if (existingAccount) {
+      console.log("getZkAccountHexFromAddress", existingAccount.address);
       const zkAccountHexResult = await getZkAccountHexFromAddress(
         existingAccount.address
       );
@@ -201,15 +204,22 @@ export class ZkPrivateAccount {
 
       const zkAccountHex = zkAccountHexResult.data;
 
-      const accountValue = await decryptZKAccountHexValue({
-        signature,
-        zkAccountHex,
-      });
+      let amount = balance || existingAccount.value;
+
+      if (amount === undefined) {
+        console.log("decryptZKAccountHexValue", zkAccountHex);
+        const accountValue = await decryptZKAccountHexValue({
+          signature,
+          zkAccountHex,
+        });
+
+        amount = Number(accountValue);
+      }
 
       return new ZkPrivateAccount(
         existingAccount.address,
         existingAccount.scalar,
-        Number(accountValue),
+        Number(amount),
         zkAccountHex,
         signature,
         true
@@ -427,10 +437,10 @@ export class ZkPrivateAccount {
 
     const updatedBalance = this.value - amount;
 
-    if (updatedBalance !== 0) {
+    if (updatedBalance < 0) {
       return {
         success: false,
-        message: `Unable to complete transfer, you must only transfer the full balance of the account`,
+        message: "Unable to complete transfer, due to lack of funds",
       };
     }
 
@@ -459,12 +469,14 @@ export class ZkPrivateAccount {
     const coinOutput = coinOutputResult.data;
     const outputString = JSON.stringify(coinOutput);
 
+    console.log("createInputCoinFromOutput");
     const inputString = await createInputCoinFromOutput({
       outputString,
       utxoString,
     });
 
     try {
+      console.log("createTradingTxSingle");
       const tradingMsgStruct = await createTradingTxSingle({
         senderInput: inputString,
         amount,
@@ -480,6 +492,7 @@ export class ZkPrivateAccount {
         encrypt_scalar_hex: string;
       };
 
+      console.log("txCommit", txHex);
       const txCommitResult = await this.txCommit(txHex);
 
       if (!txCommitResult.success) {
@@ -491,6 +504,7 @@ export class ZkPrivateAccount {
 
       const txId = txCommitResult.data;
 
+      console.log("getUpdatedAddressFromTransaction");
       const updatedAddressStringified = await getUpdatedAddressFromTransaction({
         signature: this.signature,
         txHex,

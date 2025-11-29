@@ -3,6 +3,7 @@
 import { ToastProps } from '@/components/toast';
 import cn from "@/lib/cn";
 import { useToast } from '@/lib/hooks/useToast';
+import { ZkAccount } from '@/lib/types';
 import {
   ColumnDef,
   SortingState,
@@ -22,10 +23,18 @@ export interface AccountSummaryTableMeta {
   toast: (options: any) => void;
 }
 
+interface AccountSummaryDataTableProps<TData, TValue> extends DataTableProps<TData, TValue> {
+  subaccountTransfer: (zkAccount: ZkAccount) => Promise<{
+    success: boolean;
+    message: string;
+  } | undefined>;
+}
+
 export function AccountSummaryDataTable<TData, TValue>({
   columns,
   data,
-}: DataTableProps<TData, TValue>) {
+  subaccountTransfer,
+}: AccountSummaryDataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "createdAt", desc: true },
   ]);

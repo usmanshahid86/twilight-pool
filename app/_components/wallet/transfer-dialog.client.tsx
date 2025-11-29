@@ -353,23 +353,26 @@ const TransferDialog = ({
             return;
           }
 
+          console.log("ZkPrivateAccount.create");
           const senderZkPrivateAccount = await ZkPrivateAccount.create({
             signature: privateKey,
             existingAccount: senderZkAccount,
           });
 
-          if (senderZkPrivateAccount.get().value - transferAmount !== 0) {
-            console.log("senderZkPrivateAccount.get().value", senderZkPrivateAccount.get());
-            toast({
-              variant: "error",
-              title: "An error has occurred",
-              description:
-                "You must transfer the full amount in the sender account.",
-            });
-            setIsSubmitLoading(false);
-            return;
-          }
+          // if (senderZkPrivateAccount.get().value - transferAmount !== 0) {
+          //   console.log("senderZkPrivateAccount.get().value", senderZkPrivateAccount.get());
+          //   toast({
+          //     variant: "error",
+          //     title: "An error has occurred",
+          //     description:
+          //       "You must transfer the full amount in the sender account.",
+          //   });
+          //   setIsSubmitLoading(false);
+          //   return;
+          // }
 
+
+          console.log("senderZkPrivateAccount.privateTxSingle");
           const privateTxSingleResult =
             await senderZkPrivateAccount.privateTxSingle(
               transferAmount,
@@ -408,26 +411,26 @@ const TransferDialog = ({
             existingAccount: updatedZkAccount,
           });
 
-          const depositAccountBalanceResult =
-            await depositZkPrivateAccount.getAccountBalance();
+          // const depositAccountBalanceResult =
+          //   await depositZkPrivateAccount.getAccountBalance();
 
-          if (!depositAccountBalanceResult.success) {
-            console.error(depositAccountBalanceResult.message);
-            toast({
-              variant: "error",
-              title: "An error has occurred",
-              description: depositAccountBalanceResult.message,
-            });
-            setIsSubmitLoading(false);
-            return;
-          }
+          // if (!depositAccountBalanceResult.success) {
+          //   console.error(depositAccountBalanceResult.message);
+          //   toast({
+          //     variant: "error",
+          //     title: "An error has occurred",
+          //     description: depositAccountBalanceResult.message,
+          //   });
+          //   setIsSubmitLoading(false);
+          //   return;
+          // }
 
-          const depositAccountBalance = depositAccountBalanceResult.data;
+          // const depositAccountBalance = depositAccountBalanceResult.data;
 
           console.log(
             "test >>",
             depositZkPrivateAccount.get(),
-            depositAccountBalance
+            // depositAccountBalance
           );
 
           addTransactionHistory({
@@ -443,7 +446,7 @@ const TransferDialog = ({
 
           updateZkAccount(senderZkAccount.address, {
             ...senderZkAccount,
-            value: updatedSenderAccount.value,
+            value: 0,
             isOnChain: updatedSenderAccount.isOnChain,
           });
 
@@ -454,7 +457,7 @@ const TransferDialog = ({
             ...depositZkAccount,
             address: rawDepositZkAccountData.address,
             scalar: rawDepositZkAccountData.scalar,
-            value: rawDepositZkAccountData.value,
+            value: transferAmount,
             isOnChain: true,
           });
 
@@ -522,34 +525,9 @@ const TransferDialog = ({
 
           console.log("txId", txId, "updatedAddess", updatedTransientAddress);
 
-          const transientZkPrivateAccount = await ZkPrivateAccount.create({
-            signature: privateKey,
-            existingAccount: {
-              address: updatedTransientAddress,
-              scalar: updatedTransientScalar,
-              tag: "transient",
-              value: transferAmount,
-              type: "Coin",
-            },
-          });
-
-          const transientAccountBalanceResult =
-            await transientZkPrivateAccount.getAccountBalance();
-
-          if (!transientAccountBalanceResult.success) {
-            toast({
-              variant: "error",
-              title: "An error has occurred",
-              description: "Please try again later.",
-            });
-            setIsSubmitLoading(false);
-
-            return;
-          }
-
           console.log(
             "transient zkAccount balance =",
-            transientAccountBalanceResult.data
+            transferAmount,
           );
 
           const {

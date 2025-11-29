@@ -9,7 +9,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { PositionsTableMeta } from "./columns";
 import { TradeOrder } from "@/lib/types";
 
@@ -31,6 +31,8 @@ export function PositionsDataTable<TData, TValue>({
   const [sorting, setSorting] = useState<SortingState>([
     { id: "date", desc: true },
   ]);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Define the table meta data
   const tableMeta: PositionsTableMeta = {
@@ -83,9 +85,22 @@ export function PositionsDataTable<TData, TValue>({
     };
   }, []);
 
+  // Preserve scroll position when data updates
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    const scrollTop = container.scrollTop;
+    
+    // Restore scroll position after render
+    requestAnimationFrame(() => {
+      container.scrollTop = scrollTop;
+    });
+  }, [data]);
+
 
   return (
-    <div className="px-3 w-full overflow-auto overscroll-none relative" style={{ scrollbarWidth: "none", maxHeight: `${maxHeight}px` }}>
+    <div ref={scrollContainerRef} className="px-3 w-full overflow-auto overscroll-none relative" style={{ scrollbarWidth: "none", maxHeight: `${maxHeight}px` }}>
       <table cellSpacing={0} className="w-full overflow-auto table-auto">
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (

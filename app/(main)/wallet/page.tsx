@@ -14,7 +14,7 @@ import BTC from "@/lib/twilight/denoms";
 import { ZkAccount } from "@/lib/types";
 import Big from "big.js";
 import { ArrowLeftRight } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { TransactionHistoryDataTable } from "./transaction-history/data-table";
 import { transactionHistoryColumns } from "./transaction-history/columns";
 import { WalletStatus } from "@cosmos-kit/core";
@@ -24,6 +24,14 @@ import { useToast } from "@/lib/hooks/useToast";
 import { Tabs, TabsList, TabsTrigger } from '@/components/tabs';
 import { AccountSummaryDataTable } from './account-summary/data-table';
 import { accountSummaryColumns } from './account-summary/columns';
+import { createZkAccount, createZkBurnTx } from '@/lib/twilight/zk';
+import { ZkPrivateAccount } from '@/lib/zk/account';
+import { verifyAccount, verifyQuisQuisTransaction } from '@/lib/twilight/zkos';
+import { broadcastTradingTx } from '@/lib/api/zkos';
+import { safeJSONParse } from '@/lib/helpers';
+import { twilightproject } from 'twilightjs';
+import Long from 'long';
+import Link from 'next/link';
 
 type TabType = "account-summary" | "transaction-history";
 
@@ -90,6 +98,192 @@ const Page = () => {
   const totalBalanceUSDString = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Big(totalBTCBalanceString)
     .mul(finalPrice).toNumber())
 
+  const chainWallet = mainWallet?.getChainWallet("nyks");
+
+  const addTransactionHistory = useTwilightStore(
+    (state) => state.history.addTransaction
+  );
+
+  const removeZkAccount = useTwilightStore((state) => state.zk.removeZkAccount);
+
+  const subaccountTransfer = useCallback(async (zkAccount: ZkAccount) => {
+    if (!twilightAddress || !chainWallet || !zkAccount.value || !privateKey) {
+      return;
+    }
+
+    const transientZkAccount = await createZkAccount({
+      tag: Math.random().toString(36).substring(2, 15),
+      signature: privateKey,
+    });
+
+    const senderZkPrivateAccount = await ZkPrivateAccount.create({
+      signature: privateKey,
+      existingAccount: zkAccount,
+    });
+
+    const privateTxSingleResult =
+      await senderZkPrivateAccount.privateTxSingle(
+        zkAccount.value,
+        transientZkAccount.address
+      );
+
+    if (!privateTxSingleResult.success) {
+      return {
+        success: false,
+        message: privateTxSingleResult.message,
+      }
+    }
+
+    const {
+      scalar: updatedTransientScalar,
+      txId,
+      updatedAddress: updatedTransientAddress,
+    } = privateTxSingleResult.data;
+
+    console.log("txId", txId, "updatedAddess", updatedTransientAddress);
+
+    console.log(
+      "transient zkAccount balance =",
+      zkAccount.value,
+    );
+
+    const {
+      success,
+      msg: zkBurnMsg,
+      zkAccountHex,
+    } = await createZkBurnTx({
+      signature: privateKey,
+      zkAccount: {
+        tag: zkAccount.tag,
+        address: updatedTransientAddress,
+        scalar: updatedTransientScalar,
+        isOnChain: true,
+        value: zkAccount.value,
+        type: "Coin",
+      },
+      initZkAccountAddress: transientZkAccount.address,
+    });
+
+    if (!success || !zkBurnMsg || !zkAccountHex) {
+      return {
+        success: false,
+        message: "Error creating zkBurnTx msg",
+      }
+    }
+
+    console.log({
+      zkAccountHex: zkAccountHex,
+      balance: zkAccount.value,
+      signature: privateKey,
+      initZkAccountAddress: transientZkAccount.address,
+    });
+
+    const isAccountValid = await verifyAccount({
+      zkAccountHex: zkAccountHex,
+      balance: zkAccount.value,
+      signature: privateKey,
+    });
+
+    console.log("isAccountValid", isAccountValid);
+
+    toast({
+      title: "Broadcasting transfer",
+      description:
+        "Please do not close this page while your BTC is being transferred to your funding account...",
+    });
+
+    const txValidMessage = await verifyQuisQuisTransaction({
+      tx: zkBurnMsg,
+    });
+
+    console.log("txValidMessage", txValidMessage);
+
+    const tradingTxResString = await broadcastTradingTx(
+      zkBurnMsg,
+      twilightAddress
+    );
+
+    console.log("zkBurnMsg tradingTxResString >>"), tradingTxResString;
+
+    const tradingTxRes = safeJSONParse(tradingTxResString as string);
+
+    if (!tradingTxRes.success || Object.hasOwn(tradingTxRes, "error")) {
+      toast({
+        variant: "error",
+        title: "An error has occurred",
+        description: "Please try again later.",
+      });
+      console.error("error broadcasting zkBurnTx msg", tradingTxRes);
+      return {
+        success: false,
+        message: "Error broadcasting zkBurnTx msg",
+      }
+    }
+
+    console.log("tradingTxRes", tradingTxRes);
+
+    const { mintBurnTradingBtc } =
+      twilightproject.nyks.zkos.MessageComposer.withTypeUrl;
+
+    const stargateClient = await chainWallet.getSigningStargateClient();
+
+    console.log({
+      btcValue: Long.fromNumber(zkAccount.value),
+      encryptScalar: updatedTransientScalar,
+      mintOrBurn: false,
+      qqAccount: zkAccountHex,
+      twilightAddress,
+    });
+
+    const mintBurnMsg = mintBurnTradingBtc({
+      btcValue: Long.fromNumber(zkAccount.value),
+      encryptScalar: updatedTransientScalar,
+      mintOrBurn: false,
+      qqAccount: zkAccountHex,
+      twilightAddress,
+    });
+
+    console.log("mintBurnMsg", mintBurnMsg);
+    const mintBurnRes = await stargateClient.signAndBroadcast(
+      twilightAddress,
+      [mintBurnMsg],
+      "auto"
+    );
+
+    addTransactionHistory({
+      date: new Date(),
+      from: zkAccount.address,
+      fromTag: zkAccount.tag,
+      to: twilightAddress,
+      toTag: "Funding",
+      tx_hash: mintBurnRes.transactionHash,
+      type: "Burn",
+      value: zkAccount.value,
+    });
+
+    removeZkAccount(zkAccount);
+
+    toast({
+      title: "Success",
+      description: (
+        <div className="opacity-90">
+          {`Successfully sent ${new BTC("sats", Big(zkAccount.value))
+            .convert("BTC")
+            .toString()} BTC to Funding Account. `}
+          <Link
+            href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${mintBurnRes.transactionHash}`}
+            target={"_blank"}
+            className="text-sm underline hover:opacity-100"
+          >
+            Explorer link
+          </Link>
+        </div>
+      ),
+    });
+
+
+  }, [toast, privateKey, twilightAddress, removeZkAccount, addTransactionHistory, chainWallet]);
+
   function renderTableContent() {
     switch (currentTab) {
       case "account-summary":
@@ -98,6 +292,7 @@ const Page = () => {
             <AccountSummaryDataTable
               columns={accountSummaryColumns}
               data={zkAccounts}
+              subaccountTransfer={subaccountTransfer}
             />
           </div>
 
@@ -263,10 +458,10 @@ const Page = () => {
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          <div className="flex space-x-2">
+          {/* <div className="flex space-x-2">
             <button className="text-xs">Import</button>
             <button className="text-xs">Export</button>
-          </div>
+          </div> */}
         </div>
 
         <div className="h-full min-h-[500px] w-full py-1">

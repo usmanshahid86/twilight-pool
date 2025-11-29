@@ -1,5 +1,6 @@
 import cn from '@/lib/cn';
-import { capitaliseFirstLetter } from '@/lib/helpers';
+import { capitaliseFirstLetter, truncateHash } from '@/lib/helpers';
+import { toast } from '@/lib/hooks/useToast';
 import BTC from '@/lib/twilight/denoms';
 import { TradeOrder } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
@@ -27,11 +28,16 @@ export const traderHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
     header: "Order ID",
     cell: (row) => {
       const trade = row.row.original;
+      const truncatedUuid = truncateHash(trade.uuid, 4, 4);
       return (
         <span onClick={() => {
           navigator.clipboard.writeText(trade.uuid);
+          toast({
+            title: "Copied to clipboard",
+            description: `Order ID ${truncatedUuid} copied to clipboard`,
+          })
         }} className="font-medium cursor-pointer hover:underline">
-          {trade.uuid.slice(0, 8)}...
+          {truncatedUuid}
         </span>
       );
     }

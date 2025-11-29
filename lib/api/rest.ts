@@ -298,6 +298,8 @@ async function queryTransactionHashes(
     .post({ body })
     .json<TwilightApiResponse<TransactionHash[]>>();
 
+  console.log("queryTransactionHashes", body, data);
+
   if (!success) {
     console.error(error);
     return {};

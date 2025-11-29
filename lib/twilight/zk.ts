@@ -173,7 +173,7 @@ async function createZkBurnTx({
   const utxoDataResult = await retry<
     ReturnType<typeof queryUtxoForAddress>,
     string
-  >(queryUtxoForAddress, 9, zkAccountAddress, 2500, (utxoObj) =>
+  >(queryUtxoForAddress, 30, zkAccountAddress, 1000, (utxoObj) =>
     Object.hasOwn(utxoObj, "output_index")
   );
 
@@ -262,16 +262,21 @@ async function createZkOrder({
   const zkAccountAddress = zkAccount.address;
   const scalar = zkAccount.scalar;
 
-  const utxoData = await queryUtxoForAddress(zkAccountAddress);
+  const utxoDataResult = await retry<
+    ReturnType<typeof queryUtxoForAddress>,
+    string
+  >(queryUtxoForAddress, 30, zkAccountAddress, 1000, (utxoObj) =>
+    Object.hasOwn(utxoObj, "output_index")
+  );
 
-  if (!Object.hasOwn(utxoData, "output_index")) {
-    console.error("no utxoData", utxoData);
+  if (!utxoDataResult.success) {
+    console.error("no utxoData", utxoDataResult);
     return {
       success: false,
     };
   }
 
-  const utxoString = JSON.stringify(utxoData);
+  const utxoString = JSON.stringify(utxoDataResult.data);
 
   const utxoHex = await utxoStringToHex({
     utxoString,

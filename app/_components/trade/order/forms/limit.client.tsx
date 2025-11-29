@@ -92,13 +92,14 @@ const OrderLimitForm = () => {
 
   const addZkAccount = useTwilightStore((state) => state.zk.addZkAccount);
 
+  const addTransactionHistory = useTwilightStore(
+    (state) => state.history.addTransaction
+  );
+
   async function submitLimitOrder(
     e: SyntheticEvent<HTMLFormElement, SubmitEvent>
   ) {
     e.preventDefault();
-
-    const tag = `Subaccount ${zkAccounts.length}`
-
     const chainWallet = mainWallet?.getChainWallet("nyks");
 
     if (!chainWallet) {
@@ -120,6 +121,8 @@ const OrderLimitForm = () => {
       const submitter = e.nativeEvent.submitter as HTMLButtonElement;
 
       const action = submitter.value as "sell" | "buy";
+
+      const tag = `BTC ${action} ${zkAccounts.length}`
 
       const btcAmountInSats = new BTC(
         "BTC",
@@ -191,6 +194,17 @@ const OrderLimitForm = () => {
 
       addZkAccount(newZkAccount as ZkAccount);
 
+      addTransactionHistory({
+        date: new Date(),
+        from: twilightAddress,
+        fromTag: "Funding",
+        to: newZkAccount.address,
+        toTag: newZkAccount.tag,
+        tx_hash: res.transactionHash,
+        type: "Transfer",
+        value: btcAmountInSats,
+      });
+
       const leverage = parseInt(leverageRef.current?.value || "1");
       const positionType = action === "sell" ? "SHORT" : "LONG";
 
@@ -251,9 +265,9 @@ const OrderLimitForm = () => {
         string
       >(
         queryTransactionHashes,
-        9,
+        30,
         newZkAccount.address,
-        1500,
+        1000,
         transactionHashCondition
       );
 

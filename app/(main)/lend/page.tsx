@@ -103,9 +103,9 @@ const Page = () => {
         string
       >(
         queryTransactionHashes,
-        9,
+        30,
         order.accountAddress,
-        2500,
+        1000,
         (txHash) => {
           const found = txHash.result.find(
             (tx) => tx.order_status === "FILLED"
@@ -155,9 +155,9 @@ const Page = () => {
         string
       >(
         queryTransactionHashByRequestId,
-        9,
+        30,
         requestId,
-        2500,
+        1000,
         (txHash) => {
           const found = txHash.result.find(
             (tx) => tx.order_status === "SETTLED"
@@ -215,6 +215,8 @@ const Page = () => {
         setSettlingOrderId(null);
         return;
       }
+
+      console.log("newLendValue", queryLendOrderRes.result.new_lend_state_amount)
 
       addTransactionHistory({
         date: new Date(),

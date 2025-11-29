@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-table";
 import { useEffect, useState } from "react";
 import { OrderHistoryTableMeta } from "./columns";
+import { useToast } from '@/lib/hooks/useToast';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -27,9 +28,12 @@ export function OrderHistoryDataTable<TData, TValue>({
     { id: "date", desc: true },
   ]);
 
+  const { toast } = useToast();
+
   // Define the table meta data
   const tableMeta: OrderHistoryTableMeta = {
     getCurrentPrice,
+    toast,
   };
 
   const table = useReactTable({

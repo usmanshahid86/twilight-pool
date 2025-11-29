@@ -79,7 +79,7 @@ const LendManagement = () => {
         description: "Please approve the transaction in your wallet.",
       })
 
-      const tag = `Subaccount ${zkAccounts.length}`
+      const tag = `BTC lend ${zkAccounts.length}`
 
       const chainWallet = mainWallet?.getChainWallet("nyks");
 
@@ -212,9 +212,9 @@ const LendManagement = () => {
         string
       >(
         queryTransactionHashByRequestId,
-        9,
+        30,
         data.result.id_key,
-        2500,
+        1000,
         (txHash) => {
           const found = txHash.result.find(
             (tx) => tx.order_status === "FILLED"

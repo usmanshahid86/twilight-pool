@@ -46,4 +46,10 @@ export const accountSummaryColumns: ColumnDef<ZkAccount, any>[] = [
     accessorKey: "type",
     header: "Type",
   },
+  // {
+  //   header: "Actions",
+  //   cell: (row) => {
+
+  //   }
+  // }
 ];

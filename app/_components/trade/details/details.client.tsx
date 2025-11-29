@@ -5,7 +5,7 @@ import { useTwilightStore } from '@/lib/providers/store';
 import PositionsTable from './tables/positions/positions-table.client';
 import { useSessionStore } from '@/lib/providers/session';
 import { useToast } from '@/lib/hooks/useToast';
-import { TradeOrder } from '@/lib/types';
+import { TradeOrder, ZkAccount } from '@/lib/types';
 import { cancelZkOrder, settleOrder } from '@/lib/zk/trade';
 import Link from 'next/link';
 import Big from 'big.js';
@@ -13,6 +13,15 @@ import dayjs from 'dayjs';
 import OpenOrdersTable from './tables/open-orders/open-orders-table.client';
 import TraderHistoryTable from './tables/trader-history/trader-history-table.client';
 import OrderHistoryTable from './tables/order-history/order-history-table.client';
+import { useWallet } from '@cosmos-kit/react-lite';
+import { createZkAccount, createZkBurnTx } from '@/lib/twilight/zk';
+import { ZkPrivateAccount } from '@/lib/zk/account';
+import { verifyAccount, verifyQuisQuisTransaction } from '@/lib/twilight/zkos';
+import { broadcastTradingTx } from '@/lib/api/zkos';
+import { safeJSONParse } from '@/lib/helpers';
+import { twilightproject } from 'twilightjs';
+import Long from 'long';
+import BTC from '@/lib/twilight/denoms';
 
 type TabType = "history" | "trades" | "positions" | "open-orders" | "trader-history";
 
@@ -26,10 +35,17 @@ const DetailsPanel = () => {
 
   const updateTrade = useTwilightStore((state) => state.trade.updateTrade)
   const removeTrade = useTwilightStore((state) => state.trade.removeTrade)
+
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount)
+  const removeZkAccount = useTwilightStore((state) => state.zk.removeZkAccount);
+
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
 
   const addTradeHistory = useTwilightStore((state) => state.trade_history.addTrade)
+
+  const addTransactionHistory = useTwilightStore(
+    (state) => state.history.addTransaction
+  );
 
   const positionsData = useMemo(() => {
     return tradeOrders.filter((trade) => trade.orderStatus === "FILLED")
@@ -47,6 +63,205 @@ const DetailsPanel = () => {
     toast,
   } = useToast()
 
+  const { mainWallet } = useWallet();
+
+  const chainWallet = mainWallet?.getChainWallet("nyks");
+  const twilightAddress = chainWallet?.address
+
+
+  const cleanupTradeOrder = useCallback(async (privateKey: string, zkAccount: ZkAccount) => {
+    if (!twilightAddress) {
+      return {
+        success: false,
+        message: "Twilight address not found",
+      }
+    }
+
+    if (!zkAccount.value) {
+      return {
+        success: false,
+        message: "ZkAccount does not have a value",
+      }
+    }
+
+    const transientZkAccount = await createZkAccount({
+      tag: Math.random().toString(36).substring(2, 15),
+      signature: privateKey,
+    });
+
+    const senderZkPrivateAccount = await ZkPrivateAccount.create({
+      signature: privateKey,
+      existingAccount: zkAccount,
+    });
+
+    console.log("senderZkPrivateAccount", senderZkPrivateAccount.get());
+
+    const privateTxSingleResult =
+      await senderZkPrivateAccount.privateTxSingle(
+        zkAccount.value,
+        transientZkAccount.address
+      );
+
+    if (!privateTxSingleResult.success) {
+      return {
+        success: false,
+        message: privateTxSingleResult.message,
+      }
+    }
+
+    const {
+      scalar: updatedTransientScalar,
+      txId,
+      updatedAddress: updatedTransientAddress,
+    } = privateTxSingleResult.data;
+
+    console.log("txId", txId, "updatedAddess", updatedTransientAddress);
+
+    console.log(
+      "transient zkAccount balance =",
+      zkAccount.value,
+    );
+
+    const {
+      success,
+      msg: zkBurnMsg,
+      zkAccountHex,
+    } = await createZkBurnTx({
+      signature: privateKey,
+      zkAccount: {
+        tag: zkAccount.tag,
+        address: updatedTransientAddress,
+        scalar: updatedTransientScalar,
+        isOnChain: true,
+        value: zkAccount.value,
+        type: "Coin",
+      },
+      initZkAccountAddress: transientZkAccount.address,
+    });
+
+    if (!success || !zkBurnMsg || !zkAccountHex) {
+      return {
+        success: false,
+        message: "Error creating zkBurnTx msg",
+      }
+    }
+
+    console.log({
+      zkAccountHex: zkAccountHex,
+      balance: zkAccount.value,
+      signature: privateKey,
+      initZkAccountAddress: transientZkAccount.address,
+    });
+
+    const isAccountValid = await verifyAccount({
+      zkAccountHex: zkAccountHex,
+      balance: zkAccount.value,
+      signature: privateKey,
+    });
+
+    console.log("isAccountValid", isAccountValid);
+
+    toast({
+      title: "Broadcasting transfer",
+      description:
+        "Please do not close this page while your BTC is being transferred to your funding account...",
+    });
+
+    const txValidMessage = await verifyQuisQuisTransaction({
+      tx: zkBurnMsg,
+    });
+
+    console.log("txValidMessage", txValidMessage);
+
+    const tradingTxResString = await broadcastTradingTx(
+      zkBurnMsg,
+      twilightAddress
+    );
+
+    console.log("zkBurnMsg tradingTxResString >>"), tradingTxResString;
+
+    const tradingTxRes = safeJSONParse(tradingTxResString as string);
+
+    if (!tradingTxRes.success || Object.hasOwn(tradingTxRes, "error")) {
+      toast({
+        variant: "error",
+        title: "An error has occurred",
+        description: "Please try again later.",
+      });
+      console.error("error broadcasting zkBurnTx msg", tradingTxRes);
+      return {
+        success: false,
+        message: "Error broadcasting zkBurnTx msg",
+      }
+    }
+
+    console.log("tradingTxRes", tradingTxRes);
+
+    const { mintBurnTradingBtc } =
+      twilightproject.nyks.zkos.MessageComposer.withTypeUrl;
+
+    const stargateClient = await chainWallet.getSigningStargateClient();
+
+    console.log({
+      btcValue: Long.fromNumber(zkAccount.value),
+      encryptScalar: updatedTransientScalar,
+      mintOrBurn: false,
+      qqAccount: zkAccountHex,
+      twilightAddress,
+    });
+
+    const mintBurnMsg = mintBurnTradingBtc({
+      btcValue: Long.fromNumber(zkAccount.value),
+      encryptScalar: updatedTransientScalar,
+      mintOrBurn: false,
+      qqAccount: zkAccountHex,
+      twilightAddress,
+    });
+
+    console.log("mintBurnMsg", mintBurnMsg);
+    const mintBurnRes = await stargateClient.signAndBroadcast(
+      twilightAddress,
+      [mintBurnMsg],
+      "auto"
+    );
+
+    addTransactionHistory({
+      date: new Date(),
+      from: zkAccount.address,
+      fromTag: zkAccount.tag,
+      to: twilightAddress,
+      toTag: "Funding",
+      tx_hash: mintBurnRes.transactionHash,
+      type: "Burn",
+      value: zkAccount.value,
+    });
+
+    removeZkAccount(zkAccount);
+
+    toast({
+      title: "Success",
+      description: (
+        <div className="opacity-90">
+          {`Successfully sent ${new BTC("sats", Big(zkAccount.value))
+            .convert("BTC")
+            .toString()} BTC to Funding Account. `}
+          <Link
+            href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${mintBurnRes.transactionHash}`}
+            target={"_blank"}
+            className="text-sm underline hover:opacity-100"
+          >
+            Explorer link
+          </Link>
+        </div>
+      ),
+    });
+
+    return {
+      success: true,
+    }
+
+  }, [toast, zkAccounts, privateKey, updateTrade, removeZkAccount]);
+
   const settleMarketOrder = useCallback(async (trade: TradeOrder, currentPrice: number) => {
     toast({
       title: "Closing position",
@@ -63,6 +278,11 @@ const DetailsPanel = () => {
       })
       return;
     }
+
+    toast({
+      title: "Order settled successfully",
+      description: "Please do not close this page while your balance is being updated...",
+    })
 
     const settledData = settleOrderResult.data;
     console.log(`settledData`, settledData)
@@ -94,7 +314,7 @@ const DetailsPanel = () => {
 
     const updatedAccount = zkAccounts.find(account => account.address === trade.accountAddress);
 
-    const balance = Big(settledData.available_margin).toNumber();
+    const balance = Math.round(Big(settledData.available_margin).toNumber())
 
     if (!updatedAccount) {
       toast({
@@ -105,11 +325,28 @@ const DetailsPanel = () => {
       return;
     }
 
+    console.log("newBalance", balance || trade.value)
+
+    // update the account balance in case cleanup fails
     updateZkAccount(trade.accountAddress, {
       ...updatedAccount,
       type: "CoinSettled",
       value: balance || trade.value,
     });
+
+    const result = await cleanupTradeOrder(privateKey, {
+      ...updatedAccount,
+      value: balance || trade.value,
+    });
+
+    if (!result.success) {
+      toast({
+        title: "Failed to update balance",
+        description: "Please manually transfer your balance to your funding account in the wallet page",
+        variant: "error",
+      })
+      return;
+    }
 
     toast({
       title: "Position closed",
@@ -150,14 +387,35 @@ const DetailsPanel = () => {
 
     const cancelOrderData = cancelOrderResult.data;
 
+    const zkAccount = zkAccounts.find(account => account.address === order.accountAddress);
+
+    if (!zkAccount) {
+      toast({
+        title: "Failed to cancel order",
+        description: "Failed to find account",
+        variant: "error",
+      })
+      return;
+    }
+    const result = await cleanupTradeOrder(privateKey, zkAccount);
+
+    if (!result.success) {
+      toast({
+        title: "Error with settling trade order",
+        description: result.message,
+        variant: "error",
+      })
+      return;
+    }
+
     toast({
       title: "Order cancelled",
       description: <div className="opacity-90">
         Successfully cancelled {order.orderType.toLowerCase()} order.{" "}
         {
-          cancelOrderResult.data.tx_hash && (
+          cancelOrderData.tx_hash && (
             <Link
-              href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${cancelOrderResult.data.tx_hash}`}
+              href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${cancelOrderData.tx_hash}`}
               target={"_blank"}
               className="text-sm underline hover:opacity-100"
             >

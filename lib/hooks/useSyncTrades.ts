@@ -173,6 +173,7 @@ export const useSyncTrades = () => {
               updateZkAccount(newTrade.accountAddress, {
                 ...existingZkAccount,
                 value: newBalance,
+                type: "CoinSettled",
               });
             }
           }
