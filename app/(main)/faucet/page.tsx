@@ -12,6 +12,7 @@ import Long from 'long';
 import { useRouter } from 'next/navigation';
 import { useTwilightStore } from '@/lib/providers/store';
 import useVerifyStatus from '@/lib/hooks/useVerifyStatus';
+import Link from 'next/link';
 
 interface FaucetResponse {
   success: boolean;
@@ -151,7 +152,7 @@ const Page = () => {
         value: 50_000,
       })
 
-      return { success: true, message: "Successfully received 50,000 sats" };
+      return { success: true, message: "Successfully received 50,000 sats", data: { txHash } };
     } catch (error) {
       return { success: false, error: error?.toString() || "Network error" };
     }
@@ -294,6 +295,9 @@ const Page = () => {
         title: "BTC Address Registered",
         description: "Your address has been registered on the NYKS chain",
       });
+
+
+
     } catch (error) {
       toast({
         variant: "error",
@@ -319,7 +323,28 @@ const Page = () => {
 
         toast({
           title: "BTC Tokens Received",
-          description: result.message || "Successfully received 100,000 sats",
+          description: (
+            <div className="flex space-x-1 opacity-90">
+              Successfully received 50,000 sats.{" "}
+              {
+                result.data?.txHash && (
+                  <Button
+                    variant="link"
+                    className="inline-flex text-sm opacity-90 hover:opacity-100"
+                    asChild
+                  >
+                    <Link
+                      href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${result.data.txHash}`}
+                      target={"_blank"}
+                    >
+                      Explorer link
+                    </Link>
+                  </Button>
+                )
+              }
+
+            </div>
+          ),
         });
       } else {
         toast({
