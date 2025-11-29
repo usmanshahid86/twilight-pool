@@ -28,12 +28,9 @@ export function OrderHistoryDataTable<TData, TValue>({
     { id: "date", desc: true },
   ]);
 
-  const { toast } = useToast();
-
   // Define the table meta data
   const tableMeta: OrderHistoryTableMeta = {
     getCurrentPrice,
-    toast,
   };
 
   const table = useReactTable({
