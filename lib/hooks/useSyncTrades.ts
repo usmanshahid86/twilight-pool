@@ -163,7 +163,7 @@ export const useSyncTrades = () => {
             newTrade.orderStatus === "SETTLED" ||
             newTrade.orderStatus === "LIQUIDATED"
           ) {
-            const newBalance = newTrade.availableMargin;
+            const newBalance = Math.round(newTrade.availableMargin);
 
             const existingZkAccount = zkAccounts.find(
               (account) => account.address === newTrade.accountAddress
