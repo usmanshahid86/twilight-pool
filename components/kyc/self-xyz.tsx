@@ -111,7 +111,8 @@ export default function SelfQRComponent({
     if (!whitelistStatus) {
       toast({
         title: "Failed to verify passport",
-        description: "Failed to verify passport, please try again later.",
+        description: "Failed to verify passport, please do toggle Mock Passport if you are using a mock passport.",
+        variant: "error",
       });
       return;
     }
@@ -140,10 +141,12 @@ export default function SelfQRComponent({
           onSuccess();
         }}
         onError={() => {
+
           toast({
             title: "Failed to verify passport",
-            description: "An error occurred while verifying your passport, please try again later.",
-          })
+            description: "Failed to verify passport, please do toggle Mock Passport if you are using a mock passport.",
+            variant: "error",
+          });
         }}
         selfApp={selfApp}
       />
