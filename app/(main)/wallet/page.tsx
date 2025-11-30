@@ -38,7 +38,6 @@ type TabType = "account-summary" | "transaction-history";
 
 const Page = () => {
   const [currentTab, setCurrentTab] = useState<TabType>("account-summary");
-  const isMounted = useIsMounted();
   const { toast } = useToast();
 
   const privateKey = useSessionStore((state) => state.privateKey);
@@ -361,7 +360,7 @@ const Page = () => {
         </div>
         <div className="md:col-span-5 flex flex-col rounded-md p-4 md:p-6 border">
           <Text heading="h2" className="text-lg font-normal">
-            My Assets
+            My Accounts
           </Text>
           <div className="space-y-4">
             <div className="grid grid-cols-3 w-full">

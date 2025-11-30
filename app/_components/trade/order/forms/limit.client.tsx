@@ -18,6 +18,7 @@ import cn from "@/lib/cn";
 import { retry } from "@/lib/helpers";
 import useGetTwilightBTCBalance from '@/lib/hooks/useGetTwilightBtcBalance';
 import { useToast } from "@/lib/hooks/useToast";
+import { usePriceFeed } from '@/lib/providers/feed';
 import { useGrid } from "@/lib/providers/grid";
 import { useSessionStore } from "@/lib/providers/session";
 import { useTwilightStore } from "@/lib/providers/store";
@@ -41,12 +42,18 @@ const OrderLimitForm = () => {
 
   const btcAmountRef = useRef<HTMLInputElement>(null);
   const leverageRef = useRef<HTMLInputElement>(null);
-
-  const [orderPrice, setOrderPrice] = useState(0);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [leverage, setLeverage] = useState<string>("1");
   const [percent, setPercent] = useState<number>(0);
+
+  const { getCurrentPrice } = usePriceFeed();
+
+  const liveBtcPrice = getCurrentPrice()
+  const storedBtcPrice = useSessionStore((state) => state.price.btcPrice);
+
+  const currentPrice = liveBtcPrice || storedBtcPrice; // binance websocket stream does not work for USA Ip address
+
+  const [orderPrice, setOrderPrice] = useState(currentPrice || 0);
 
   const [orderSats, setOrderSats] = useState(0);
 
@@ -165,7 +172,6 @@ const OrderLimitForm = () => {
         signature: privateKey,
         existingAccount: tradingAccount,
       });
-
 
       const privateTxSingleResult = await senderZkPrivateAccount.privateTxSingle(
         btcAmountInSats,
@@ -382,10 +388,12 @@ const OrderLimitForm = () => {
         </Text>
         <div className="flex flex-row space-x-2">
           <NumberInput
+            defaultValue={currentPrice}
             inputValue={orderPrice}
             setInputValue={setOrderPrice}
             id="input-order-price"
             name="price"
+            currentPrice={currentPrice}
           />
         </div>
       </div>

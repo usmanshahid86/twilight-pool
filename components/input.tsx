@@ -29,6 +29,7 @@ Input.displayName = "Input";
 interface NumberInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   inputValue: number;
   setInputValue: (val: number) => void;
+  currentPrice: number;
   step?: number;
   minValue?: number;
   maxValue?: number;
@@ -42,6 +43,7 @@ const NumberInput = ({
   maxValue = Number.MAX_SAFE_INTEGER,
   inputValue,
   setInputValue,
+  currentPrice,
   ...props
 }: NumberInputProps) => {
   const id = useId();
@@ -56,33 +58,6 @@ const NumberInput = ({
     [inputValue]
   );
 
-  const currentValue = Big(inputValue);
-  const canIncrement = currentValue.minus(step).lte(maxValue);
-  const canDecrement = currentValue.minus(step).gte(minValue);
-
-  function modifyValueByStep(
-    event: React.MouseEvent<HTMLButtonElement, MouseEvent>
-  ) {
-    event.preventDefault();
-    const currentValue = Big(inputValue);
-
-    const action = event.currentTarget.id.includes("increment")
-      ? "increment"
-      : "decrement";
-
-    if (action === "increment" && canIncrement) {
-      const newValue = currentValue.plus(step);
-      setInputValue(newValue.toNumber());
-      return;
-    }
-
-    if (action === "decrement" && canDecrement) {
-      const newValue = currentValue.minus(step);
-      setInputValue(newValue.toNumber());
-      return;
-    }
-  }
-
   return (
     <div className="relative flex w-full">
       <Input
@@ -91,29 +66,34 @@ const NumberInput = ({
         type="number"
         className={className}
         ref={inputRef}
+        onKeyDown={(e) => {
+          // Prevent negative sign and multiple dots
+          if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+            e.preventDefault();
+          }
+          // Prevent multiple dots
+          if (e.key === '.' && e.currentTarget.value.includes('.')) {
+            e.preventDefault();
+          }
+        }}
         onChange={(e) => {
+          // Remove any negative signs and ensure only one dot
+          let value = e.target.value.replace(/-/g, '');
+          const dotCount = (value.match(/\./g) || []).length;
+          if (dotCount > 1) {
+            // Keep only the first dot
+            const firstDotIndex = value.indexOf('.');
+            value = value.slice(0, firstDotIndex + 1) + value.slice(firstDotIndex + 1).replace(/\./g, '');
+          }
+          e.target.value = value;
+
           props.onChange?.(e);
-          setInputValue(Big(e.target.value || 0).toNumber())
+          setInputValue(Big(value || 0).toNumber())
         }}
         {...props}
       />
-      <div className="absolute inset-y-0 right-0 mt-[1px] flex h-[calc(100%-2px)] flex-col items-center justify-center border-l">
-        <button
-          id={`${id}-increment`}
-          onClick={modifyValueByStep}
-          className="z-10 flex h-full items-center justify-center border-b px-1.5 text-sm text-primary-accent hover:text-primary disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:text-primary-accent"
-          disabled={!canIncrement}
-        >
-          <ChevronUp className="h-4 w-4" />
-        </button>
-        <button
-          id={`${id}-decrement`}
-          onClick={modifyValueByStep}
-          className="z-10 flex h-full items-center justify-center px-1.5 text-sm text-primary-accent hover:text-primary disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:text-primary-accent"
-          disabled={!canDecrement}
-        >
-          <ChevronDown className="h-4 w-4" />
-        </button>
+      <div className="text-sm absolute inset-y-0 right-2 mt-[1px] flex h-[calc(100%-2px)] flex-col items-center justify-center hover:text-theme transition-colors">
+        <button onClick={() => setInputValue(currentPrice)}>Mid</button>
       </div>
     </div>
   );

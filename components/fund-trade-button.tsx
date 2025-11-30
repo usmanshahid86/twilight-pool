@@ -525,7 +525,11 @@ function FundingTradeButton({
               disabled={isLoading}
             />
 
-            <label htmlFor="transfer-amount-input" className="select-none inset-y-0 right-0 absolute z-10 flex h-full items-center justify-center px-1.5 font-ui text-xs text-primary opacity-60 data-[state=open]:opacity-90">MAX: {transferType === "fund" ? twilightSatsString : tradingAccountBalanceString}</label>
+            <label htmlFor="transfer-amount-input" onClick={() => {
+              setInputValue(transferType === "fund" ? twilightSatsString : tradingAccountBalanceString);
+            }} className="hover:opacity-100 cursor-pointer select-none inset-y-0 right-0 absolute z-10 flex h-full items-center justify-center px-1.5 font-ui text-xs text-primary opacity-60 data-[state=open]:opacity-90">
+              MAX: {transferType === "fund" ? twilightSatsString : tradingAccountBalanceString}
+            </label>
           </div>
           <Button
             onClick={handleTransfer}
