@@ -427,7 +427,7 @@ const Page = () => {
             <Separator />
 
             <div className="grid grid-cols-3 w-full">
-              <Text className="col-span-1 text-sm md:text-base">Locked</Text>
+              <Text className="col-span-1 text-sm md:text-base">Utilized</Text>
               <div className="col-span-1 mx-auto">
                 <Resource
                   isLoaded={
