@@ -80,9 +80,8 @@ const Page = () => {
     .mul(finalPrice)
     .toFixed(2);
 
-  const zkAccountSatsBalance = zkAccounts.reduce((acc, account) => {
+  const zkAccountSatsBalance = zkAccounts.filter((account) => account.tag !== "main").reduce((acc, account) => {
     acc += account.value || 0;
-
     return acc;
   }, 0);
 
