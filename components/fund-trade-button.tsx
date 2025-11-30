@@ -468,7 +468,7 @@ function FundingTradeButton({
               <ArrowLeftRight className="h-4 w-4" />
             </Button>
           ) :
-            (<button className="flex flex-row items-center justify-center gap-1 text-xs transition-colors duration-300 hover:border-primary px-2 py-1 rounded-md disabled:hover:border-outline border border-outline focus-visible:ring-1 focus-visible:ring-primary disabled:cursor-not-allowed disabled:text-gray-500 flex-shrink-0">
+            (<button className="flex flex-row items-center justify-center gap-1 text-xs transition-colors duration-300  px-2 py-1 rounded-md disabled:hover:border-outline bg-primary text-background hover:bg-primary/80 border border-outline focus-visible:ring-1 focus-visible:ring-primary disabled:cursor-not-allowed disabled:text-gray-500 flex-shrink-0">
               Fund<ArrowLeftRight className="h-3 w-3" />Trade
             </button>
             )
