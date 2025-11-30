@@ -192,14 +192,20 @@ async function createZkBurnTx({
     utxoString,
   });
 
-  const output = await queryUtxoForOutput(utxoHex);
+  const outputResult = await retry<
+    ReturnType<typeof queryUtxoForOutput>,
+    string
+  >(queryUtxoForOutput, 30, utxoHex, 1000, (outputObj) =>
+    Object.hasOwn(outputObj, "out_type")
+  );
 
-  if (!Object.hasOwn(output, "out_type")) {
+  if (!outputResult.success) {
     console.error("no output");
     return {
       success: false,
     };
   }
+  const output = outputResult.data;
 
   const outputString = JSON.stringify(output);
 

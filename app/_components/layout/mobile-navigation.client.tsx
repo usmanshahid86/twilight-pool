@@ -46,7 +46,7 @@ const MobileNav = () => {
               Links
             </Text>
             <div className="space-y-2">
-              <MobileLink href="/trade" text="Trade" />
+              <MobileLink href="/" text="Trade" />
               <MobileLink href="/lend" text="Lend" />
               <MobileLink href="/wallet" text="Wallet" />
               <MobileLink href="/faucet" text="Faucet" />
@@ -71,12 +71,6 @@ const MobileNav = () => {
               <MobileLink href="https://user-guide.docs.twilight.rest/docs" text="User Guides" />
               {/* <MobileLink href="/lend-to-twilight-pool" text="Lend to Twilight Pool" /> */}
             </div>
-          </div>
-          <div className="space-y-1">
-            <Text className="font-ui text-xs uppercase text-primary/80">
-              Accounts
-            </Text>
-            <SubaccountSelect />
           </div>
         </div>
       </DialogContent>

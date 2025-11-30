@@ -12,7 +12,7 @@ const Logo = ({ className }: Props) => {
   const [mounted, setMounted] = useState(false);
   const { theme } = useTheme();
 
-  const logoName = theme === "dark" || !mounted ? "logo" : "logo-dark";
+  const logoName = theme === "dark" || !mounted ? "logo-dark" : "logo";
 
   useEffect(() => {
     setMounted(true);
@@ -22,7 +22,7 @@ const Logo = ({ className }: Props) => {
     <>
       <Image
         className={cn("hidden md:block", className)}
-        src={`/images/${logoName}.png`}
+        src={`/images/${logoName}.svg`}
         alt="Logo"
         width={108}
         height={24}

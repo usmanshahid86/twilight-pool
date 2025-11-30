@@ -233,7 +233,7 @@ const OrderMyTrades = () => {
         <div className="opacity-90">
           {`Successfully sent ${new BTC("sats", Big(zkAccount.value))
             .convert("BTC")
-            .toString()} BTC to Funding Account. `}
+            .toString()} BTC to the Trading Account.`}
           <Link
             href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${mintBurnRes.transactionHash}`}
             target={"_blank"}
@@ -538,7 +538,6 @@ const OrderMyTrades = () => {
         description: "Error account associated with this order is missing",
       });
 
-      removeTrade(tradeOrder);
       return;
     }
 

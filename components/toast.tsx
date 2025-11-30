@@ -29,7 +29,7 @@ const ToastViewport = React.forwardRef<
 ToastViewport.displayName = Viewport.displayName;
 
 enum variantStyles {
-  default = "border bg-background",
+  default = "border bg-primary text-background",
   error = "group border-red bg-red",
   success = "border-green bg-green",
 }

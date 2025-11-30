@@ -1,3 +1,4 @@
+import Big from "big.js";
 import {
   broadcastTradingTx,
   getUtxosFromDB,
@@ -34,7 +35,21 @@ async function getCoinOutputFromUtxo(
   utxoHex: string
 ): Promise<SuccessResult<OutputData<"Coin">> | FailureResult> {
   try {
-    const output = await queryUtxoForOutput(utxoHex);
+    const outputResult = await retry<
+      ReturnType<typeof queryUtxoForOutput>,
+      string
+    >(queryUtxoForOutput, 30, utxoHex, 1000, (outputObj) =>
+      Object.hasOwn(outputObj, "out_type")
+    );
+
+    if (!outputResult.success) {
+      return {
+        success: false,
+        message: `Error with querying zkos endpoint`,
+      };
+    }
+
+    const output = outputResult.data;
 
     if (!Object.hasOwn(output, "out_type")) {
       return {
@@ -415,7 +430,8 @@ export class ZkPrivateAccount {
 
   public async privateTxSingle(
     amount: number,
-    receiverAddress: string
+    receiverAddress: string,
+    receiverBalance?: number
   ): Promise<
     | SuccessResult<{
         scalar: string;
@@ -424,17 +440,6 @@ export class ZkPrivateAccount {
       }>
     | FailureResult
   > {
-    // for now make sure the updated balance is 0
-
-    // const updatedBalance = this.value - amount;
-
-    // if (amount < 0) {
-    //   return {
-    //     success: false,
-    //     message: `Unable to transfer ${amount} sats, due to lack of funds ${this.value}`,
-    //   };
-    // }
-
     const updatedBalance = this.value - amount;
 
     if (updatedBalance < 0) {
@@ -477,10 +482,50 @@ export class ZkPrivateAccount {
 
     try {
       console.log("createTradingTxSingle");
+
+      let isReceiverInput = false;
+      let receiverInputOrAddress = receiverAddress;
+
+      if (receiverBalance && receiverBalance > 0) {
+        isReceiverInput = true;
+
+        const receiverUtxoResult = await getUtxoFromAddress(receiverAddress);
+        const receiverCoinOutputResult =
+          await getCoinOutputFromAddress(receiverAddress);
+
+        if (!receiverUtxoResult.success) {
+          return {
+            success: false,
+            message: receiverUtxoResult.message,
+          };
+        }
+
+        if (!receiverCoinOutputResult.success) {
+          return {
+            success: false,
+            message: receiverCoinOutputResult.message,
+          };
+        }
+
+        const receiverUtxoData = receiverUtxoResult.data;
+        const receiverUtxoString = JSON.stringify(receiverUtxoData);
+
+        const receiverCoinOutput = receiverCoinOutputResult.data;
+        const receiverOutputString = JSON.stringify(receiverCoinOutput);
+
+        const receiverInputString = await createInputCoinFromOutput({
+          outputString: receiverOutputString,
+          utxoString: receiverUtxoString,
+        });
+
+        receiverInputOrAddress = receiverInputString;
+      }
+
       const tradingMsgStruct = await createTradingTxSingle({
+        isReceiverInput,
         senderInput: inputString,
-        amount,
-        receiverAddress: receiverAddress,
+        amount: amount,
+        receiverAddress: receiverInputOrAddress,
         signature: this.signature,
         updatedSenderBalance: updatedBalance,
       });
@@ -492,7 +537,6 @@ export class ZkPrivateAccount {
         encrypt_scalar_hex: string;
       };
 
-      console.log("txCommit", txHex);
       const txCommitResult = await this.txCommit(txHex);
 
       if (!txCommitResult.success) {
@@ -505,6 +549,7 @@ export class ZkPrivateAccount {
       const txId = txCommitResult.data;
 
       console.log("getUpdatedAddressFromTransaction");
+
       const updatedAddressStringified = await getUpdatedAddressFromTransaction({
         signature: this.signature,
         txHex,
@@ -513,7 +558,7 @@ export class ZkPrivateAccount {
       const updatedAddress = JSON.parse(updatedAddressStringified) as string[];
       this.address = updatedAddress[0];
       this.value = updatedBalance;
-      this.updateStatus(true);
+      this.updateStatus(updatedBalance > 0 ? true : false);
 
       return {
         success: true,

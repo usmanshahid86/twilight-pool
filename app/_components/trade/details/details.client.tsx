@@ -1,27 +1,18 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/tabs";
 import React, { useState, useMemo, useCallback } from "react";
-import OrderMyTrades from "../orderbook/my-trades.client";
 import { useTwilightStore } from '@/lib/providers/store';
 import PositionsTable from './tables/positions/positions-table.client';
 import { useSessionStore } from '@/lib/providers/session';
 import { useToast } from '@/lib/hooks/useToast';
-import { TradeOrder, ZkAccount } from '@/lib/types';
+import { TradeOrder } from '@/lib/types';
 import { cancelZkOrder, settleOrder } from '@/lib/zk/trade';
 import Link from 'next/link';
 import Big from 'big.js';
-import dayjs from 'dayjs';
 import OpenOrdersTable from './tables/open-orders/open-orders-table.client';
 import TraderHistoryTable from './tables/trader-history/trader-history-table.client';
 import OrderHistoryTable from './tables/order-history/order-history-table.client';
 import { useWallet } from '@cosmos-kit/react-lite';
-import { createZkAccount, createZkBurnTx } from '@/lib/twilight/zk';
-import { ZkPrivateAccount } from '@/lib/zk/account';
-import { verifyAccount, verifyQuisQuisTransaction } from '@/lib/twilight/zkos';
-import { broadcastTradingTx } from '@/lib/api/zkos';
-import { safeJSONParse } from '@/lib/helpers';
-import { twilightproject } from 'twilightjs';
-import Long from 'long';
-import BTC from '@/lib/twilight/denoms';
+import { useQueryClient } from '@tanstack/react-query';
 
 type TabType = "history" | "trades" | "positions" | "open-orders" | "trader-history";
 
@@ -33,19 +24,9 @@ const DetailsPanel = () => {
   const orderHistoryData = useTwilightStore((state) => state.trade_history.trades);
   const privateKey = useSessionStore((state) => state.privateKey);
 
-  const updateTrade = useTwilightStore((state) => state.trade.updateTrade)
-  const removeTrade = useTwilightStore((state) => state.trade.removeTrade)
-
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount)
-  const removeZkAccount = useTwilightStore((state) => state.zk.removeZkAccount);
 
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
-
-  const addTradeHistory = useTwilightStore((state) => state.trade_history.addTrade)
-
-  const addTransactionHistory = useTwilightStore(
-    (state) => state.history.addTransaction
-  );
 
   const positionsData = useMemo(() => {
     return tradeOrders.filter((trade) => trade.orderStatus === "FILLED")
@@ -63,204 +44,110 @@ const DetailsPanel = () => {
     toast,
   } = useToast()
 
-  const { mainWallet } = useWallet();
+  const queryClient = useQueryClient();
 
-  const chainWallet = mainWallet?.getChainWallet("nyks");
-  const twilightAddress = chainWallet?.address
+  // const cleanupTradeOrder = useCallback(async (privateKey: string, zkAccount: ZkAccount) => {
+  //   if (!twilightAddress || !tradingAccount) {
+  //     return {
+  //       success: false,
+  //       message: "An unexpected error occurred",
+  //     }
+  //   }
 
+  //   if (!zkAccount.value) {
+  //     return {
+  //       success: false,
+  //       message: "ZkAccount does not have a value",
+  //     }
+  //   }
 
-  const cleanupTradeOrder = useCallback(async (privateKey: string, zkAccount: ZkAccount) => {
-    if (!twilightAddress) {
-      return {
-        success: false,
-        message: "Twilight address not found",
-      }
-    }
+  //   const senderZkPrivateAccount = await ZkPrivateAccount.create({
+  //     signature: privateKey,
+  //     existingAccount: zkAccount,
+  //   });
 
-    if (!zkAccount.value) {
-      return {
-        success: false,
-        message: "ZkAccount does not have a value",
-      }
-    }
+  //   console.log("senderZkPrivateAccount", senderZkPrivateAccount.get());
 
-    const transientZkAccount = await createZkAccount({
-      tag: Math.random().toString(36).substring(2, 15),
-      signature: privateKey,
-    });
+  //   let privateTxSingleResult: any;
 
-    const senderZkPrivateAccount = await ZkPrivateAccount.create({
-      signature: privateKey,
-      existingAccount: zkAccount,
-    });
+  //   if (!tradingAccount.value || !tradingAccount.isOnChain) {
+  //     const newTradingAccount = await createZkAccount({
+  //       tag: "main",
+  //       signature: privateKey,
+  //     });
 
-    console.log("senderZkPrivateAccount", senderZkPrivateAccount.get());
+  //     privateTxSingleResult = await senderZkPrivateAccount.privateTxSingle(
+  //       zkAccount.value,
+  //       newTradingAccount.address,
+  //       0,
+  //     )
+  //   }
+  //   else {
+  //     privateTxSingleResult = await senderZkPrivateAccount.privateTxSingle(
+  //       zkAccount.value,
+  //       tradingAccount.address,
+  //       tradingAccount.value,
+  //     );
+  //   }
 
-    const privateTxSingleResult =
-      await senderZkPrivateAccount.privateTxSingle(
-        zkAccount.value,
-        transientZkAccount.address
-      );
+  //   if (!privateTxSingleResult.success) {
+  //     return {
+  //       success: false,
+  //       message: privateTxSingleResult.message,
+  //     }
+  //   }
 
-    if (!privateTxSingleResult.success) {
-      return {
-        success: false,
-        message: privateTxSingleResult.message,
-      }
-    }
+  //   const {
+  //     scalar: updatedTradingAccountScalar,
+  //     txId,
+  //     updatedAddress: updatedTradingAccountAddress,
+  //   } = privateTxSingleResult.data;
 
-    const {
-      scalar: updatedTransientScalar,
-      txId,
-      updatedAddress: updatedTransientAddress,
-    } = privateTxSingleResult.data;
+  //   updateZkAccount(tradingAccount.address, {
+  //     ...tradingAccount,
+  //     address: updatedTradingAccountAddress,
+  //     scalar: updatedTradingAccountScalar,
+  //     value: Big(zkAccount.value).add(tradingAccount.value || 0).toNumber(),
+  //     isOnChain: true,
+  //   })
 
-    console.log("txId", txId, "updatedAddess", updatedTransientAddress);
+  //   addTransactionHistory({
+  //     date: new Date(),
+  //     from: zkAccount.address,
+  //     fromTag: zkAccount.tag,
+  //     to: updatedTradingAccountAddress,
+  //     toTag: "Trading Account",
+  //     tx_hash: txId,
+  //     type: "Transfer",
+  //     value: zkAccount.value,
+  //   });
 
-    console.log(
-      "transient zkAccount balance =",
-      zkAccount.value,
-    );
+  //   removeZkAccount(zkAccount);
+  //   console.log("removeZKAccount", zkAccount)
 
-    const {
-      success,
-      msg: zkBurnMsg,
-      zkAccountHex,
-    } = await createZkBurnTx({
-      signature: privateKey,
-      zkAccount: {
-        tag: zkAccount.tag,
-        address: updatedTransientAddress,
-        scalar: updatedTransientScalar,
-        isOnChain: true,
-        value: zkAccount.value,
-        type: "Coin",
-      },
-      initZkAccountAddress: transientZkAccount.address,
-    });
+  //   toast({
+  //     title: "Success",
+  //     description: (
+  //       <div className="opacity-90">
+  //         {`Successfully sent ${new BTC("sats", Big(zkAccount.value))
+  //           .convert("BTC")
+  //           .toString()} BTC to Funding Account. `}
+  //         <Link
+  //           href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${txId}`}
+  //           target={"_blank"}
+  //           className="text-sm underline hover:opacity-100"
+  //         >
+  //           Explorer link
+  //         </Link>
+  //       </div>
+  //     ),
+  //   });
 
-    if (!success || !zkBurnMsg || !zkAccountHex) {
-      return {
-        success: false,
-        message: "Error creating zkBurnTx msg",
-      }
-    }
+  //   return {
+  //     success: true,
+  //   }
 
-    console.log({
-      zkAccountHex: zkAccountHex,
-      balance: zkAccount.value,
-      signature: privateKey,
-      initZkAccountAddress: transientZkAccount.address,
-    });
-
-    const isAccountValid = await verifyAccount({
-      zkAccountHex: zkAccountHex,
-      balance: zkAccount.value,
-      signature: privateKey,
-    });
-
-    console.log("isAccountValid", isAccountValid);
-
-    toast({
-      title: "Broadcasting transfer",
-      description:
-        "Please do not close this page while your BTC is being transferred to your funding account...",
-    });
-
-    const txValidMessage = await verifyQuisQuisTransaction({
-      tx: zkBurnMsg,
-    });
-
-    console.log("txValidMessage", txValidMessage);
-
-    const tradingTxResString = await broadcastTradingTx(
-      zkBurnMsg,
-      twilightAddress
-    );
-
-    console.log("zkBurnMsg tradingTxResString >>"), tradingTxResString;
-
-    const tradingTxRes = safeJSONParse(tradingTxResString as string);
-
-    if (!tradingTxRes.success || Object.hasOwn(tradingTxRes, "error")) {
-      toast({
-        variant: "error",
-        title: "An error has occurred",
-        description: "Please try again later.",
-      });
-      console.error("error broadcasting zkBurnTx msg", tradingTxRes);
-      return {
-        success: false,
-        message: "Error broadcasting zkBurnTx msg",
-      }
-    }
-
-    console.log("tradingTxRes", tradingTxRes);
-
-    const { mintBurnTradingBtc } =
-      twilightproject.nyks.zkos.MessageComposer.withTypeUrl;
-
-    const stargateClient = await chainWallet.getSigningStargateClient();
-
-    console.log({
-      btcValue: Long.fromNumber(zkAccount.value),
-      encryptScalar: updatedTransientScalar,
-      mintOrBurn: false,
-      qqAccount: zkAccountHex,
-      twilightAddress,
-    });
-
-    const mintBurnMsg = mintBurnTradingBtc({
-      btcValue: Long.fromNumber(zkAccount.value),
-      encryptScalar: updatedTransientScalar,
-      mintOrBurn: false,
-      qqAccount: zkAccountHex,
-      twilightAddress,
-    });
-
-    console.log("mintBurnMsg", mintBurnMsg);
-    const mintBurnRes = await stargateClient.signAndBroadcast(
-      twilightAddress,
-      [mintBurnMsg],
-      "auto"
-    );
-
-    addTransactionHistory({
-      date: new Date(),
-      from: zkAccount.address,
-      fromTag: zkAccount.tag,
-      to: twilightAddress,
-      toTag: "Funding",
-      tx_hash: mintBurnRes.transactionHash,
-      type: "Burn",
-      value: zkAccount.value,
-    });
-
-    removeZkAccount(zkAccount);
-
-    toast({
-      title: "Success",
-      description: (
-        <div className="opacity-90">
-          {`Successfully sent ${new BTC("sats", Big(zkAccount.value))
-            .convert("BTC")
-            .toString()} BTC to Funding Account. `}
-          <Link
-            href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${mintBurnRes.transactionHash}`}
-            target={"_blank"}
-            className="text-sm underline hover:opacity-100"
-          >
-            Explorer link
-          </Link>
-        </div>
-      ),
-    });
-
-    return {
-      success: true,
-    }
-
-  }, [toast, zkAccounts, privateKey, updateTrade, removeZkAccount]);
+  // }, [toast, zkAccounts, privateKey, updateTrade, removeZkAccount]);
 
   const settleMarketOrder = useCallback(async (trade: TradeOrder, currentPrice: number) => {
     toast({
@@ -285,32 +172,6 @@ const DetailsPanel = () => {
     })
 
     const settledData = settleOrderResult.data;
-    console.log(`settledData`, settledData)
-
-    const updatedTrade = {
-      ...trade,
-      orderStatus: settledData.order_status,
-      availableMargin: Big(settledData.available_margin).toNumber(),
-      maintenanceMargin: Big(settledData.maintenance_margin).toNumber(),
-      unrealizedPnl: Big(settledData.unrealized_pnl).toNumber(),
-      settlementPrice: Big(settledData.settlement_price).toNumber(),
-      positionSize: Big(settledData.positionsize).toNumber(),
-      orderType: settledData.order_type,
-      date: dayjs(settledData.timestamp).toDate(),
-      exit_nonce: settledData.exit_nonce,
-      executionPrice: Big(settledData.execution_price).toNumber(),
-      isOpen: false,
-      feeSettled: Big(settledData.fee_settled).toNumber(),
-      feeFilled: Big(settledData.fee_filled).toNumber(),
-      realizedPnl: Big(settledData.unrealized_pnl).toNumber(),
-      tx_hash: settledData.tx_hash || trade.tx_hash,
-    }
-
-    updateTrade(updatedTrade)
-
-    if (updatedTrade.orderStatus === "SETTLED") {
-      addTradeHistory(updatedTrade)
-    }
 
     const updatedAccount = zkAccounts.find(account => account.address === trade.accountAddress);
 
@@ -327,26 +188,21 @@ const DetailsPanel = () => {
 
     console.log("newBalance", balance || trade.value)
 
-    // update the account balance in case cleanup fails
-    updateZkAccount(trade.accountAddress, {
-      ...updatedAccount,
-      type: "CoinSettled",
-      value: balance || trade.value,
-    });
+    // const result = await cleanupTradeOrder(privateKey, {
+    //   ...updatedAccount,
+    //   value: balance || trade.value,
+    // });
 
-    const result = await cleanupTradeOrder(privateKey, {
-      ...updatedAccount,
-      value: balance || trade.value,
-    });
+    // if (!result.success) {
+    //   toast({
+    //     title: "Failed to update balance",
+    //     description: "Please manually transfer your balance to your funding account in the wallet page",
+    //     variant: "error",
+    //   })
+    //   return;
+    // }
 
-    if (!result.success) {
-      toast({
-        title: "Failed to update balance",
-        description: "Please manually transfer your balance to your funding account in the wallet page",
-        variant: "error",
-      })
-      return;
-    }
+    await queryClient.invalidateQueries({ queryKey: ['sync-trades'] })
 
     toast({
       title: "Position closed",
@@ -366,7 +222,7 @@ const DetailsPanel = () => {
       </div>
     })
 
-  }, [privateKey, zkAccounts])
+  }, [privateKey, zkAccounts, toast])
 
   const cancelOrder = useCallback(async (order: TradeOrder) => {
     toast({
@@ -397,16 +253,16 @@ const DetailsPanel = () => {
       })
       return;
     }
-    const result = await cleanupTradeOrder(privateKey, zkAccount);
+    // const result = await cleanupTradeOrder(privateKey, zkAccount);
 
-    if (!result.success) {
-      toast({
-        title: "Error with settling trade order",
-        description: result.message,
-        variant: "error",
-      })
-      return;
-    }
+    // if (!result.success) {
+    //   toast({
+    //     title: "Error with settling trade order",
+    //     description: result.message,
+    //     variant: "error",
+    //   })
+    //   return;
+    // }
 
     toast({
       title: "Order cancelled",
@@ -425,9 +281,6 @@ const DetailsPanel = () => {
         }
       </div>
     })
-
-
-    removeTrade(order);
 
     const updatedAccount = zkAccounts.find(account => account.address === order.accountAddress);
 
@@ -463,6 +316,8 @@ const DetailsPanel = () => {
       ...updatedAccount,
       type: "Coin",
     });
+
+    await queryClient.invalidateQueries({ queryKey: ['sync-trades'] })
 
   }, [privateKey, zkAccounts])
 

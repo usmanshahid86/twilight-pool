@@ -1,7 +1,6 @@
 "use client";
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { useSyncTrades } from '../hooks/useSyncTrades';
-import { useSyncBalance } from '../hooks/useSyncBalance';
 
 type PriceFeedProviderProps = {
   children: React.ReactNode;

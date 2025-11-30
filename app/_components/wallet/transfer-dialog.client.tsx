@@ -159,7 +159,6 @@ const TransferDialog = ({
       return;
     }
 
-
     try {
       const registeredBtcAddress = await getRegisteredBTCAddress(twilightAddress);
 
@@ -193,14 +192,14 @@ const TransferDialog = ({
           return;
         }
 
-        if (depositZkAccount.value && depositZkAccount.value > 0) {
-          toast({
-            title: "Unable to transfer",
-            description: "Unable to transfer to an account with balance",
-          });
-          setIsSubmitLoading(false);
-          return;
-        }
+        // if (depositZkAccount.value && depositZkAccount.value > 0) {
+        //   toast({
+        //     title: "Unable to transfer",
+        //     description: "Unable to transfer to an account with balance",
+        //   });
+        //   setIsSubmitLoading(false);
+        //   return;
+        // }
 
         if (twilightSats < transferAmount) {
           toast({
@@ -335,14 +334,14 @@ const TransferDialog = ({
             return;
           }
 
-          if (depositZkAccount.value && depositZkAccount.value > 0) {
-            toast({
-              title: "Unable to transfer",
-              description: "Unable to transfer to an account with balance",
-            });
-            setIsSubmitLoading(false);
-            return;
-          }
+          // if (depositZkAccount.value && depositZkAccount.value > 0) {
+          //   toast({
+          //     title: "Unable to transfer",
+          //     description: "Unable to transfer to an account with balance",
+          //   });
+          //   setIsSubmitLoading(false);
+          //   return;
+          // }
 
           if (depositZkAccount.type === "Memo" || senderZkAccount.type === "Memo") {
             toast({
@@ -376,7 +375,8 @@ const TransferDialog = ({
           const privateTxSingleResult =
             await senderZkPrivateAccount.privateTxSingle(
               transferAmount,
-              depositZkAccount.address
+              depositZkAccount.address,
+              depositZkAccount.value,
             );
 
           if (!privateTxSingleResult.success) {
@@ -446,7 +446,9 @@ const TransferDialog = ({
 
           updateZkAccount(senderZkAccount.address, {
             ...senderZkAccount,
-            value: 0,
+            address: updatedSenderAccount.address,
+            scalar: updatedSenderAccount.scalar,
+            value: updatedSenderAccount.value,
             isOnChain: updatedSenderAccount.isOnChain,
           });
 
@@ -457,7 +459,7 @@ const TransferDialog = ({
             ...depositZkAccount,
             address: rawDepositZkAccountData.address,
             scalar: rawDepositZkAccountData.scalar,
-            value: transferAmount,
+            value: Big(transferAmount).add(depositZkAccount.value || 0).toNumber(),
             isOnChain: true,
           });
 
@@ -642,8 +644,9 @@ const TransferDialog = ({
 
           updateZkAccount(senderZkAccount.address, {
             ...senderZkAccount,
-            isOnChain: false,
-            value: 0,
+            address: senderZkPrivateAccount.get().address,
+            scalar: senderZkPrivateAccount.get().scalar,
+            value: senderZkPrivateAccount.get().value,
           });
 
           addTransactionHistory({
@@ -927,7 +930,7 @@ const TransferDialog = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {zkAccounts.filter((account) => !account.value && account.type !== "CoinSettled").map((subAccount) => {
+                      {zkAccounts.filter((account) => account.type !== "CoinSettled").map((subAccount) => {
                         return (
                           <SelectItem
                             disabled={
@@ -1010,7 +1013,7 @@ const TransferDialog = ({
               setSelected={setDepositDenom}
               selected={depositDenom}
               ref={depositRef}
-              readOnly={toAccountValue === "funding"}
+            // readOnly={ }
             />
           </div>
 

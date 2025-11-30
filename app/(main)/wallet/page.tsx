@@ -32,6 +32,7 @@ import { safeJSONParse } from '@/lib/helpers';
 import { twilightproject } from 'twilightjs';
 import Long from 'long';
 import Link from 'next/link';
+import FundingTradeButton from '@/components/fund-trade-button';
 
 type TabType = "account-summary" | "transaction-history";
 
@@ -48,12 +49,6 @@ const Page = () => {
     (state) => state.history.transactions
   );
 
-  const tradingAccount = zkAccounts[ZK_ACCOUNT_INDEX.MAIN] as
-    | ZkAccount
-    | undefined;
-
-  const tradingAccountAddress = tradingAccount ? tradingAccount.address : "";
-
   const { getCurrentPrice } = usePriceFeed();
 
   const finalPrice = getCurrentPrice() || btcPrice;
@@ -65,13 +60,23 @@ const Page = () => {
 
   const twilightAddress = mainWallet?.getChainWallet("nyks")?.address || "";
 
-  // useRedirectUnconnected();
-
   const twilightBTCBalanceString = new BTC("sats", Big(twilightSats))
     .convert("BTC")
     .toFixed(8);
 
   const twilightBalanceUSDString = Big(twilightBTCBalanceString)
+    .mul(finalPrice)
+    .toFixed(2);
+
+  const tradingAccount = zkAccounts.find((account) => account.tag === "main");
+
+  const tradingAccountBalance = tradingAccount?.value || 0;
+
+  const tradingAccountBTCString = new BTC("sats", Big(tradingAccountBalance))
+    .convert("BTC")
+    .toFixed(8);
+
+  const tradingAccountBTCUSDString = Big(tradingAccountBTCString)
     .mul(finalPrice)
     .toFixed(2);
 
@@ -308,9 +313,9 @@ const Page = () => {
   }
 
   return (
-    <div className="mx-4 mt-4 space-y-8 md:mx-8">
-      <div className="grid grid-cols-12 gap-8">
-        <div className="col-span-7 md:space-y-4 border rounded-md p-4 md:p-6">
+    <div className="mx-4 mt-4 space-y-4 md:space-y-8 md:mx-8">
+      <div className="flex flex-col space-y-4 md:grid md:grid-cols-12 md:gap-8">
+        <div className="md:col-span-7 md:space-y-4 border rounded-md p-4 md:p-6">
           <div className="space-y-1">
             <Text heading="h1" className="mb-0 text-lg font-normal">
               Assets Overview
@@ -334,7 +339,6 @@ const Page = () => {
             </div>
           </div>
 
-
           {twilightAddress && (
             <div className="space-y-1">
               <Text className="text-sm">Twilight Address</Text>
@@ -356,17 +360,17 @@ const Page = () => {
             </div>
           )}
         </div>
-        <div className="col-span-5 flex flex-col rounded-md p-4 md:p-6 border">
+        <div className="md:col-span-5 flex flex-col rounded-md p-4 md:p-6 border">
           <Text heading="h2" className="text-lg font-normal">
             My Assets
           </Text>
           <div className="space-y-4">
-            <div className="flex w-full justify-between space-x-2">
+            <div className="grid grid-cols-3 w-full">
               <Text className="text-sm md:text-base">Funding</Text>
-              <div className="min-w-[140px]">
+              <div className="mx-auto">
                 <Resource
                   isLoaded={
-                    status === WalletStatus.Connected
+                    !satsLoading
                   }
                   placeholder={<Skeleton className="h-5 w-[140px]" />}
                 >
@@ -376,8 +380,7 @@ const Page = () => {
                 </Resource>
                 <Resource
                   isLoaded={
-                    status === WalletStatus.Connected &&
-                    finalPrice !== 0
+                    !satsLoading
                   }
                   placeholder={<Skeleton className="mt-1 h-4 w-[80px]" />}
                 >
@@ -386,25 +389,51 @@ const Page = () => {
                   </Text>
                 </Resource>
               </div>
-              <div className="flex flex-row space-x-2">
-                <TransferDialog
-                  tradingAccountAddress={tradingAccountAddress}
-                  defaultAccount="funding"
-                >
-                  <Button disabled={totalSatsBalance.lt(1)} variant="ui" size="icon">
-                    <ArrowLeftRight className="h-4 w-4" />
-                  </Button>
-                </TransferDialog>
+              <div className="flex flex-row space-x-2 justify-end">
+                <FundingTradeButton type="icon" defaultTransferType="fund" />
               </div>
             </div>
 
             <Separator />
 
-            <div className="flex w-full justify-between space-x-2">
+            <div className="grid grid-cols-3 w-full">
               <Text className="text-sm md:text-base">Trading</Text>
-              <div className="min-w-[140px]">
+              <div className="mx-auto">
                 <Resource
-                  isLoaded={status === WalletStatus.Connected && isMounted}
+                  isLoaded={
+                    !satsLoading
+                  }
+                  placeholder={<Skeleton className="h-5 w-[140px]" />}
+                >
+                  <Text className="text-sm text-primary/80 md:text-base">
+                    {tradingAccountBTCString} BTC
+                  </Text>
+                </Resource>
+                <Resource
+                  isLoaded={
+                    !satsLoading
+                  }
+                  placeholder={<Skeleton className="mt-1 h-4 w-[80px]" />}
+                >
+                  <Text className="text-xs text-primary-accent">
+                    = {tradingAccountBTCUSDString} USD
+                  </Text>
+                </Resource>
+              </div>
+              <div className="flex flex-row space-x-2 justify-end">
+                <FundingTradeButton type="icon" defaultTransferType="trade" />
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="grid grid-cols-3 w-full">
+              <Text className="col-span-1 text-sm md:text-base">Locked</Text>
+              <div className="col-span-1 mx-auto">
+                <Resource
+                  isLoaded={
+                    !satsLoading
+                  }
                   placeholder={<Skeleton className="h-5 w-[140px]" />}
                 >
                   <Text className="text-sm text-primary/80 md:text-base">
@@ -413,9 +442,7 @@ const Page = () => {
                 </Resource>
                 <Resource
                   isLoaded={
-                    status === WalletStatus.Connected &&
-                    isMounted &&
-                    finalPrice !== 0
+                    !satsLoading
                   }
                   placeholder={<Skeleton className="mt-1 h-4 w-[80px]" />}
                 >
@@ -423,16 +450,6 @@ const Page = () => {
                     = {zkAccountBTCUSDString} USD
                   </Text>
                 </Resource>
-              </div>
-              <div className="flex flex-row space-x-2">
-                <TransferDialog
-                  tradingAccountAddress={tradingAccountAddress}
-                  defaultAccount="trading"
-                >
-                  <Button disabled={totalSatsBalance.lt(1)} variant="ui" size="icon">
-                    <ArrowLeftRight className="h-4 w-4" />
-                  </Button>
-                </TransferDialog>
               </div>
             </div>
           </div>
@@ -458,13 +475,14 @@ const Page = () => {
               </TabsTrigger>
             </TabsList>
           </Tabs>
+
           {/* <div className="flex space-x-2">
             <button className="text-xs">Import</button>
             <button className="text-xs">Export</button>
           </div> */}
         </div>
 
-        <div className="h-full min-h-[500px] w-full py-1">
+        <div className="h-full min-h-[500px] w-full py-1 overflow-auto">
           {renderTableContent()}
         </div>
       </div>

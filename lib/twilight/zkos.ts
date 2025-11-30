@@ -189,12 +189,14 @@ async function createTradingTxSingle({
   receiverAddress,
   amount,
   updatedSenderBalance,
+  isReceiverInput,
 }: {
   signature: string;
   senderInput: string;
   receiverAddress: string;
   amount: number;
   updatedSenderBalance: number;
+  isReceiverInput: boolean;
 }) {
   const zkos = await initZkos();
   return zkos.privateTransactionSingle(
@@ -202,7 +204,7 @@ async function createTradingTxSingle({
     senderInput,
     receiverAddress,
     BigInt(amount),
-    false,
+    isReceiverInput, // input has to be true if receiver account exists
     BigInt(updatedSenderBalance),
     BigInt(1)
   );

@@ -9,6 +9,7 @@ import { sendTradeOrder } from "@/lib/api/client";
 import { queryTradeOrder } from '@/lib/api/relayer';
 import { TransactionHash, queryTransactionHashes } from "@/lib/api/rest";
 import cn from "@/lib/cn";
+import { retry } from '@/lib/helpers';
 import useGetTwilightBTCBalance from '@/lib/hooks/useGetTwilightBtcBalance';
 import { useToast } from "@/lib/hooks/useToast";
 import { usePriceFeed } from "@/lib/providers/feed";
@@ -21,6 +22,7 @@ import { createFundingToTradingTransferMsg } from '@/lib/twilight/wallet';
 import { createZkAccountWithBalance, createZkOrder } from "@/lib/twilight/zk";
 import { createQueryTradeOrderMsg } from '@/lib/twilight/zkos';
 import { ZkAccount } from '@/lib/types';
+import { ZkPrivateAccount } from '@/lib/zk/account';
 import { WalletStatus } from "@cosmos-kit/core";
 import { useWallet } from "@cosmos-kit/react-lite";
 import Big from "big.js";
@@ -34,12 +36,8 @@ const OrderMarketForm = () => {
 
   const privateKey = useSessionStore((state) => state.privateKey);
 
-  const { twilightSats, isLoading: isSatsLoading } =
+  const { isLoading: isSatsLoading } =
     useGetTwilightBTCBalance();
-
-  const twilightBTCBalanceString = new BTC("sats", Big(twilightSats))
-    .convert("BTC")
-    .toString();
 
   const { hasRegisteredBTC } = useTwilight();
   const { getCurrentPrice } = usePriceFeed();
@@ -59,6 +57,10 @@ const OrderMarketForm = () => {
   const leverageRef = useRef<HTMLInputElement>(null);
 
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
+  const tradingAccount = zkAccounts.find((account) => account.tag === 'main');
+
+  const tradingAccountBalance = tradingAccount?.value || 0;
+  const tradingAccountBalanceString = new BTC("sats", Big(tradingAccountBalance)).convert("BTC").toFixed(8);
 
   const { mainWallet } = useWallet();
 
@@ -107,12 +109,6 @@ const OrderMarketForm = () => {
 
   async function submitMarket(type: "SELL" | "BUY") {
     const positionType = type === "BUY" ? "LONG" : "SHORT";
-    toast({
-      title: "Approval Pending",
-      description: "Please approve the transaction in your wallet.",
-    })
-
-    const tag = `BTC ${type.toLowerCase()} ${zkAccounts.length}`
 
     const chainWallet = mainWallet?.getChainWallet("nyks");
 
@@ -144,19 +140,17 @@ const OrderMarketForm = () => {
 
     const twilightAddress = chainWallet.address;
 
-    if (!twilightAddress) {
-      console.error("no twilightAddress");
+    if (!twilightAddress || !hasRegisteredBTC || !tradingAccount) {
+      console.error("unexpected error")
       return;
     }
 
     try {
-      if (!hasRegisteredBTC) return;
-
       const satsValue = new BTC("BTC", Big(btcValue))
         .convert("sats")
         .toNumber();
 
-      if (twilightSats < satsValue) {
+      if (tradingAccountBalance < satsValue) {
         toast({
           variant: "error",
           title: "Insufficient funds",
@@ -167,43 +161,46 @@ const OrderMarketForm = () => {
 
       setIsSubmitting(true);
 
-      toast({
-        title: "Submitting deposit",
-        description: "Please do not close this page while your deposit is being submitted...",
-      })
-
-      const stargateClient = await chainWallet.getSigningStargateClient();
-
-      console.log("funding transfer signature", privateKey);
-      const { account: newTradingAccount, accountHex: newTradingAccountHex } =
+      const { account: newTradingAccount } =
         await createZkAccountWithBalance({
-          tag: tag,
+          tag: "market",
           balance: satsValue,
           signature: privateKey,
         });
 
-      const depositMsg = await createFundingToTradingTransferMsg({
-        twilightAddress,
-        transferAmount: satsValue,
-        account: newTradingAccount,
-        accountHex: newTradingAccountHex,
+      const tag = `BTC ${type.toLowerCase()} ${newTradingAccount.address.slice(0, 6)}`
+
+      const senderZkPrivateAccount = await ZkPrivateAccount.create({
+        signature: privateKey,
+        existingAccount: tradingAccount,
       });
 
-      console.log("msg", depositMsg);
+      const privateTxSingleResult = await senderZkPrivateAccount.privateTxSingle(
+        satsValue,
+        newTradingAccount.address
+      )
 
-      const res = await stargateClient.signAndBroadcast(
-        twilightAddress,
-        [depositMsg],
-        "auto"
-      );
+      if (!privateTxSingleResult.success) {
+        console.error(privateTxSingleResult.message);
+        toast({
+          title: "Error with submitting trade order",
+          description: "An error occurred when transferring funds from the trading account, please try again later.",
+          variant: "error",
+        })
+        return;
+      }
 
-      console.log("sent sats from funding to trading", satsValue);
-      console.log("res", res)
+      // the naming is abit off, this updated trading account is the account used to place the order
+      const {
+        txId,
+        scalar: updatedTradingAccountScalar,
+        updatedAddress: updatedTradingAccountAddress,
+      } = privateTxSingleResult.data;
 
       const newZkAccount = {
-        scalar: newTradingAccount.scalar,
+        scalar: updatedTradingAccountScalar,
         type: "Coin",
-        address: newTradingAccount.address,
+        address: updatedTradingAccountAddress,
         tag: tag,
         isOnChain: true,
         value: satsValue,
@@ -213,13 +210,21 @@ const OrderMarketForm = () => {
       // note: add zk account in case submit order fails
       addZkAccount(newZkAccount as ZkAccount);
 
+      updateZkAccount(tradingAccount.address, {
+        ...tradingAccount,
+        address: senderZkPrivateAccount.get().address,
+        scalar: senderZkPrivateAccount.get().scalar,
+        value: senderZkPrivateAccount.get().value,
+        isOnChain: senderZkPrivateAccount.get().isOnChain,
+      })
+
       addTransactionHistory({
         date: new Date(),
-        from: twilightAddress,
-        fromTag: "Funding",
-        to: newZkAccount.address,
-        toTag: newZkAccount.tag,
-        tx_hash: res.transactionHash,
+        from: tradingAccount.address,
+        fromTag: "Trading Account",
+        to: updatedTradingAccountAddress,
+        toTag: tag,
+        tx_hash: txId,
         type: "Transfer",
         value: satsValue,
       });
@@ -242,141 +247,167 @@ const OrderMarketForm = () => {
           title: "Unable to submit trade order",
           description: "An error has occurred, try again later.",
         });
-        setIsSubmitting(false);
         return;
       }
 
       const data = await sendTradeOrder(msg);
 
-      if (data.result && data.result.id_key) {
-        console.log(data);
-        toast({
-          title: "Submitting order",
-          description: "Order is being submitted...",
-        });
-
-        let retries = 0;
-        let orderData: TransactionHash | undefined = undefined;
-
-        while (!orderData) {
-          try {
-            if (retries > 10) break;
-            const txHashesRes = await queryTransactionHashes(
-              newZkAccount.address
-            );
-
-            if (!txHashesRes.result) {
-              retries += 1;
-              continue;
-            }
-
-            orderData = txHashesRes.result[0] as TransactionHash;
-          } catch (err) {
-            console.error(err)
-            break;
-          }
-        }
-
-        if (!orderData || orderData.tx_hash.includes("Error")) {
-          toast({
-            variant: "error",
-            title: "Error",
-            description: "Error with creating trade order",
-          });
-
-          setIsSubmitting(false);
-          return;
-        }
-
-        console.log("orderData", orderData);
-
-        toast({
-          title: "Success",
-          description: (
-            <div className="flex space-x-1 opacity-90">
-              Successfully submitted trade order.{" "}
-              <Button
-                variant="link"
-                className="inline-flex text-sm opacity-90 hover:opacity-100"
-                asChild
-              >
-                <Link
-                  href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${orderData.tx_hash}`}
-                  target={"_blank"}
-                >
-                  Explorer link
-                </Link>
-              </Button>
-            </div>
-          ),
-        });
-
-        const queryTradeOrderMsg = await createQueryTradeOrderMsg({
-          address: newZkAccount.address,
-          orderStatus: orderData.order_status,
-          signature: privateKey,
-        });
-
-        console.log("queryTradeOrderMsg", queryTradeOrderMsg);
-
-        const queryTradeOrderRes = await queryTradeOrder(queryTradeOrderMsg);
-
-        if (!queryTradeOrderRes) {
-          throw new Error("Failed to query trade order");
-        }
-
-        const traderOrderInfo = queryTradeOrderRes.result;
-
-        console.log("traderOrderInfo", traderOrderInfo)
-
-        const newTradeData = {
-          accountAddress: newZkAccount.address,
-          orderStatus: orderData.order_status,
-          positionType,
-          orderType: orderData.order_type,
-          tx_hash: orderData.tx_hash,
-          uuid: orderData.order_id,
-          value: satsValue,
-          output: orderData.output,
-          entryPrice: new Big(traderOrderInfo.entryprice).toNumber(),
-          leverage: leverage,
-          isOpen: true,
-          date: dayjs(traderOrderInfo.timestamp).toDate(),
-          availableMargin: new Big(traderOrderInfo.available_margin).toNumber(),
-          bankruptcyPrice: new Big(traderOrderInfo.bankruptcy_price).toNumber(),
-          bankruptcyValue: new Big(traderOrderInfo.bankruptcy_value).toNumber(),
-          entryNonce: traderOrderInfo.entry_nonce,
-          entrySequence: traderOrderInfo.entry_sequence,
-          executionPrice: new Big(traderOrderInfo.execution_price).toNumber(),
-          initialMargin: new Big(traderOrderInfo.initial_margin).toNumber(),
-          liquidationPrice: new Big(traderOrderInfo.liquidation_price).toNumber(),
-          maintenanceMargin: new Big(traderOrderInfo.maintenance_margin).toNumber(),
-          positionSize: new Big(traderOrderInfo.positionsize).toNumber(),
-          settlementPrice: new Big(traderOrderInfo.settlement_price).toNumber(),
-          unrealizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
-          feeFilled: new Big(traderOrderInfo.fee_filled).toNumber(),
-          feeSettled: new Big(traderOrderInfo.fee_settled).toNumber(),
-        }
-
-        addTrade(newTradeData);
-        addTradeHistory(newTradeData);
-
-        updateZkAccount(newZkAccount.address, {
-          ...newZkAccount,
-          type: "Memo",
-        });
-
-      } else {
+      if (!data.result || !data.result.id_key) {
         toast({
           variant: "error",
           title: "Unable to submit trade order",
-          description: "An error has occurred, try again later.",
+          description: "An error has occurred when submitting the trade order, please try again later.",
         });
+        return;
       }
 
-      setIsSubmitting(false);
+      console.log(data);
+      toast({
+        title: "Submitting order",
+        description: "Order is being submitted...",
+      });
+
+      const transactionHashCondition = (
+        txHashResult: Awaited<ReturnType<typeof queryTransactionHashes>>
+      ) => {
+        if (txHashResult.result) {
+          const transactionHashes = txHashResult.result;
+
+          let txResult = false;
+
+          transactionHashes.forEach((result) => {
+            console.log(`market order transaction hashes result`, result)
+            if (result.tx_hash.includes("Error")) {
+              return;
+            }
+
+            txResult = !!result.tx_hash;
+          });
+
+          return txResult;
+        }
+        return false;
+      };
+
+      const transactionHashRes = await retry<
+        ReturnType<typeof queryTransactionHashes>,
+        string
+      >(
+        queryTransactionHashes,
+        30,
+        newZkAccount.address,
+        1000,
+        transactionHashCondition
+      );
+
+
+      if (!transactionHashRes.success) {
+        toast({
+          variant: "error",
+          title: "Error",
+          description: "Error with creating trade order",
+        });
+        return;
+      }
+
+      const orderData = transactionHashRes.data.result[0];
+
+      if (!orderData || orderData.tx_hash.includes("Error")) {
+        toast({
+          variant: "error",
+          title: "Error",
+          description: "Error with creating trade order",
+        });
+
+        return;
+      }
+
+      console.log("orderData", orderData);
+
+      toast({
+        title: "Success",
+        description: (
+          <div className="flex space-x-1 opacity-90">
+            Successfully submitted trade order.{" "}
+            <Button
+              variant="link"
+              className="inline-flex text-sm opacity-90 hover:opacity-100"
+              asChild
+            >
+              <Link
+                href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${orderData.tx_hash}`}
+                target={"_blank"}
+              >
+                Explorer link
+              </Link>
+            </Button>
+          </div>
+        ),
+      });
+
+      const queryTradeOrderMsg = await createQueryTradeOrderMsg({
+        address: newZkAccount.address,
+        orderStatus: orderData.order_status,
+        signature: privateKey,
+      });
+
+      console.log("queryTradeOrderMsg", queryTradeOrderMsg);
+
+      const queryTradeOrderRes = await queryTradeOrder(queryTradeOrderMsg);
+
+      if (!queryTradeOrderRes) {
+        throw new Error("Failed to query trade order");
+      }
+
+      const traderOrderInfo = queryTradeOrderRes.result;
+
+      console.log("traderOrderInfo", traderOrderInfo)
+
+      const newTradeData = {
+        accountAddress: newZkAccount.address,
+        orderStatus: orderData.order_status,
+        positionType,
+        orderType: orderData.order_type,
+        tx_hash: orderData.tx_hash,
+        uuid: orderData.order_id,
+        value: satsValue,
+        output: orderData.output,
+        entryPrice: new Big(traderOrderInfo.entryprice).toNumber(),
+        leverage: leverage,
+        isOpen: true,
+        date: dayjs(traderOrderInfo.timestamp).toDate(),
+        availableMargin: new Big(traderOrderInfo.available_margin).toNumber(),
+        bankruptcyPrice: new Big(traderOrderInfo.bankruptcy_price).toNumber(),
+        bankruptcyValue: new Big(traderOrderInfo.bankruptcy_value).toNumber(),
+        entryNonce: traderOrderInfo.entry_nonce,
+        entrySequence: traderOrderInfo.entry_sequence,
+        executionPrice: new Big(traderOrderInfo.execution_price).toNumber(),
+        initialMargin: new Big(traderOrderInfo.initial_margin).toNumber(),
+        liquidationPrice: new Big(traderOrderInfo.liquidation_price).toNumber(),
+        maintenanceMargin: new Big(traderOrderInfo.maintenance_margin).toNumber(),
+        positionSize: new Big(traderOrderInfo.positionsize).toNumber(),
+        settlementPrice: new Big(traderOrderInfo.settlement_price).toNumber(),
+        unrealizedPnl: new Big(traderOrderInfo.unrealized_pnl).toNumber(),
+        feeFilled: new Big(traderOrderInfo.fee_filled).toNumber(),
+        feeSettled: new Big(traderOrderInfo.fee_settled).toNumber(),
+      }
+
+      addTrade(newTradeData);
+      addTradeHistory(newTradeData);
+
+      updateZkAccount(newZkAccount.address, {
+        ...newZkAccount,
+        type: "Memo",
+      });
+
+      toast({
+        title: "Success",
+        description: "Placed market order successfully",
+      });
     } catch (err) {
       console.error(err);
+    }
+    finally {
       setIsSubmitting(false);
     }
   }
@@ -392,7 +423,7 @@ const OrderMarketForm = () => {
           isLoaded={!isSatsLoading}
           placeholder={<Skeleton className="h-4 w-[80px]" />}
         >
-          <span>{twilightBTCBalanceString} BTC</span>
+          <span>{tradingAccountBalanceString} BTC</span>
         </Resource>
       </div>
       <div className="flex justify-between space-x-4">
@@ -451,7 +482,8 @@ const OrderMarketForm = () => {
               usdRef.current.value = usdValue;
               setUsdAmount(usdValue);
 
-              updatePercent(Big(value).div(Big(twilightBTCBalanceString)).mul(100).toNumber());
+              if (!tradingAccountBalance) return;
+              updatePercent(Big(value).div(Big(tradingAccountBalanceString)).mul(100).toNumber());
             }}
             disabled={!isPageLoaded}
           />
@@ -499,7 +531,7 @@ const OrderMarketForm = () => {
       <div className="flex items-center space-x-2">
         <Slider onValueChange={(value) => {
           if (!btcRef.current || !usdRef.current) return;
-          const newBtcAmount = new Big(twilightBTCBalanceString).mul(value[0] / 100).toFixed(8)
+          const newBtcAmount = new Big(tradingAccountBalanceString).mul(value[0] / 100).toFixed(8)
           btcRef.current.value = newBtcAmount;
           setPercent(value[0])
 

@@ -18,6 +18,7 @@ export const accountSummaryColumns: ColumnDef<ZkAccount, any>[] = [
   {
     accessorKey: "tag",
     header: "Account Tag",
+    accessorFn: (row) => row.tag === "main" ? "Trading Account" : row.tag,
   },
   {
     accessorKey: "address",

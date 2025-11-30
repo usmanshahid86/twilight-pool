@@ -98,7 +98,7 @@ const Settings = () => {
             </div>
           </div>
           <div className="space-y-1">
-            <Button
+            {/* <Button
               onClick={() => {
                 if (!privateKey) {
                   toast({
@@ -119,7 +119,7 @@ const Settings = () => {
               }}
             >
               Export Seed to Clipboard
-            </Button>
+            </Button> */}
           </div>
         </div>
       </DialogContent>

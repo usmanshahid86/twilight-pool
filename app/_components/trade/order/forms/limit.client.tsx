@@ -26,10 +26,11 @@ import { createFundingToTradingTransferMsg } from '@/lib/twilight/wallet';
 import { createZkAccountWithBalance, createZkOrder } from "@/lib/twilight/zk";
 import { createQueryTradeOrderMsg } from '@/lib/twilight/zkos';
 import { ZkAccount } from '@/lib/types';
+import { ZkPrivateAccount } from '@/lib/zk/account';
 import { useWallet } from "@cosmos-kit/react-lite";
 import Big from "big.js";
 import dayjs from 'dayjs';
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, Loader2 } from "lucide-react";
 import React, { SyntheticEvent, useEffect, useMemo, useRef, useState } from "react";
 
 const limitQtyOptions = [25, 50, 75, 100];
@@ -40,13 +41,6 @@ const OrderLimitForm = () => {
 
   const btcAmountRef = useRef<HTMLInputElement>(null);
   const leverageRef = useRef<HTMLInputElement>(null);
-
-  const { twilightSats } =
-    useGetTwilightBTCBalance();
-
-  const twilightBTCBalanceString = new BTC("sats", Big(twilightSats))
-    .convert("BTC")
-    .toString();
 
   const [orderPrice, setOrderPrice] = useState(0);
 
@@ -88,7 +82,13 @@ const OrderLimitForm = () => {
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount)
   const addTrade = useTwilightStore((state) => state.trade.addTrade);
   const addTradeHistory = useTwilightStore((state) => state.trade_history.addTrade)
+
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
+
+  const tradingAccount = zkAccounts.find((account) => account.tag === 'main');
+
+  const tradingAccountBalance = tradingAccount?.value || 0;
+  const tradingAccountBalanceString = new BTC("sats", Big(tradingAccountBalance)).convert("BTC").toFixed(8);
 
   const addZkAccount = useTwilightStore((state) => state.zk.addZkAccount);
 
@@ -112,8 +112,8 @@ const OrderLimitForm = () => {
 
     const twilightAddress = chainWallet.address;
 
-    if (!twilightAddress) {
-      console.error("no twilightAddress");
+    if (!twilightAddress || !tradingAccount) {
+      console.error("unexpected error");
       return;
     }
 
@@ -122,8 +122,6 @@ const OrderLimitForm = () => {
 
       const action = submitter.value as "sell" | "buy";
 
-      const tag = `BTC ${action} ${zkAccounts.length}`
-
       const btcAmountInSats = new BTC(
         "BTC",
         Big(btcAmountRef.current?.value as string)
@@ -131,7 +129,7 @@ const OrderLimitForm = () => {
         .convert("sats")
         .toNumber();
 
-      if (twilightSats < btcAmountInSats) {
+      if (tradingAccountBalance < btcAmountInSats) {
         toast({
           variant: "error",
           title: "Insufficient funds",
@@ -154,53 +152,71 @@ const OrderLimitForm = () => {
 
       setIsSubmitting(true);
 
-      const stargateClient = await chainWallet.getSigningStargateClient();
-
-      console.log("funding transfer signature", privateKey);
-      const { account: newTradingAccount, accountHex: newTradingAccountHex } =
+      const { account: newTradingAccount } =
         await createZkAccountWithBalance({
-          tag: tag,
+          tag: "limit",
           balance: btcAmountInSats,
           signature: privateKey,
         });
 
-      const depositMsg = await createFundingToTradingTransferMsg({
-        twilightAddress,
-        transferAmount: btcAmountInSats,
-        account: newTradingAccount,
-        accountHex: newTradingAccountHex,
+      const tag = `BTC ${action} ${newTradingAccount.address.slice(0, 6)}`
+
+      const senderZkPrivateAccount = await ZkPrivateAccount.create({
+        signature: privateKey,
+        existingAccount: tradingAccount,
       });
 
-      console.log("msg", depositMsg);
 
-      const res = await stargateClient.signAndBroadcast(
-        twilightAddress,
-        [depositMsg],
-        "auto"
-      );
+      const privateTxSingleResult = await senderZkPrivateAccount.privateTxSingle(
+        btcAmountInSats,
+        newTradingAccount.address
+      )
 
-      console.log("sent sats from funding to trading", btcAmountInSats);
-      console.log("res", res)
+      if (!privateTxSingleResult.success) {
+        console.error(privateTxSingleResult.message);
+        toast({
+          title: "Error with submitting trade order",
+          description: "An error occurred when transferring funds from the trading account, please try again later.",
+          variant: "error",
+        })
+        return;
+      }
+
+      // the naming is abit off, this updated trading account is the account used to place the order
+      const {
+        txId,
+        scalar: updatedTradingAccountScalar,
+        updatedAddress: updatedTradingAccountAddress,
+      } = privateTxSingleResult.data;
 
       const newZkAccount = {
-        scalar: newTradingAccount.scalar,
+        scalar: updatedTradingAccountScalar,
         type: "Coin",
-        address: newTradingAccount.address,
+        address: updatedTradingAccountAddress,
         tag: tag,
         isOnChain: true,
         value: btcAmountInSats,
         createdAt: dayjs().unix(),
       }
 
+      // note: add zk account in case submit order fails
       addZkAccount(newZkAccount as ZkAccount);
+
+      updateZkAccount(tradingAccount.address, {
+        ...tradingAccount,
+        address: senderZkPrivateAccount.get().address,
+        scalar: senderZkPrivateAccount.get().scalar,
+        value: senderZkPrivateAccount.get().value,
+        isOnChain: senderZkPrivateAccount.get().isOnChain,
+      })
 
       addTransactionHistory({
         date: new Date(),
-        from: twilightAddress,
-        fromTag: "Funding",
-        to: newZkAccount.address,
-        toTag: newZkAccount.tag,
-        tx_hash: res.transactionHash,
+        from: tradingAccount.address,
+        fromTag: "Trading Account",
+        to: updatedTradingAccountAddress,
+        toTag: tag,
+        tx_hash: txId,
         type: "Transfer",
         value: btcAmountInSats,
       });
@@ -218,8 +234,6 @@ const OrderLimitForm = () => {
         value: btcAmountInSats,
         entryPrice: orderPrice,
       });
-
-      setIsSubmitting(false);
 
       if (!success || !msg) {
         console.error("limit msg error");
@@ -351,11 +365,17 @@ const OrderLimitForm = () => {
         return;
       }
     }
+    finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <form onSubmit={submitLimitOrder} className="flex flex-col space-y-2 px-3">
-      <div className="flex justify-between text-xs"><span className="opacity-80">Avbl to trade</span><span>{twilightBTCBalanceString} BTC</span></div>
+      <div className="flex justify-between text-xs"><span className="opacity-80">Avbl to trade</span><span>{tradingAccountBalanceString} BTC</span></div>
+      {/* <Button className="flex flex-row items-center justify-center gap-4 text-xs">
+        Funding<ArrowLeftRight />Trading
+      </Button> */}
       <div>
         <Text className="mb-1 text-xs opacity-80" asChild>
           <label htmlFor="input-order-price">Order Price</label>
@@ -386,16 +406,16 @@ const OrderLimitForm = () => {
                   onClick={() => {
                     if (!btcAmountRef.current) return;
 
-                    if (!twilightSats) {
+                    if (!tradingAccountBalance) {
                       btcAmountRef.current.value = "0";
                       return;
                     }
 
-                    const newOrderSats = Big(twilightSats).mul(value).div(100)
+                    const newOrderSats = Big(tradingAccountBalance).mul(value).div(100)
 
                     btcAmountRef.current.value = new BTC(
                       "sats",
-                      Big(twilightSats).mul(value).div(100)
+                      Big(tradingAccountBalance).mul(value).div(100)
                     )
                       .convert("BTC")
                       .toString();
@@ -436,7 +456,7 @@ const OrderLimitForm = () => {
         <div className="flex items-center space-x-2 mt-1">
           <Slider onValueChange={(value) => {
             if (!btcAmountRef.current) return;
-            const newBtcAmount = new Big(twilightBTCBalanceString).mul(value[0] / 100).toFixed(8)
+            const newBtcAmount = new Big(tradingAccountBalanceString).mul(value[0] / 100).toFixed(8)
             btcAmountRef.current.value = newBtcAmount;
 
             const convertedToSats = new BTC("BTC", Big(newBtcAmount)).convert("sats").toNumber();

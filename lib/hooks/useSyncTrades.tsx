@@ -4,9 +4,15 @@ import { createQueryTradeOrderMsg } from "../twilight/zkos";
 import { useSessionStore } from "../providers/session";
 import { queryTradeOrder } from "../api/relayer";
 import Big from "big.js";
-import { TradeOrder } from "../types";
+import { TradeOrder, ZkAccount } from "../types";
 import { useWallet } from "@cosmos-kit/react-lite";
 import { WalletStatus } from "@cosmos-kit/core";
+import { useCallback } from "react";
+import { ZkPrivateAccount } from "../zk/account";
+import { createZkAccount } from "../twilight/zk";
+import { useToast } from "./useToast";
+import Link from 'next/link';
+import BTC from '../twilight/denoms';
 
 const statusToSkip = ["CANCELLED", "SETTLED", "LIQUIDATE"];
 
@@ -58,20 +64,148 @@ const tradeInfoKeysToTradeKey = {
 
 export const useSyncTrades = () => {
   const tradeOrders = useTwilightStore((state) => state.trade.trades);
+  const removeTrade = useTwilightStore((state) => state.trade.removeTrade);
+
   const setNewTrades = useTwilightStore((state) => state.trade.setNewTrades);
   const addTradeHistory = useTwilightStore(
     (state) => state.trade_history.addTrade
   );
 
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount);
-  const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
 
-  const { status } = useWallet();
+  const { toast } = useToast();
+
+  const removeZkAccount = useTwilightStore((state) => state.zk.removeZkAccount);
+  const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
+  const tradingAccount = zkAccounts.find((account) => account.tag === "main");
+
+  const addTransactionHistory = useTwilightStore(
+    (state) => state.history.addTransaction
+  );
+
+  const { status, mainWallet } = useWallet();
+
+  const chainWallet = mainWallet?.getChainWallet("nyks");
+  const twilightAddress = chainWallet?.address;
 
   const privateKey = useSessionStore((state) => state.privateKey);
 
+  const cleanupTradeOrder = useCallback(
+    async (privateKey: string, zkAccount: ZkAccount, tradeOrder: TradeOrder) => {
+      if (!twilightAddress || !tradingAccount) {
+        return {
+          success: false,
+          message: "An unexpected error occurred",
+        };
+      }
+
+      if (!zkAccount.value) {
+        return {
+          success: false,
+          message: "ZkAccount does not have a value",
+        };
+      }
+
+      const senderZkPrivateAccount = await ZkPrivateAccount.create({
+        signature: privateKey,
+        existingAccount: zkAccount,
+      });
+
+      console.log("senderZkPrivateAccount", senderZkPrivateAccount.get());
+
+      let privateTxSingleResult: any;
+
+      if (!tradingAccount.value || !tradingAccount.isOnChain) {
+        const newTradingAccount = await createZkAccount({
+          tag: "main",
+          signature: privateKey,
+        });
+
+        privateTxSingleResult = await senderZkPrivateAccount.privateTxSingle(
+          zkAccount.value,
+          newTradingAccount.address,
+          0
+        );
+      } else {
+        privateTxSingleResult = await senderZkPrivateAccount.privateTxSingle(
+          zkAccount.value,
+          tradingAccount.address,
+          tradingAccount.value
+        );
+      }
+
+      if (!privateTxSingleResult.success) {
+        return {
+          success: false,
+          message: privateTxSingleResult.message,
+        };
+      }
+
+      const {
+        scalar: updatedTradingAccountScalar,
+        txId,
+        updatedAddress: updatedTradingAccountAddress,
+      } = privateTxSingleResult.data;
+
+      updateZkAccount(tradingAccount.address, {
+        ...tradingAccount,
+        address: updatedTradingAccountAddress,
+        scalar: updatedTradingAccountScalar,
+        value: Big(zkAccount.value)
+          .add(tradingAccount.value || 0)
+          .toNumber(),
+        isOnChain: true,
+      });
+
+      addTransactionHistory({
+        date: new Date(),
+        from: zkAccount.address,
+        fromTag: zkAccount.tag,
+        to: updatedTradingAccountAddress,
+        toTag: "Trading Account",
+        tx_hash: txId,
+        type: "Transfer",
+        value: zkAccount.value,
+      });
+
+      removeZkAccount(zkAccount);
+      removeTrade(tradeOrder);
+
+      toast({
+        title: "Success",
+        description: (
+          <div className="opacity-90">
+            {`Successfully sent ${new BTC("sats", Big(zkAccount.value))
+              .convert("BTC")
+              .toString()} BTC to the Trading Account.`}
+            <Link
+              href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${txId}`}
+              target={"_blank"}
+              className="text-sm underline hover:opacity-100"
+            >
+              Explorer link
+            </Link>
+          </div>
+        )
+      })
+
+      return {
+        success: true,
+      };
+    },
+    [
+      toast,
+      updateZkAccount,
+      addTransactionHistory,
+      removeZkAccount,
+      tradingAccount,
+      twilightAddress,
+      removeTrade,
+    ]
+  );
+
   useQuery({
-    queryKey: ["sync-trades"],
+    queryKey: ["sync-trades", twilightAddress],
     queryFn: async () => {
       if (status !== WalletStatus.Connected) return true;
 
@@ -101,7 +235,7 @@ export const useSyncTrades = () => {
         for (const [key, value] of Object.entries(traderOrderInfo)) {
           const tradeKey =
             tradeInfoKeysToTradeKey[
-              key as keyof typeof tradeInfoKeysToTradeKey
+            key as keyof typeof tradeInfoKeysToTradeKey
             ];
 
           if (!(tradeKey in trade)) {
@@ -124,8 +258,8 @@ export const useSyncTrades = () => {
             updated.set(trade.uuid, {
               isOpen:
                 traderOrderInfo.order_status === "CANCELLED" ||
-                traderOrderInfo.order_status === "LIQUIDATE" ||
-                traderOrderInfo.order_status === "SETTLED"
+                  traderOrderInfo.order_status === "LIQUIDATE" ||
+                  traderOrderInfo.order_status === "SETTLED"
                   ? false
                   : true,
             });
@@ -161,7 +295,8 @@ export const useSyncTrades = () => {
           // update zk account balance
           if (
             newTrade.orderStatus === "SETTLED" ||
-            newTrade.orderStatus === "LIQUIDATED"
+            newTrade.orderStatus === "LIQUIDATED" ||
+            newTrade.orderStatus === "CANCELLED"
           ) {
             const newBalance = Math.round(newTrade.availableMargin);
 
@@ -170,11 +305,19 @@ export const useSyncTrades = () => {
             );
 
             if (existingZkAccount) {
-              updateZkAccount(newTrade.accountAddress, {
-                ...existingZkAccount,
-                value: newBalance,
-                type: "CoinSettled",
-              });
+              if (newTrade.orderStatus === "LIQUIDATED") {
+                removeZkAccount(existingZkAccount)
+              }
+              else {
+                const zkAccountWithUpdatedData: ZkAccount = {
+                  ...existingZkAccount,
+                  value: newBalance,
+                  type: newTrade.orderStatus === "CANCELLED" ? "Coin" : "CoinSettled"
+                }
+
+                await cleanupTradeOrder(privateKey, zkAccountWithUpdatedData, newTrade);
+              }
+
             }
           }
 
@@ -187,6 +330,7 @@ export const useSyncTrades = () => {
             );
 
             addTradeHistory(newTrade);
+
           }
         } else {
           mergedTrades.push(trade);
