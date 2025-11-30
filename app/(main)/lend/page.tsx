@@ -12,7 +12,7 @@ import { Text } from "@/components/typography";
 import { Separator } from "@/components/seperator";
 import { executeLendOrder } from "@/lib/api/client";
 import { queryTransactionHashByRequestId, queryTransactionHashes } from "@/lib/api/rest";
-import { retry } from "@/lib/helpers";
+import { retry, safeJSONParse } from "@/lib/helpers";
 import useRedirectUnconnected from "@/lib/hooks/useRedirectUnconnected";
 import { useToast } from "@/lib/hooks/useToast";
 import { useSessionStore } from "@/lib/providers/session";
@@ -22,11 +22,18 @@ import { WalletStatus } from "@cosmos-kit/core";
 import { useWallet } from "@cosmos-kit/react-lite";
 import { Loader2 } from "lucide-react";
 import React, { useState, useMemo, useCallback } from "react";
-import { LendOrder } from "@/lib/types";
+import { LendOrder, ZkAccount } from "@/lib/types";
 import { useGetLendPoolInfo } from '@/lib/hooks/useGetLendPoolInfo';
 import { queryLendOrder } from '@/lib/api/relayer';
 import Big from 'big.js';
 import { usePriceFeed } from '@/lib/providers/feed';
+import { createZkAccount, createZkBurnTx } from '@/lib/twilight/zk';
+import { broadcastTradingTx } from '@/lib/api/zkos';
+import { twilightproject } from 'twilightjs';
+import Long from 'long';
+import BTC from '@/lib/twilight/denoms';
+import Link from 'next/link';
+import { ZkPrivateAccount } from '@/lib/zk/account';
 
 const formatTag = (tag: string) => {
   if (tag === "main") {
@@ -43,7 +50,6 @@ const Page = () => {
   useGetLendPoolInfo()
 
   const { toast } = useToast();
-  const { status } = useWallet();
 
   const [currentTab, setCurrentTab] = useState<TabType>("active-orders");
   const [isSettleLoading, setIsSettleLoading] = useState(false);
@@ -61,6 +67,8 @@ const Page = () => {
 
   const zKAccounts = useTwilightStore((state) => state.zk.zkAccounts);
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount);
+  const removeZkAccount = useTwilightStore((state) => state.zk.removeZkAccount);
+
   const removeLend = useTwilightStore((state) => state.lend.removeLend);
   const addTransactionHistory = useTwilightStore(
     (state) => state.history.addTransaction
@@ -88,8 +96,18 @@ const Page = () => {
 
   const getPoolSharePrice = () => poolInfo?.pool_share || 0
 
+  const { mainWallet } = useWallet();
+  const chainWallet = mainWallet?.getChainWallet("nyks");
+
+  const twilightAddress = chainWallet?.address;
+
   async function settleLendOrder(order: LendOrder) {
     try {
+      if (!chainWallet || !twilightAddress || !privateKey) {
+        console.error("chainWallet not found");
+        return;
+      }
+
       toast({
         title: "Withdrawing lend order",
         description: "Please do not close this page until the lend order is withdrawn...",
@@ -216,7 +234,10 @@ const Page = () => {
         return;
       }
 
-      console.log("newLendValue", queryLendOrderRes.result.new_lend_state_amount)
+      const newBalance = Math.round(Big(queryLendOrderRes.result.new_lend_state_amount).toNumber())
+      // const newBalance = Math.round(Big(queryLendOrderRes.result.balance).toNumber())
+
+      console.log("newBalance", newBalance);
 
       addTransactionHistory({
         date: new Date(),
@@ -225,7 +246,7 @@ const Page = () => {
         to: order.accountAddress,
         toTag: selectedZkAccount?.tag || "",
         tx_hash: tx_hash || "",
-        value: order.value,
+        value: newBalance,
         type: "Withdraw Lend",
       });
 
@@ -234,7 +255,7 @@ const Page = () => {
         orderStatus: "SETTLED",
         timestamp: new Date(),
         tx_hash: tx_hash,
-        value: Big(queryLendOrderRes.result.new_lend_state_amount).toNumber() || order.value,
+        value: newBalance,
         payment: Big(queryLendOrderRes.result.payment).toNumber() || 0,
       })
 
@@ -246,11 +267,143 @@ const Page = () => {
         description: "Withdrew lend order successfully",
       });
 
-      updateZkAccount(selectedZkAccount.address, {
+      const updatedSelectedZkAccount: ZkAccount = {
         ...selectedZkAccount,
         type: "CoinSettled",
-        value: Big(queryLendOrderRes.result.new_lend_state_amount).toNumber() || order.value,
+        value: newBalance,
+      };
+
+      updateZkAccount(selectedZkAccount.address, updatedSelectedZkAccount);
+
+
+      const stargateClient = await chainWallet.getSigningStargateClient();
+
+      const transientAccount = await createZkAccount({
+        tag: Math.random().toString(36).substring(2, 15),
+        signature: privateKey,
       });
+
+      const senderZkPrivateAccount = await ZkPrivateAccount.create({
+        signature: privateKey,
+        existingAccount: updatedSelectedZkAccount,
+      });
+
+      const privateTxSingleResult =
+        await senderZkPrivateAccount.privateTxSingle(
+          newBalance,
+          transientAccount.address,
+        );
+
+      if (!privateTxSingleResult.success) {
+        console.error(privateTxSingleResult.message);
+        return;
+      }
+
+      const {
+        scalar: updatedTransientScalar,
+        txId,
+        updatedAddress: updatedTransientAddress,
+      } = privateTxSingleResult.data;
+
+      const {
+        success,
+        msg: zkBurnMsg,
+        zkAccountHex,
+      } = await createZkBurnTx({
+        signature: privateKey,
+        zkAccount: {
+          tag: selectedZkAccount.tag,
+          address: updatedTransientAddress,
+          scalar: updatedTransientScalar,
+          isOnChain: true,
+          value: newBalance,
+          type: "Coin",
+        },
+        initZkAccountAddress: transientAccount.address,
+      });
+
+      if (!success || !zkBurnMsg || !zkAccountHex) {
+        console.error("error creating zkBurnTx msg");
+        console.error({
+          success,
+          zkBurnMsg,
+          zkAccountHex,
+        });
+        return;
+      }
+
+      toast({
+        title: "Broadcasting transfer",
+        description:
+          "Please do not close this page while your transfer is being submitted...",
+      });
+
+      const tradingTxResString = await broadcastTradingTx(
+        zkBurnMsg,
+        twilightAddress
+      );
+
+      const tradingTxRes = safeJSONParse(tradingTxResString as string);
+
+      if (!tradingTxRes.success || Object.hasOwn(tradingTxRes, "error")) {
+
+        console.error("error broadcasting zkBurnTx msg", tradingTxRes);
+        return;
+      }
+
+      const { mintBurnTradingBtc } =
+        twilightproject.nyks.zkos.MessageComposer.withTypeUrl;
+
+      const mintBurnMsg = mintBurnTradingBtc({
+        btcValue: Long.fromNumber(newBalance),
+        encryptScalar: updatedTransientScalar,
+        mintOrBurn: false,
+        qqAccount: zkAccountHex,
+        twilightAddress,
+      });
+
+      toast({
+        title: "Approval Pending",
+        description: "Please approve the transaction in your wallet.",
+      })
+
+      const mintBurnRes = await stargateClient.signAndBroadcast(
+        twilightAddress,
+        [mintBurnMsg],
+        "auto"
+      );
+
+      addTransactionHistory({
+        date: new Date(),
+        from: selectedZkAccount.address,
+        fromTag: selectedZkAccount.tag,
+        to: twilightAddress,
+        toTag: "Funding",
+        tx_hash: mintBurnRes.transactionHash,
+        type: "Burn",
+        value: newBalance
+      });
+
+      toast({
+        title: "Success",
+        description: (
+          <div className="opacity-90">
+            {`Successfully sent ${new BTC("sats", Big(newBalance))
+              .convert("BTC")
+              .toString()} BTC to the Funding Account.`}
+            <Link
+              href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${mintBurnRes.transactionHash}`}
+              target={"_blank"}
+              className="text-sm underline hover:opacity-100"
+            >
+              Explorer link
+            </Link>
+          </div>
+        ),
+      });
+
+      removeZkAccount(selectedZkAccount);
+      return
 
     } catch (err) {
       setIsSettleLoading(false);

@@ -2,13 +2,6 @@
 import Button from "@/components/button";
 import { PopoverInput } from "@/components/input";
 import Resource from "@/components/resource";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/select";
 import { Text } from "@/components/typography";
 import { sendLendOrder } from "@/lib/api/client";
 import { queryLendOrder } from '@/lib/api/relayer';
@@ -30,6 +23,7 @@ import { Loader2 } from "lucide-react";
 import Link from 'next/link';
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
+import { ZkPrivateAccount } from '@/lib/zk/account';
 
 const LendManagement = () => {
   const { toast } = useToast();
@@ -54,143 +48,107 @@ const LendManagement = () => {
   );
   const updateZkAccount = useTwilightStore((state) => state.zk.updateZkAccount);
 
-  const [accountSelectionType, setAccountSelectionType] = useState<"new" | "existing">("new");
-  const [selectedAccountIndex, setSelectedAccountIndex] = useState<number | null>(null);
   const [depositDenom, setDepositDenom] = useState<string>("BTC");
   const [isSubmitLoading, setIsSubmitLoading] = useState(false);
 
   const { mainWallet } = useWallet();
-
-  const selectedZkAccount = useMemo(() => {
-    if (selectedAccountIndex === null) return null;
-    return zkAccounts[selectedAccountIndex];
-  }, [selectedAccountIndex, zkAccounts]);
 
   const depositRef = useRef<HTMLInputElement>(null);
 
   async function submitDepositForm(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    let zkAccountToUse: ZkAccount | null = selectedZkAccount;
+    const tag = `BTC lend ${zkAccounts.length}`
 
-    if (accountSelectionType === "new") {
+    const chainWallet = mainWallet?.getChainWallet("nyks");
+
+    if (!chainWallet) {
       toast({
-        title: "Approval Pending",
-        description: "Please approve the transaction in your wallet.",
+        title: "Wallet is not connected",
+        description: "Please connect your wallet to deposit.",
       })
-
-      const tag = `BTC lend ${zkAccounts.length}`
-
-      const chainWallet = mainWallet?.getChainWallet("nyks");
-
-      if (!chainWallet) {
-        toast({
-          title: "Wallet is not connected",
-          description: "Please connect your wallet to deposit.",
-        })
-        return;
-      }
-
-      if (!depositRef.current?.value) {
-        toast({
-          title: "Invalid amount",
-          description: "Please enter an amount to deposit.",
-        })
-        return;
-      }
-
-      const twilightAddress = chainWallet.address;
-
-      if (!twilightAddress) {
-        console.error("no twilightAddress");
-        return;
-      }
-
-      setIsSubmitLoading(true);
-
-      toast({
-        title: "Submitting deposit",
-        description: "Please do not close this page while your deposit is being submitted...",
-      })
-
-      const transferAmount = new BTC(
-        depositDenom as BTCDenoms,
-        Big(depositRef.current.value)
-      )
-        .convert("sats")
-        .toNumber();
-
-      const stargateClient = await chainWallet.getSigningStargateClient();
-
-      console.log("funding transfer signature", privateKey);
-      const { account: newTradingAccount, accountHex: newTradingAccountHex } =
-        await createZkAccountWithBalance({
-          tag: tag,
-          balance: transferAmount,
-          signature: privateKey,
-        });
-
-      const msg = await createFundingToTradingTransferMsg({
-        twilightAddress,
-        transferAmount,
-        account: newTradingAccount,
-        accountHex: newTradingAccountHex,
-      });
-
-      console.log("msg", msg);
-
-      const res = await stargateClient.signAndBroadcast(
-        twilightAddress,
-        [msg],
-        "auto"
-      );
-
-      console.log("sent sats from funding to trading", transferAmount);
-      console.log("res", res);
-
-      zkAccountToUse = {
-        scalar: newTradingAccount.scalar,
-        type: "Coin",
-        address: newTradingAccount.address,
-        tag: tag,
-        isOnChain: true,
-        value: transferAmount,
-        createdAt: dayjs().unix(),
-      }
-
-      addZkAccount(zkAccountToUse);
-    }
-
-    if (!zkAccountToUse) {
-      toast({
-        variant: "error",
-        title: "Error",
-        description: "Please select an account",
-      });
       return;
     }
 
     if (!depositRef.current?.value) {
       toast({
-        variant: "error",
-        title: "Error",
-        description: "Invalid BTC amount",
-      });
+        title: "Invalid amount",
+        description: "Please enter an amount to deposit.",
+      })
       return;
     }
 
-    const depositAmount = new BTC(
+    const twilightAddress = chainWallet.address;
+
+    if (!twilightAddress) {
+      console.error("no twilightAddress");
+      return;
+    }
+
+    setIsSubmitLoading(true);
+
+    toast({
+      title: "Submitting deposit",
+      description: "Please do not close this page while your deposit is being submitted...",
+    })
+
+    const transferAmount = new BTC(
       depositDenom as BTCDenoms,
       Big(depositRef.current.value)
     )
       .convert("sats")
       .toNumber();
 
-    setIsSubmitLoading(true);
+    const stargateClient = await chainWallet.getSigningStargateClient();
+
+    console.log("funding transfer signature", privateKey);
+    const { account: newTradingAccount, accountHex: newTradingAccountHex } =
+      await createZkAccountWithBalance({
+        tag: tag,
+        balance: transferAmount,
+        signature: privateKey,
+      });
+
+    const fundingTransferMsg = await createFundingToTradingTransferMsg({
+      twilightAddress,
+      transferAmount,
+      account: newTradingAccount,
+      accountHex: newTradingAccountHex,
+    });
+
+    console.log("msg", fundingTransferMsg);
+
+    const res = await stargateClient.signAndBroadcast(
+      twilightAddress,
+      [fundingTransferMsg],
+      "auto"
+    );
+
+    console.log("sent sats from funding to trading", transferAmount);
+    console.log("res", res);
+
+    const zkAccountToUse: ZkAccount = {
+      scalar: newTradingAccount.scalar,
+      type: "Coin",
+      address: newTradingAccount.address,
+      tag: tag,
+      isOnChain: true,
+      value: transferAmount,
+      createdAt: dayjs().unix(),
+    }
+
+    addZkAccount(zkAccountToUse);
+
+    // hack to make sure utxo exists on chain before creating the lend order
+    await ZkPrivateAccount.create({
+      signature: privateKey,
+      balance: transferAmount,
+      existingAccount: zkAccountToUse,
+    });
 
     const { success, msg } = await createZkLendOrder({
       zkAccount: zkAccountToUse,
-      deposit: depositAmount,
+      deposit: transferAmount,
       signature: privateKey,
     });
 
@@ -254,7 +212,7 @@ const LendManagement = () => {
       toast({
         title: "Success",
         description: <div className="opacity-90">
-          {`Successfully submitted lend order for ${new BTC("sats", Big(depositAmount))
+          {`Successfully submitted lend order for ${new BTC("sats", Big(transferAmount))
             .convert("BTC")
             .toString()} BTC. `}
           <Link
@@ -291,7 +249,7 @@ const LendManagement = () => {
         accountAddress: zkAccountToUse.address,
         uuid: data.result.id_key as string,
         orderStatus: "LENDED",
-        value: depositAmount,
+        value: transferAmount,
         timestamp: new Date(),
         apy: poolInfo?.apy,
         tx_hash: tx_hash,
@@ -309,7 +267,7 @@ const LendManagement = () => {
         toTag: zkAccountToUse.tag,
         tx_hash: tx_hash,
         type: "Deposit Lend",
-        value: depositAmount,
+        value: transferAmount,
       });
 
       updateZkAccount(zkAccountToUse.address, {
@@ -333,17 +291,8 @@ const LendManagement = () => {
     setIsSubmitLoading(false);
   }
 
-  const getAvailableBalance = useCallback(() => {
-    if (accountSelectionType === "new") {
-      return BTC.format(new BTC("sats", Big(twilightSats))
-        .convert("BTC"), "BTC")
-    }
-
-    return selectedZkAccount?.value ?
-      new BTC("sats", Big(selectedZkAccount.value)).convert("BTC").toFixed(8) :
-      "0.00000000";
-
-  }, [accountSelectionType, selectedZkAccount, twilightSats])
+  const availableBalance = BTC.format(new BTC("sats", Big(twilightSats))
+    .convert("BTC"), "BTC")
 
   const calculateApproxPoolShare = useCallback((value: string) => {
     const amount = Big(value || 0).toNumber()
@@ -357,77 +306,13 @@ const LendManagement = () => {
   function renderDepositForm() {
     return (
       <form onSubmit={submitDepositForm} className="space-y-4">
-        <div className="flex gap-4 text-sm">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="account-type"
-              value="new"
-              checked={accountSelectionType === "new"}
-              onChange={(e) => setAccountSelectionType(e.target.value as "new" | "existing")}
-              className="text-theme"
-            />
-            New Account
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="account-type"
-              value="existing"
-              checked={accountSelectionType === "existing"}
-              onChange={(e) => setAccountSelectionType(e.target.value as "new" | "existing")}
-              className="text-theme"
-            />
-            Select Account
-          </label>
-        </div>
-
-        {accountSelectionType === "existing" && (
-          <div className="space-y-1">
-            <Select
-              onValueChange={(val) => {
-                const account = zkAccounts.find((account) => account.address === val);
-                if (account) {
-                  setSelectedAccountIndex(zkAccounts.indexOf(account));
-                  if (depositRef.current) {
-                    const currentValue = new BTC("sats", Big(account?.value || 0)).convert(depositDenom as BTCDenoms).toString();
-                    depositRef.current.value = currentValue;
-                    calculateApproxPoolShare(currentValue);
-                  }
-                }
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select account" />
-              </SelectTrigger>
-              <SelectContent>
-                {zkAccounts
-                  .filter((account) => account.type === "Coin" && (account.value ?? 0) > 0)
-                  .map((subAccount) => {
-                    const balance = typeof subAccount.value === "number"
-                      ? new BTC("sats", Big(subAccount.value)).convert("BTC").toFixed(8)
-                      : "0.00000000";
-                    return (
-                      <SelectItem
-                        value={subAccount.address}
-                        key={subAccount.address}
-                      >
-                        {subAccount.tag === "main" ? "Trading Account" : subAccount.tag} - {balance}BTC
-                      </SelectItem>
-                    );
-                  })}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
         <div className="space-y-1">
           <div className="flex justify-between text-sm">
             <Text className="text-primary-accent" asChild>
               <label htmlFor="amount-dep">Amount BTC</label>
             </Text>
             <Text className="text-primary-accent">
-              Available: {getAvailableBalance()} BTC
+              Available: {availableBalance} BTC
             </Text>
           </div>
 
@@ -456,7 +341,6 @@ const LendManagement = () => {
             setSelected={setDepositDenom}
             selected={depositDenom}
             ref={depositRef}
-            readOnly={accountSelectionType === "existing"}
             onChange={(e) => {
               const value = e.target.value;
               calculateApproxPoolShare(value);
