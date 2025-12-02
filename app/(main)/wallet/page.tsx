@@ -33,6 +33,7 @@ import { twilightproject } from 'twilightjs';
 import Long from 'long';
 import Link from 'next/link';
 import FundingTradeButton from '@/components/fund-trade-button';
+import useGetNyksBalance from '@/lib/hooks/useGetNyksBalance';
 
 type TabType = "account-summary" | "transaction-history";
 
@@ -54,6 +55,8 @@ const Page = () => {
 
   const { twilightSats, isLoading: satsLoading } =
     useGetTwilightBTCBalance();
+
+  const { nyksBalance, isLoading: nyksLoading } = useGetNyksBalance();
 
   const { status, mainWallet } = useWallet();
 
@@ -337,26 +340,36 @@ const Page = () => {
             </div>
           </div>
 
-          {twilightAddress && (
-            <div className="space-y-1">
-              <Text className="text-sm">Twilight Address</Text>
-              <Text
-                onClick={(e) => {
-                  if (!twilightAddress) return;
-                  e.preventDefault();
-                  toast({
-                    title: "Copied to clipboard",
-                    description:
-                      "Copied your twilight address to the clipboard",
-                  });
-                  navigator.clipboard.writeText(twilightAddress);
-                }}
-                className="cursor-pointer text-xs text-primary-accent"
-              >
-                {twilightAddress}
+          <div className="space-y-1">
+            <Text className="text-sm">Twilight Address</Text>
+            <Text
+              onClick={(e) => {
+                if (!twilightAddress) return;
+                e.preventDefault();
+                toast({
+                  title: "Copied to clipboard",
+                  description:
+                    "Copied your twilight address to the clipboard",
+                });
+                navigator.clipboard.writeText(twilightAddress);
+              }}
+              className="cursor-pointer text-xs text-primary-accent"
+            >
+              {twilightAddress}
+            </Text>
+          </div>
+          <div className="space-y-1">
+            <Text className="text-sm">NYKS Balance</Text>
+            <Resource
+              isLoaded={!nyksLoading}
+              placeholder={<Skeleton className="h-4 w-[80px]" />}
+            >
+              <Text className="cursor-pointer text-xs text-primary-accent">
+                {Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(nyksBalance)} NYKS
               </Text>
-            </div>
-          )}
+            </Resource>
+          </div>
+
         </div>
         <div className="md:col-span-5 flex flex-col rounded-md p-4 md:p-6 border">
           <Text heading="h2" className="text-lg font-normal">
