@@ -295,7 +295,7 @@ export const useSyncTrades = () => {
           // update zk account balance
           if (
             newTrade.orderStatus === "SETTLED" ||
-            newTrade.orderStatus === "LIQUIDATED" ||
+            newTrade.orderStatus === "LIQUIDATE" ||
             newTrade.orderStatus === "CANCELLED"
           ) {
             const newBalance = Math.round(newTrade.availableMargin);
@@ -305,7 +305,7 @@ export const useSyncTrades = () => {
             );
 
             if (existingZkAccount) {
-              if (newTrade.orderStatus === "LIQUIDATED") {
+              if (newTrade.orderStatus === "LIQUIDATE") {
                 removeZkAccount(existingZkAccount)
               }
               else {

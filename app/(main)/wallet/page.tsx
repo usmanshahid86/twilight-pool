@@ -475,7 +475,7 @@ const Page = () => {
                 value="account-summary"
                 variant="underline"
               >
-                Account Summary
+                Active Accounts
               </TabsTrigger>
               <TabsTrigger
                 onClick={() => setCurrentTab("transaction-history")}

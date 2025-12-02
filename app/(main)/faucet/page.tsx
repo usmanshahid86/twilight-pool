@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useTwilightStore } from '@/lib/providers/store';
 import useVerifyStatus from '@/lib/hooks/useVerifyStatus';
 import Link from 'next/link';
+import { getRegisteredBTCAddress } from '@/lib/twilight/rest';
 
 interface FaucetResponse {
   success: boolean;
@@ -181,7 +182,11 @@ const Page = () => {
 
     const nyksBalance = parseInt(nyksBalanceString.amount);
 
-    if (nyksBalance > 50_000) {
+    const registeredBTCAddress = await getRegisteredBTCAddress(twilightAddress);
+
+    console.log("registeredBTCAddress", registeredBTCAddress)
+
+    if (registeredBTCAddress && nyksBalance > 20_000) {
       setCompletedSteps([1, 2, 3]);
       setCurrentStep(4);
       return;
@@ -207,13 +212,22 @@ const Page = () => {
       await new Promise(resolve => setTimeout(resolve, 5000));
 
       if (result.success) {
-        markStepCompleted(2);
-        setCurrentStep(3);
-
         toast({
           title: "NYKS Tokens Received",
           description: result.message || "Successfully received 100,000 NYKS tokens",
         });
+
+        const registeredBTCAddress = await getRegisteredBTCAddress(twilightAddress);
+
+        if (registeredBTCAddress) {
+          setCompletedSteps([1, 2, 3]);
+          setCurrentStep(4);
+          return;
+        }
+
+        markStepCompleted(2);
+        setCurrentStep(3);
+
       } else {
         toast({
           variant: "error",

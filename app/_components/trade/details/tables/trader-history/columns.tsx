@@ -218,7 +218,7 @@ export const traderHistoryColumns: ColumnDef<MyTradeOrder, any>[] = [
             "px-2 py-1 rounded text-xs font-medium",
             status === "SETTLED"
               ? "bg-green-medium/10 text-green-medium"
-              : status === "LIQUIDATED"
+              : status === "LIQUIDATE"
                 ? "bg-red/10 text-red"
                 : "bg-gray-500/10 text-gray-500"
           )}
