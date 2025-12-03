@@ -19,6 +19,7 @@ interface DataTableProps<TData, TValue> {
   getCurrentPrice: () => number;
   openLimitDialog: (account: string) => void;
   settleMarketOrder: (trade: TradeOrder, currentPrice: number) => Promise<void>;
+  isSettlingOrder: (uuid: string) => boolean;
 }
 
 export function PositionsDataTable<TData, TValue>({
@@ -26,7 +27,8 @@ export function PositionsDataTable<TData, TValue>({
   data,
   getCurrentPrice,
   openLimitDialog,
-  settleMarketOrder
+  settleMarketOrder,
+  isSettlingOrder
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "date", desc: true },
@@ -38,7 +40,8 @@ export function PositionsDataTable<TData, TValue>({
   const tableMeta: PositionsTableMeta = {
     getCurrentPrice,
     openLimitDialog,
-    settleMarketOrder
+    settleMarketOrder,
+    isSettlingOrder
   };
 
   const table = useReactTable({

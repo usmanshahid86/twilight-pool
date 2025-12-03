@@ -32,6 +32,7 @@ import { useWallet } from "@cosmos-kit/react-lite";
 import Big from "big.js";
 import dayjs from 'dayjs';
 import { ArrowLeftRight, ChevronDown, Loader2 } from "lucide-react";
+import Link from 'next/link';
 import React, { SyntheticEvent, useEffect, useMemo, useRef, useState } from "react";
 
 const limitQtyOptions = [25, 50, 75, 100];
@@ -159,6 +160,11 @@ const OrderLimitForm = () => {
 
       setIsSubmitting(true);
 
+      toast({
+        title: "Placing order",
+        description: "Order is being placed, please do not close this page.",
+      })
+
       const { account: newTradingAccount } =
         await createZkAccountWithBalance({
           tag: "limit",
@@ -245,11 +251,6 @@ const OrderLimitForm = () => {
         console.error("limit msg error");
         throw "Error with creating limit order";
       }
-
-      toast({
-        title: "Submitting order",
-        description: "Order is being submitted...",
-      });
 
       const data = await sendTradeOrder(msg);
 
@@ -358,9 +359,22 @@ const OrderLimitForm = () => {
       });
 
       toast({
-        title: "Success",
-        description: "Placed limit order successfully",
-      });
+        title: "Order placed successfully",
+        description: <div className="opacity-90">
+          Successfully placed limit order.{" "}
+          {
+            orderData.tx_hash && (
+              <Link
+                href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${orderData.tx_hash}`}
+                target={"_blank"}
+                className="text-sm underline hover:opacity-100"
+              >
+                Explorer link
+              </Link>
+            )
+          }
+        </div>
+      })
     } catch (err) {
       if (typeof err === "string") {
         toast({

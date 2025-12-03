@@ -18,6 +18,7 @@ type TabType = "history" | "trades" | "positions" | "open-orders" | "trader-hist
 
 const DetailsPanel = () => {
   const [currentTab, setCurrentTab] = useState<TabType>("positions");
+  const [settlingOrders, setSettlingOrders] = useState<Set<string>>(new Set());
 
   const tradeOrders = useTwilightStore((state) => state.trade.trades);
 
@@ -46,183 +47,84 @@ const DetailsPanel = () => {
 
   const queryClient = useQueryClient();
 
-  // const cleanupTradeOrder = useCallback(async (privateKey: string, zkAccount: ZkAccount) => {
-  //   if (!twilightAddress || !tradingAccount) {
-  //     return {
-  //       success: false,
-  //       message: "An unexpected error occurred",
-  //     }
-  //   }
-
-  //   if (!zkAccount.value) {
-  //     return {
-  //       success: false,
-  //       message: "ZkAccount does not have a value",
-  //     }
-  //   }
-
-  //   const senderZkPrivateAccount = await ZkPrivateAccount.create({
-  //     signature: privateKey,
-  //     existingAccount: zkAccount,
-  //   });
-
-  //   console.log("senderZkPrivateAccount", senderZkPrivateAccount.get());
-
-  //   let privateTxSingleResult: any;
-
-  //   if (!tradingAccount.value || !tradingAccount.isOnChain) {
-  //     const newTradingAccount = await createZkAccount({
-  //       tag: "main",
-  //       signature: privateKey,
-  //     });
-
-  //     privateTxSingleResult = await senderZkPrivateAccount.privateTxSingle(
-  //       zkAccount.value,
-  //       newTradingAccount.address,
-  //       0,
-  //     )
-  //   }
-  //   else {
-  //     privateTxSingleResult = await senderZkPrivateAccount.privateTxSingle(
-  //       zkAccount.value,
-  //       tradingAccount.address,
-  //       tradingAccount.value,
-  //     );
-  //   }
-
-  //   if (!privateTxSingleResult.success) {
-  //     return {
-  //       success: false,
-  //       message: privateTxSingleResult.message,
-  //     }
-  //   }
-
-  //   const {
-  //     scalar: updatedTradingAccountScalar,
-  //     txId,
-  //     updatedAddress: updatedTradingAccountAddress,
-  //   } = privateTxSingleResult.data;
-
-  //   updateZkAccount(tradingAccount.address, {
-  //     ...tradingAccount,
-  //     address: updatedTradingAccountAddress,
-  //     scalar: updatedTradingAccountScalar,
-  //     value: Big(zkAccount.value).add(tradingAccount.value || 0).toNumber(),
-  //     isOnChain: true,
-  //   })
-
-  //   addTransactionHistory({
-  //     date: new Date(),
-  //     from: zkAccount.address,
-  //     fromTag: zkAccount.tag,
-  //     to: updatedTradingAccountAddress,
-  //     toTag: "Trading Account",
-  //     tx_hash: txId,
-  //     type: "Transfer",
-  //     value: zkAccount.value,
-  //   });
-
-  //   removeZkAccount(zkAccount);
-  //   console.log("removeZKAccount", zkAccount)
-
-  //   toast({
-  //     title: "Success",
-  //     description: (
-  //       <div className="opacity-90">
-  //         {`Successfully sent ${new BTC("sats", Big(zkAccount.value))
-  //           .convert("BTC")
-  //           .toString()} BTC to Funding Account. `}
-  //         <Link
-  //           href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${txId}`}
-  //           target={"_blank"}
-  //           className="text-sm underline hover:opacity-100"
-  //         >
-  //           Explorer link
-  //         </Link>
-  //       </div>
-  //     ),
-  //   });
-
-  //   return {
-  //     success: true,
-  //   }
-
-  // }, [toast, zkAccounts, privateKey, updateTrade, removeZkAccount]);
+  const isSettlingOrder = useCallback((uuid: string) => {
+    return settlingOrders.has(uuid);
+  }, [settlingOrders]);
 
   const settleMarketOrder = useCallback(async (trade: TradeOrder, currentPrice: number) => {
-    toast({
-      title: "Closing position",
-      description: "Please do not close this page while your position is being closed...",
-    })
-
-    const settleOrderResult = await settleOrder(trade, "market", privateKey, currentPrice);
-
-    if (!settleOrderResult.success) {
-      toast({
-        title: "Failed to settle position",
-        description: settleOrderResult.message,
-        variant: "error",
-      })
+    // Idempotency check: prevent duplicate settle attempts
+    if (settlingOrders.has(trade.uuid)) {
       return;
     }
 
-    toast({
-      title: "Order settled successfully",
-      description: "Please do not close this page while your balance is being updated...",
-    })
+    // Mark order as settling
+    setSettlingOrders(prev => new Set(prev).add(trade.uuid));
 
-    const settledData = settleOrderResult.data;
-
-    const updatedAccount = zkAccounts.find(account => account.address === trade.accountAddress);
-
-    const balance = Math.round(Big(settledData.available_margin).toNumber())
-
-    if (!updatedAccount) {
+    try {
       toast({
-        title: "Failed to settle position",
-        description: "Failed to find account",
-        variant: "error",
+        title: "Closing position",
+        description: "Please do not close this page while your position is being closed...",
       })
-      return;
+
+      const settleOrderResult = await settleOrder(trade, "market", privateKey, currentPrice);
+
+      if (!settleOrderResult.success) {
+        toast({
+          title: "Failed to settle position",
+          description: settleOrderResult.message,
+          variant: "error",
+        })
+        return;
+      }
+
+      toast({
+        title: "Order closed successfully",
+        description: "Please do not close this page while your balance is being updated...",
+      })
+
+      const settledData = settleOrderResult.data;
+
+      const updatedAccount = zkAccounts.find(account => account.address === trade.accountAddress);
+
+      const balance = Math.round(Big(settledData.available_margin).toNumber())
+
+      if (!updatedAccount) {
+        toast({
+          title: "Failed to settle position",
+          description: "Failed to find account",
+          variant: "error",
+        })
+        return;
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['sync-trades'] })
+
+      toast({
+        title: "Position closed",
+        description: <div className="opacity-90">
+          Successfully closed {trade.orderType.toLowerCase()} order.{" "}
+          {
+            settledData.tx_hash && (
+              <Link
+                href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${settledData.tx_hash}`}
+                target={"_blank"}
+                className="text-sm underline hover:opacity-100"
+              >
+                Explorer link
+              </Link>
+            )
+          }
+        </div>
+      })
+    } finally {
+      // Remove from settling set regardless of success/failure
+      setSettlingOrders(prev => {
+        const next = new Set(prev);
+        next.delete(trade.uuid);
+        return next;
+      });
     }
-
-    console.log("newBalance", balance || trade.value)
-
-    // const result = await cleanupTradeOrder(privateKey, {
-    //   ...updatedAccount,
-    //   value: balance || trade.value,
-    // });
-
-    // if (!result.success) {
-    //   toast({
-    //     title: "Failed to update balance",
-    //     description: "Please manually transfer your balance to your funding account in the wallet page",
-    //     variant: "error",
-    //   })
-    //   return;
-    // }
-
-    await queryClient.invalidateQueries({ queryKey: ['sync-trades'] })
-
-    toast({
-      title: "Position closed",
-      description: <div className="opacity-90">
-        Successfully closed {trade.orderType.toLowerCase()} order.{" "}
-        {
-          settledData.tx_hash && (
-            <Link
-              href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${settledData.tx_hash}`}
-              target={"_blank"}
-              className="text-sm underline hover:opacity-100"
-            >
-              Explorer link
-            </Link>
-          )
-        }
-      </div>
-    })
-
-  }, [privateKey, zkAccounts, toast])
+  }, [privateKey, zkAccounts, toast, settlingOrders])
 
   const cancelOrder = useCallback(async (order: TradeOrder) => {
     toast({
@@ -327,6 +229,7 @@ const DetailsPanel = () => {
         return <PositionsTable
           data={positionsData}
           settleMarketOrder={settleMarketOrder}
+          isSettlingOrder={isSettlingOrder}
         />;
       }
       case "open-orders": {

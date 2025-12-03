@@ -12,6 +12,7 @@ import { calculateUpnl } from '../../../orderbook/my-trades/columns';
 interface PositionsTableMeta {
   getCurrentPrice: () => number;
   settleMarketOrder: (trade: TradeOrder, currentPrice: number) => Promise<void>;
+  isSettlingOrder: (uuid: string) => boolean;
   openLimitDialog: (account: string) => void;
 }
 
@@ -193,6 +194,8 @@ export const positionsColumns: ColumnDef<MyTradeOrder, any>[] = [
       const trade = row.row.original;
       const meta = row.table.options.meta as PositionsTableMeta;
 
+      const isSettling = meta.isSettlingOrder(trade.uuid);
+
       return (
         <div className="flex flex-row gap-1">
           <Button
@@ -202,8 +205,9 @@ export const positionsColumns: ColumnDef<MyTradeOrder, any>[] = [
             }}
             variant="ui"
             size="small"
+            disabled={isSettling}
           >
-            Close Market
+            {isSettling ? "Closing..." : "Close Market"}
           </Button>
           <Button
             onClick={() => {
@@ -211,6 +215,7 @@ export const positionsColumns: ColumnDef<MyTradeOrder, any>[] = [
             }}
             variant="ui"
             size="small"
+            disabled={isSettling}
           >
             Close Limit
           </Button>

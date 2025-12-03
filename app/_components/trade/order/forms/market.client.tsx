@@ -162,6 +162,11 @@ const OrderMarketForm = () => {
 
       setIsSubmitting(true);
 
+      toast({
+        title: "Placing order",
+        description: "Order is being placed, please do not close this page.",
+      })
+
       const { account: newTradingAccount } =
         await createZkAccountWithBalance({
           tag: "market",
@@ -263,10 +268,6 @@ const OrderMarketForm = () => {
       }
 
       console.log(data);
-      toast({
-        title: "Submitting order",
-        description: "Order is being submitted...",
-      });
 
       const transactionHashCondition = (
         txHashResult: Awaited<ReturnType<typeof queryTransactionHashes>>
@@ -402,9 +403,23 @@ const OrderMarketForm = () => {
       });
 
       toast({
-        title: "Success",
-        description: "Placed market order successfully",
-      });
+        title: "Order placed successfully",
+        description: <div className="opacity-90">
+          Successfully placed market order.{" "}
+          {
+            orderData.tx_hash && (
+              <Link
+                href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${orderData.tx_hash}`}
+                target={"_blank"}
+                className="text-sm underline hover:opacity-100"
+              >
+                Explorer link
+              </Link>
+            )
+          }
+        </div>
+      })
+
     } catch (err) {
       console.error(err);
     }

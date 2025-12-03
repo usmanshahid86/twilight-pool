@@ -10,9 +10,10 @@ import { usePriceFeed } from '@/lib/providers/feed';
 interface PositionsTableProps {
   data: TradeOrder[];
   settleMarketOrder: (trade: TradeOrder, currentPrice: number) => Promise<void>;
+  isSettlingOrder: (uuid: string) => boolean;
 }
 
-const PositionsTable = function PositionsTable({ data, settleMarketOrder }: PositionsTableProps) {
+const PositionsTable = function PositionsTable({ data, settleMarketOrder, isSettlingOrder }: PositionsTableProps) {
   const { openLimitDialog } = useLimitDialog();
 
   const { getCurrentPrice } = usePriceFeed()
@@ -23,6 +24,7 @@ const PositionsTable = function PositionsTable({ data, settleMarketOrder }: Posi
       data={data}
       getCurrentPrice={getCurrentPrice}
       settleMarketOrder={settleMarketOrder}
+      isSettlingOrder={isSettlingOrder}
       openLimitDialog={openLimitDialog}
     />
 
