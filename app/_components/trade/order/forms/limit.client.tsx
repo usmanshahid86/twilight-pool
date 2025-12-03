@@ -440,6 +440,7 @@ const OrderLimitForm = () => {
 
         <div className="relative">
           <Input
+            autoComplete="off"
             ref={btcAmountRef}
             id="input-order-amount"
             type="number"
@@ -472,7 +473,9 @@ const OrderLimitForm = () => {
 
             setPercent(value[0])
           }
-          } value={[percent]} defaultValue={[1]} min={1} max={100} step={1} />
+          } value={[percent]} defaultValue={[1]} min={1} max={100} step={1}
+            disabled={!tradingAccountBalance}
+          />
           <span className="w-10 text-right text-xs opacity-80">{percent}%</span>
         </div>
       </div>
@@ -482,6 +485,7 @@ const OrderLimitForm = () => {
           Leverage (x)
         </label>
         <Input
+          autoComplete="off"
           ref={leverageRef}
           onChange={(e) => {
             const value = e.target.value.replace(/[^\d]/, "");
@@ -513,7 +517,7 @@ const OrderLimitForm = () => {
         leverageRef.current.value = value[0].toString();
         setLeverage(value[0].toString());
       }
-      } value={[parseInt(leverage)]} defaultValue={[1]} min={1} max={50} step={1} />
+      } value={[parseInt(leverage)]} defaultValue={[1]} min={1} max={50} step={1} disabled={!tradingAccountBalance} />
 
       <div className="flex justify-between">
         <Text
@@ -537,11 +541,11 @@ const OrderLimitForm = () => {
         >
           <ExchangeResource>
             <Button
-              className="border-green-medium py-2 text-green-medium opacity-70 transition-opacity hover:border-green-medium hover:text-green-medium hover:opacity-100"
+              className="border-green-medium py-2 text-green-medium opacity-70 transition-opacity hover:border-green-medium hover:text-green-medium hover:opacity-100 disabled:opacity-40 disabled:hover:border-green-medium disabled:hover:opacity-40"
               variant="ui"
-              disabled={isSubmitting}
               type={"submit"}
               value={"buy"}
+              disabled={isSubmitting || Big(tradingAccountBalance).lte(0)}
             // onClick={async () => {
             //   const { success, msg } = await createZkOrder({
             //     zkAccount: currentZkAccount,
@@ -572,8 +576,8 @@ const OrderLimitForm = () => {
           <ExchangeResource>
             <Button
               variant="ui"
-              className="border-red py-2 text-red opacity-70 transition-opacity hover:border-red hover:text-red hover:opacity-100"
-              disabled={isSubmitting}
+              className="border-red py-2 text-red opacity-70 transition-opacity hover:border-red hover:text-red hover:opacity-100 disabled:opacity-40 disabled:hover:border-red disabled:hover:opacity-40"
+              disabled={isSubmitting || Big(tradingAccountBalance).lte(0)}
               type={"submit"}
               value={"sell"}
             >

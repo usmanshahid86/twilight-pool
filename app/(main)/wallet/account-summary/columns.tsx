@@ -2,14 +2,16 @@
 
 import Button from "@/components/button";
 import BTC from "@/lib/twilight/denoms";
-import { ZkAccount } from "@/lib/types";
 import { ColumnDef } from "@tanstack/react-table";
 import Big from "big.js";
 import dayjs from "dayjs";
 import { truncateHash } from '@/lib/helpers';
 import { AccountSummaryTableMeta } from './data-table';
+import { ActiveAccount } from '../page';
+import Link from 'next/link';
+import { ArrowUpRight } from 'lucide-react';
 
-export const accountSummaryColumns: ColumnDef<ZkAccount, any>[] = [
+export const accountSummaryColumns: ColumnDef<ActiveAccount, any>[] = [
   {
     accessorKey: "createdAt",
     header: "Created",
@@ -18,7 +20,6 @@ export const accountSummaryColumns: ColumnDef<ZkAccount, any>[] = [
   {
     accessorKey: "tag",
     header: "Account Tag",
-    accessorFn: (row) => row.tag === "main" ? "Trading Account" : row.tag,
   },
   {
     accessorKey: "address",
@@ -38,6 +39,29 @@ export const accountSummaryColumns: ColumnDef<ZkAccount, any>[] = [
     )
   },
   {
+    accessorKey: "txHash",
+    header: "TxHash",
+    cell: (row) => {
+      const utilized = row.row.original.utilized;
+      const txHash = row.row.original.txHash;
+      if (!txHash || !utilized) return <span className="text-primary-accent">-</span>;
+
+      return (
+        <Button className="justify-start gap-0 items-start" asChild variant="link">
+          <Link
+            href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${txHash}`}
+            target="_blank"
+            className="relative"
+          >
+            {truncateHash(txHash)} <ArrowUpRight className="h-3 w-3" />
+          </Link>
+        </Button>
+      )
+
+    }
+  },
+
+  {
     accessorKey: "value",
     header: "Balance (BTC)",
     accessorFn: (row) =>
@@ -47,6 +71,11 @@ export const accountSummaryColumns: ColumnDef<ZkAccount, any>[] = [
     accessorKey: "type",
     header: "Type",
   },
+  {
+    accessorKey: "utilized",
+    header: "Utilized",
+    accessorFn: (row) => row.utilized ? "Yes" : "No"
+  }
   // {
   //   header: "Actions",
   //   cell: (row) => {

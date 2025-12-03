@@ -1,3 +1,4 @@
+import ConnectWallet from '@/app/_components/layout/connect-wallet.client';
 import Button from "@/components/button";
 import ExchangeResource from "@/components/exchange-resource";
 import { Input, NumberInput } from "@/components/input";
@@ -486,6 +487,7 @@ const OrderMarketForm = () => {
               updatePercent(Big(value).div(Big(tradingAccountBalanceString)).mul(100).toNumber());
             }}
             disabled={!isPageLoaded}
+            autoComplete="off"
           />
 
         </div>
@@ -498,6 +500,7 @@ const OrderMarketForm = () => {
           </Text>
 
           <Input
+            autoComplete="off"
             type="text"
             id="input-market-amount-usd"
             placeholder="$0.00"
@@ -543,7 +546,7 @@ const OrderMarketForm = () => {
           setUsdAmount(usdValue);
         }
         } value={[percent]} defaultValue={[1]} min={1} max={100} step={1}
-          disabled={!isPageLoaded}
+          disabled={!isPageLoaded || !tradingAccountBalance}
         />
         <span className="w-10 text-right text-xs opacity-80">{percent}%</span>
       </div>
@@ -555,6 +558,7 @@ const OrderMarketForm = () => {
           <label htmlFor="input-market-leverage">Leverage (x)</label>
         </Text>
         <Input
+          autoComplete="off"
           ref={leverageRef}
           onChange={(e) => {
             const value = e.target.value.replace(/[^\d]/, "");
@@ -588,7 +592,7 @@ const OrderMarketForm = () => {
         setLeverage(value[0].toString());
       }
       } value={[parseInt(leverage)]} defaultValue={[1]} min={1} max={50} step={1}
-        disabled={!isPageLoaded}
+        disabled={!isPageLoaded || !tradingAccountBalance}
       />
       <div className="flex justify-between">
         <Text
@@ -602,40 +606,42 @@ const OrderMarketForm = () => {
           ${positionSize}
         </Text>
       </div>
-      <ExchangeResource>
-        <div
-          className={cn(
-            "flex justify-between",
-            width < 350 ? "flex-col space-y-2" : "flex-row space-x-4"
-          )}
-        >
-          <Button
-            onClick={() => submitMarket("BUY")}
-            id="btn-market-buy"
-            className="border-green-medium py-2 text-green-medium opacity-70 transition-opacity hover:border-green-medium hover:text-green-medium hover:opacity-100 disabled:opacity-40 disabled:hover:border-green-medium disabled:hover:opacity-40"
-            variant="ui"
-            disabled={isSubmitting || status === WalletStatus.Disconnected || !isPageLoaded}
-          >
-            {isSubmitting ? (
-              <Loader2 className="animate-spin text-primary opacity-60" />
-            ) : (
-              "Buy"
+
+      {status === "Connected" ? (
+        <ExchangeResource>
+          <div
+            className={cn(
+              "flex justify-between",
+              width < 350 ? "flex-col space-y-2" : "flex-row space-x-4"
             )}
-          </Button>
-          <Button
-            onClick={() => submitMarket("SELL")}
-            id="btn-market-sell"
-            variant="ui"
-            className="border-red py-2 text-red opacity-70 transition-opacity hover:border-red hover:text-red hover:opacity-100 disabled:opacity-40 disabled:hover:border-red disabled:hover:opacity-40"
-            disabled={isSubmitting || status === WalletStatus.Disconnected || !isPageLoaded}
           >
-            {isSubmitting ? (
-              <Loader2 className="animate-spin text-primary opacity-60" />
-            ) : (
-              "Sell"
-            )}
-          </Button>
-          {/* <Button
+            <Button
+              onClick={() => submitMarket("BUY")}
+              id="btn-market-buy"
+              className="border-green-medium py-2 text-green-medium opacity-70 transition-opacity hover:border-green-medium hover:text-green-medium hover:opacity-100 disabled:opacity-40 disabled:hover:border-green-medium disabled:hover:opacity-40"
+              variant="ui"
+              disabled={isSubmitting || !isPageLoaded || Big(tradingAccountBalance).lte(0)}
+            >
+              {isSubmitting ? (
+                <Loader2 className="animate-spin text-primary opacity-60" />
+              ) : (
+                "Buy"
+              )}
+            </Button>
+            <Button
+              onClick={() => submitMarket("SELL")}
+              id="btn-market-sell"
+              variant="ui"
+              className="border-red py-2 text-red opacity-70 transition-opacity hover:border-red hover:text-red hover:opacity-100 disabled:opacity-40 disabled:hover:border-red disabled:hover:opacity-40"
+              disabled={isSubmitting || !isPageLoaded || Big(tradingAccountBalance).lte(0)}
+            >
+              {isSubmitting ? (
+                <Loader2 className="animate-spin text-primary opacity-60" />
+              ) : (
+                "Sell"
+              )}
+            </Button>
+            {/* <Button
             onClick={() => {
               toast({
                 title: "Success",
@@ -673,8 +679,14 @@ const OrderMarketForm = () => {
           >
             Test
           </Button> */}
-        </div>
-      </ExchangeResource>
+          </div>
+        </ExchangeResource>
+      )
+        : (
+          <div className="flex justify-center">
+            <ConnectWallet />
+          </div>
+        )}
     </form>
   );
 };

@@ -1,10 +1,12 @@
 "use client";
 
 import Button from "@/components/button";
+import { truncateHash } from '@/lib/helpers';
 import BTC from "@/lib/twilight/denoms";
 import { TransactionHistory } from "@/lib/types";
 import { ColumnDef } from "@tanstack/react-table";
 import Big from "big.js";
+import { ArrowUpRight } from 'lucide-react';
 import Link from "next/link";
 
 export function convertDate(toParse: Date | string) {
@@ -43,12 +45,12 @@ export const transactionHistoryColumns: ColumnDef<TransactionHistory, any>[] = [
     accessorKey: "tx_hash",
     header: "Transaction Hash",
     cell: (row) => (
-      <Button className="justify-end" asChild variant="link">
+      <Button className="justify-end gap-0 items-start" asChild variant="link">
         <Link
           href={`${process.env.NEXT_PUBLIC_EXPLORER_URL as string}/tx/${row.getValue()}`}
           target="_blank"
         >
-          {row.getValue()}
+          {truncateHash(row.getValue() as string)} <ArrowUpRight className="h-3 w-3" />
         </Link>
       </Button>
     ),

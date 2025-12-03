@@ -14,7 +14,7 @@ import BTC from "@/lib/twilight/denoms";
 import { ZkAccount } from "@/lib/types";
 import Big from "big.js";
 import { ArrowLeftRight } from "lucide-react";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { TransactionHistoryDataTable } from "./transaction-history/data-table";
 import { transactionHistoryColumns } from "./transaction-history/columns";
 import { WalletStatus } from "@cosmos-kit/core";
@@ -34,8 +34,19 @@ import Long from 'long';
 import Link from 'next/link';
 import FundingTradeButton from '@/components/fund-trade-button';
 import useGetNyksBalance from '@/lib/hooks/useGetNyksBalance';
+import dayjs from 'dayjs';
 
 type TabType = "account-summary" | "transaction-history";
+
+export type ActiveAccount = {
+  address: string;
+  tag: string;
+  createdAt: number;
+  value: number;
+  type: "Lend" | "Trade" | "Account";
+  utilized: boolean;
+  txHash: string;
+}
 
 const Page = () => {
   const [currentTab, setCurrentTab] = useState<TabType>("account-summary");
@@ -44,6 +55,33 @@ const Page = () => {
   const privateKey = useSessionStore((state) => state.privateKey);
   const btcPrice = useSessionStore((state) => state.price.btcPrice);
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
+
+  const trades = useTwilightStore((state) => state.trade.trades);
+  const lends = useTwilightStore((state) => state.lend.lends);
+
+  const activeAccounts = useMemo(() => {
+    return zkAccounts.reduce<ActiveAccount[]>((acc, account) => {
+      const trade = trades.find((trade) => trade.accountAddress === account.address);
+      const lend = lends.find((lend) => lend.accountAddress === account.address);
+
+      const type = account.tag === "main" ? "Trade" : trade ? "Trade" : lend ? "Lend" : "Account";
+
+      const utilized = account.type === "Memo" ? true : false;
+      const txHash = trade?.tx_hash || lend?.tx_hash || "";
+
+      acc.push({
+        address: account.address,
+        tag: account.tag === "main" ? "Trading Account" : account.tag,
+        createdAt: account.createdAt || dayjs().unix(),
+        value: account.value || 0,
+        type,
+        utilized,
+        txHash,
+      })
+
+      return acc;
+    }, [] as ActiveAccount[]);
+  }, [zkAccounts, trades, lends])
 
   const transactionHistory = useTwilightStore(
     (state) => state.history.transactions
@@ -58,7 +96,7 @@ const Page = () => {
 
   const { nyksBalance, isLoading: nyksLoading } = useGetNyksBalance();
 
-  const { status, mainWallet } = useWallet();
+  const { mainWallet } = useWallet();
 
   const twilightAddress = mainWallet?.getChainWallet("nyks")?.address || "";
 
@@ -297,7 +335,7 @@ const Page = () => {
           <div>
             <AccountSummaryDataTable
               columns={accountSummaryColumns}
-              data={zkAccounts}
+              data={activeAccounts}
               subaccountTransfer={subaccountTransfer}
             />
           </div>
@@ -315,7 +353,7 @@ const Page = () => {
 
   return (
     <div className="mx-4 mt-4 space-y-4 md:space-y-8 md:mx-8">
-      <div className="flex flex-col space-y-4 md:grid md:grid-cols-12 md:gap-8">
+      <div className="flex flex-col space-y-4 md:space-y-0 md:grid md:grid-cols-12 md:gap-8">
         <div className="md:col-span-7 md:space-y-4 border rounded-md p-4 md:p-6">
           <div className="space-y-1">
             <Text heading="h1" className="mb-0 text-lg font-normal">
@@ -364,7 +402,7 @@ const Page = () => {
               isLoaded={!nyksLoading}
               placeholder={<Skeleton className="h-4 w-[80px]" />}
             >
-              <Text className="cursor-pointer text-xs text-primary-accent">
+              <Text className="text-xs text-primary-accent">
                 {Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(nyksBalance)} NYKS
               </Text>
             </Resource>
