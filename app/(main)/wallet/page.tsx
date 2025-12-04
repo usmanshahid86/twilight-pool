@@ -9,12 +9,12 @@ import { ZK_ACCOUNT_INDEX } from "@/lib/constants";
 import useGetTwilightBTCBalance from "@/lib/hooks/useGetTwilightBtcBalance";
 import { usePriceFeed } from "@/lib/providers/feed";
 import { useSessionStore } from "@/lib/providers/session";
-import { useTwilightStore } from "@/lib/providers/store";
+import { useTwilightStore, twilightStoreContext } from "@/lib/providers/store";
 import BTC from "@/lib/twilight/denoms";
 import { ZkAccount } from "@/lib/types";
 import Big from "big.js";
 import { ArrowLeftRight } from "lucide-react";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { TransactionHistoryDataTable } from "./transaction-history/data-table";
 import { transactionHistoryColumns } from "./transaction-history/columns";
 import { WalletStatus } from "@cosmos-kit/core";
@@ -52,6 +52,7 @@ const Page = () => {
   const [currentTab, setCurrentTab] = useState<TabType>("account-summary");
   const { toast } = useToast();
 
+  const twilightStore = useContext(twilightStoreContext);
   const privateKey = useSessionStore((state) => state.privateKey);
   const btcPrice = useSessionStore((state) => state.price.btcPrice);
   const zkAccounts = useTwilightStore((state) => state.zk.zkAccounts);
@@ -328,6 +329,84 @@ const Page = () => {
 
   }, [toast, privateKey, twilightAddress, removeZkAccount, addTransactionHistory, chainWallet]);
 
+  const exportData = useCallback(() => {
+    if (!twilightAddress) {
+      toast({
+        title: "Export failed",
+        description: "Please connect your wallet first.",
+      });
+      return;
+    }
+
+    if (!twilightStore) {
+      toast({
+        title: "Export failed",
+        description: "Store not available",
+      });
+      return;
+    }
+
+    const storeState = twilightStore.getState();
+    const jsonString = JSON.stringify(storeState);
+
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${twilightAddress}-data.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Exported successfully",
+      description: "Exported account data to your device.",
+    })
+  }, [twilightStore, toast, twilightAddress])
+
+  const importData = useCallback(() => {
+    if (!twilightAddress) {
+      toast({
+        title: "Import failed",
+        description: "Please connect your wallet first.",
+      });
+      return;
+    }
+
+    if (!twilightStore) {
+      toast({
+        title: "Import failed",
+        description: "Store not available",
+      });
+      return;
+    }
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        twilightStore.setState(data);
+        toast({
+          title: "Imported successfully",
+          description: "Account data has been imported.",
+        });
+      } catch (error) {
+        toast({
+          title: "Import failed",
+          description: "Invalid JSON file.",
+        });
+      }
+    };
+    input.click();
+  }, [twilightStore, toast, twilightAddress])
+
   function renderTableContent() {
     switch (currentTab) {
       case "account-summary":
@@ -525,10 +604,10 @@ const Page = () => {
             </TabsList>
           </Tabs>
 
-          {/* <div className="flex space-x-2">
-            <button className="text-xs">Import</button>
-            <button className="text-xs">Export</button>
-          </div> */}
+          <div className="flex space-x-2">
+            <button onClick={importData} className="text-xs">Import</button>
+            <button onClick={exportData} className="text-xs">Export</button>
+          </div>
         </div>
 
         <div className="h-full min-h-[500px] w-full py-1 overflow-auto">
