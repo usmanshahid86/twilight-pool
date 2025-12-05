@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import wfetch from "../http";
 import { useWallet } from "@cosmos-kit/react-lite";
 
-const FAUCET_RPC_URL = process.env.NEXT_PUBLIC_FAUCET_ENDPOINT as string;
+const KYC_ENDPOINT = process.env.NEXT_PUBLIC_KYC_ENDPOINT as string;
 
 export default function useVerifyStatus() {
   const { mainWallet } = useWallet();
@@ -16,7 +16,7 @@ export default function useVerifyStatus() {
       });
 
       const { success, data, error } = await wfetch(
-        `${FAUCET_RPC_URL}/whitelist/status`
+        `${KYC_ENDPOINT}/api/verify/whitelist`
       )
         .post({ body })
         .json<{
