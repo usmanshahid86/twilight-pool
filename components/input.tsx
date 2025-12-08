@@ -63,16 +63,25 @@ const NumberInput = ({
       <Input
         id={id}
         defaultValue={defaultValue || 0}
-        type="number"
+        type="text"
         className={className}
         ref={inputRef}
         onKeyDown={(e) => {
-          // Prevent negative sign and multiple dots
-          if (e.key === '-' || e.key === 'e' || e.key === 'E') {
-            e.preventDefault();
+          // Allow: backspace, delete, tab, escape, enter, arrow keys
+          const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+          if (allowedKeys.includes(e.key)) {
+            return;
           }
-          // Prevent multiple dots
-          if (e.key === '.' && e.currentTarget.value.includes('.')) {
+          // Allow Ctrl/Cmd + A, C, V, X
+          if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
+            return;
+          }
+          // Allow decimal point only if there isn't one already
+          if (e.key === '.' && !e.currentTarget.value.includes('.')) {
+            return;
+          }
+          // Block anything that isn't a digit
+          if (!/^\d$/.test(e.key)) {
             e.preventDefault();
           }
         }}
@@ -93,7 +102,10 @@ const NumberInput = ({
         {...props}
       />
       <div className="text-sm absolute inset-y-0 right-2 mt-[1px] flex h-[calc(100%-2px)] flex-col items-center justify-center hover:text-theme transition-colors">
-        <button onClick={() => setInputValue(currentPrice)}>Mid</button>
+        <button onClick={(e) => {
+          e.preventDefault();
+          setInputValue(currentPrice);
+        }}>Mid</button>
       </div>
     </div>
   );
