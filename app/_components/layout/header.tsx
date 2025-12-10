@@ -12,6 +12,7 @@ import MobileNav from "./mobile-navigation.client";
 import KycStatus from "./kyc-status";
 import { usePathname } from 'next/navigation';
 import cn from '@/lib/cn';
+import { TWILIGHT_NETWORK_TYPE } from '@/lib/constants';
 
 const marketSubLinks = [
   {
@@ -77,12 +78,35 @@ const Header = () => {
                   ))
                 }
 
-                <Link
-                  href="/faucet"
-                  className="flex dark:text-gray-400 dark:hover:text-primary"
-                >
-                  Faucet
-                </Link>
+                {
+                  TWILIGHT_NETWORK_TYPE === "testnet" ? (
+                    <Link
+                      href="/faucet"
+                      className="flex dark:text-gray-400 dark:hover:text-primary"
+                    >
+                      Faucet
+                    </Link>
+                  )
+                    :
+                    (
+
+                      <>
+                        <Link
+                          href="/registration"
+                          className="flex dark:text-gray-400 dark:hover:text-primary"
+                        >
+                          Register BTC Address
+                        </Link>
+                        <Link
+                          href="/verification"
+                          className="flex dark:text-gray-400 dark:hover:text-primary"
+                        >
+                          Verify BTC Address
+                        </Link>
+                      </>
+
+                    )
+                }
               </div>
               <Separator className="mx-4 h-5" orientation="vertical" />
               <div className="flex items-center space-x-4">

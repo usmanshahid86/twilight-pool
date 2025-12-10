@@ -12,3 +12,6 @@ export enum ZK_ACCOUNT_INDEX {
   DISCONNECTED = -1,
   MAIN = 0,
 }
+
+export const TWILIGHT_NETWORK_TYPE = process.env
+  .NEXT_PUBLIC_TWILIGHT_NETWORK_TYPE as "testnet" | "mainnet";

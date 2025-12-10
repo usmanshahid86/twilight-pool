@@ -4,6 +4,7 @@ import Button from "@/components/button";
 import { Input, PopoverInput } from "@/components/input";
 import { Text } from "@/components/typography";
 import { useToast } from "@/lib/hooks/useToast";
+import { WalletStatus } from "@cosmos-kit/core";
 import { useWallet } from "@cosmos-kit/react-lite";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
@@ -22,7 +23,9 @@ const WalletRegistrationForm = () => {
   const [depositDenom, setDepositDenom] = useState<string>("BTC");
   const depositRef = useRef<HTMLInputElement>(null);
 
-  const { mainWallet } = useWallet();
+  const { mainWallet, status } = useWallet();
+
+  const isWalletConnected = status === WalletStatus.Connected;
 
   async function submitForm(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -101,7 +104,7 @@ const WalletRegistrationForm = () => {
     });
 
     try {
-      await stargateClient.signAndBroadcast(twilightDepositAddress, [msg], 100);
+      await stargateClient.signAndBroadcast(twilightDepositAddress, [msg], "auto");
 
       toast({
         title: "Submitting Bitcoin address",
@@ -116,6 +119,7 @@ const WalletRegistrationForm = () => {
           title: "Submitted Bitcoin address",
           description: "Your Bitcoin address has been successfully submitted",
         });
+
         router.push("/verification");
       }, 1000);
     } catch (err) {
@@ -186,9 +190,15 @@ const WalletRegistrationForm = () => {
         />
       </div>
 
-      <Button type="submit" className="w-full justify-center">
+      <Button
+        type="submit"
+        disabled={!isWalletConnected || isLoading}
+        className="w-full justify-center"
+      >
         {isLoading ? (
           <Loader2 className="animate-spin text-primary opacity-60" />
+        ) : !isWalletConnected ? (
+          "Connect Wallet to Register"
         ) : (
           "Register"
         )}

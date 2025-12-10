@@ -5,6 +5,8 @@ import { Text } from "@/components/typography";
 import { BtcReserveStruct, getReserveData } from "@/lib/api/rest";
 import { useToast } from "@/lib/hooks/useToast";
 import { useTwilight } from "@/lib/providers/twilight";
+import { WalletStatus } from "@cosmos-kit/core";
+import { useWallet } from "@cosmos-kit/react-lite";
 import { CopyIcon, HelpCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -20,6 +22,9 @@ const WalletVerificationForm = ({
 }: Props) => {
   const { toast } = useToast();
   const router = useRouter();
+  const { status } = useWallet();
+
+  const isWalletConnected = status === WalletStatus.Connected;
 
   const { checkBTCRegistration, hasConfirmedBTC } = useTwilight();
 
@@ -155,7 +160,17 @@ const WalletVerificationForm = ({
       </div>
 
       <Button
+        disabled={!isWalletConnected || !btcDepositAddress}
         onClick={() => {
+          if (!isWalletConnected) {
+            toast({
+              variant: "error",
+              title: "Wallet not connected",
+              description: "Please connect your wallet to verify your deposit.",
+            });
+            return;
+          }
+
           checkBTCRegistration();
 
           if (!hasConfirmedBTC) {
@@ -178,7 +193,11 @@ const WalletVerificationForm = ({
         }}
         className="w-full justify-center"
       >
-        Verify Deposit
+        {!isWalletConnected
+          ? "Connect Wallet to Verify"
+          : !btcDepositAddress
+            ? "Register BTC Address First"
+            : "Verify Deposit"}
       </Button>
       <div className="max-h-[250px] overflow-auto rounded-md border p-2">
         <table className="w-full caption-bottom text-sm">

@@ -2,14 +2,15 @@ import type { Chain, AssetList } from "@chain-registry/types";
 import { getSigningTwilightprojectClientOptions } from "twilightjs";
 import { SignerOptions } from "@cosmos-kit/core";
 import { GasPrice, SigningStargateClientOptions } from "@cosmjs/stargate";
+import { TWILIGHT_NETWORK_TYPE } from "./constants";
 
 export const twilightTestnet: Chain = {
   chain_name: "nyks",
   chain_type: "cosmos",
   website: "https://twilight.finance",
   status: "upcoming",
-  network_type: "testnet",
-  pretty_name: "Twilight Testnet",
+  network_type: TWILIGHT_NETWORK_TYPE,
+  pretty_name: `Twilight ${TWILIGHT_NETWORK_TYPE.charAt(0).toUpperCase() + TWILIGHT_NETWORK_TYPE.slice(1)}`,
   chain_id: "nyks",
   bech32_prefix: "twilight",
   slip44: 118, // testnet slip44 https://github.com/satoshilabs/slips/blob/master/slip-0044.md#registered-coin-types

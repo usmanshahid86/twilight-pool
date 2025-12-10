@@ -35,6 +35,7 @@ function FundingTradeButton({
   const [transferType, setTransferType] = useState<'fund' | 'trade'>(defaultTransferType);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const { twilightSats } = useGetTwilightBTCBalance();
 
@@ -370,6 +371,7 @@ function FundingTradeButton({
     setIsLoading(true);
 
     try {
+
       const registeredBtcAddress = await getRegisteredBTCAddress(twilightAddress);
 
       if (!registeredBtcAddress) {
@@ -386,6 +388,11 @@ function FundingTradeButton({
       }
 
       const amountToTransfer = new BTC("BTC", Big(inputValue)).convert("sats").toNumber();
+
+      toast({
+        title: "Submitting transfer",
+        description: "Please do not close this page while your transfer is being submitted...",
+      })
 
       if (transferType === "fund") {
         if (amountToTransfer > twilightSats) {
@@ -419,6 +426,9 @@ function FundingTradeButton({
           })
           return;
         }
+
+        setInputValue('');
+        setIsOpen(false);
       }
       else {
         if (amountToTransfer > tradingAccountBalance) {
@@ -444,6 +454,8 @@ function FundingTradeButton({
           return;
         }
 
+        setInputValue('');
+        setIsOpen(false);
       }
     }
     catch (error) {
@@ -460,7 +472,7 @@ function FundingTradeButton({
   }
 
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger disabled={status !== WalletStatus.Connected} asChild>
         {
           type === "icon" ? (

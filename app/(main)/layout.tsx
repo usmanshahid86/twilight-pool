@@ -6,6 +6,7 @@ import { baseMetadata } from "@/lib/metadata";
 import LayoutMountWrapper from "../_components/layout/layout-mount.client";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { TWILIGHT_NETWORK_TYPE } from '@/lib/constants';
 
 export const metadata = baseMetadata;
 
@@ -23,18 +24,23 @@ export default function RootLayout({
       <body>
         <Providers>
           <>
-            <div className="block bg-theme p-2 text-center">
-              <span>Participate in Open Testnet 1 by </span>
-              <Link
-                className="inline-flex whitespace-nowrap underline"
-                href={
-                  "/faucet"
-                }
-                target="_blank"
-              >
-                acquiring testnet tokens from faucet<ArrowUpRight className="h-3 w-3" />
-              </Link>
-            </div>
+            {
+              TWILIGHT_NETWORK_TYPE === "testnet" && (
+                <div className="block bg-theme p-2 text-center">
+                  <span>Participate in Open Testnet 1 by </span>
+                  <Link
+                    className="inline-flex whitespace-nowrap underline"
+                    href={
+                      "/faucet"
+                    }
+                    target="_blank"
+                  >
+                    acquiring testnet tokens from faucet<ArrowUpRight className="h-3 w-3" />
+                  </Link>
+                </div>
+              )
+            }
+
             <Header />
             <div className="flex flex-1 flex-col">
               <LayoutMountWrapper>{children}</LayoutMountWrapper>
