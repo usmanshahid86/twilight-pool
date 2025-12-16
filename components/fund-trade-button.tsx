@@ -371,8 +371,8 @@ function FundingTradeButton({
     setIsLoading(true);
 
     try {
-
       const registeredBtcAddress = await getRegisteredBTCAddress(twilightAddress);
+      console.log(registeredBtcAddress)
 
       if (!registeredBtcAddress) {
         const result = await registerBTCAddress(chainWallet);

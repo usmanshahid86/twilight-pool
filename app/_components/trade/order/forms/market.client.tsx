@@ -108,6 +108,75 @@ const OrderMarketForm = () => {
     }
   }, [usdAmount, leverage]);
 
+  const liquidationPrices = useMemo(() => {
+    if (!usdAmount || !leverage || !currentPrice || currentPrice <= 0) {
+      return { long: "0.00", short: "0.00" };
+    }
+
+    try {
+      const initialMargin = Big(usdAmount || "0");
+      const leverageBig = Big(leverage || "1");
+      const entryPrice = Big(currentPrice);
+
+      if (initialMargin.lte(0) || leverageBig.lte(0)) {
+        return { long: "0.00", short: "0.00" };
+      }
+
+      // entryvalue = initial_margin * leverage
+      const entryValue = initialMargin.mul(leverageBig);
+      // positionsize = entryvalue * entryprice
+      const positionSizeCalc = entryValue.mul(entryPrice);
+
+      // bankruptcyprice for LONG = entryprice * leverage / (leverage + 1)
+      const bankruptcyPriceLong = entryPrice.mul(leverageBig).div(leverageBig.plus(1));
+      // bankruptcyprice for SHORT = entryprice * leverage / (leverage - 1) (if leverage > 1, else 0)
+      const bankruptcyPriceShort = leverageBig.gt(1)
+        ? entryPrice.mul(leverageBig).div(leverageBig.minus(1))
+        : Big(0);
+
+      // bankruptcyvalue = positionsize / bankruptcyprice
+      const bankruptcyValueLong = bankruptcyPriceLong.gt(0)
+        ? positionSizeCalc.div(bankruptcyPriceLong)
+        : Big(0);
+      const bankruptcyValueShort = bankruptcyPriceShort.gt(0)
+        ? positionSizeCalc.div(bankruptcyPriceShort)
+        : Big(0);
+
+      // maintenancemargin = (0.4 * entry_value + fee * bankruptcyvalue + funding * bankruptcyvalue) / 100
+      // fee and funding are hardcoded to 0
+      const fee = 0;
+      const funding = 0;
+      const mmLong = Big(0.4).mul(entryValue).plus(Big(fee).mul(bankruptcyValueLong)).plus(Big(funding).mul(bankruptcyValueLong)).div(100);
+      const mmShort = Big(0.4).mul(entryValue).plus(Big(fee).mul(bankruptcyValueShort)).plus(Big(funding).mul(bankruptcyValueShort)).div(100);
+
+      // liquidationprice = entryprice * positionsize / ((positionside * entryprice * (mm - im)) + positionsize)
+      // positionside: LONG = -1, SHORT = 1
+      // im = initial_margin (in USD)
+      const im = initialMargin;
+
+      // LONG: positionside = -1
+      const longDenominator = Big(-1).mul(entryPrice).mul(mmLong.minus(im)).plus(positionSizeCalc);
+      const liquidationPriceLong = longDenominator.eq(0)
+        ? Big(0)
+        : entryPrice.mul(positionSizeCalc).div(longDenominator);
+
+      // SHORT: positionside = 1
+      const shortDenominator = Big(1).mul(entryPrice).mul(mmShort.minus(im)).plus(positionSizeCalc);
+      const liquidationPriceShort = shortDenominator.eq(0)
+        ? Big(0)
+        : entryPrice.mul(positionSizeCalc).div(shortDenominator);
+
+      Big.DP = 2;
+      return {
+        long: liquidationPriceLong.lte(0) ? "0.00" : new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(liquidationPriceLong.toFixed(2))),
+        short: liquidationPriceShort.lte(0) ? "0.00" : new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(liquidationPriceShort.toFixed(2))),
+      };
+    } catch (error) {
+      console.error("Error calculating liquidation prices:", error);
+      return { long: "0.00", short: "0.00" };
+    }
+  }, [usdAmount, leverage, currentPrice]);
+
   async function submitMarket(type: "SELL" | "BUY") {
     const positionType = type === "BUY" ? "LONG" : "SHORT";
 
@@ -441,6 +510,10 @@ const OrderMarketForm = () => {
         >
           <span>{tradingAccountBalanceString} BTC</span>
         </Resource>
+      </div>
+      <div className="flex justify-between text-xs">
+        <span className="text-green-medium">Liq. Price ≈ ${liquidationPrices.long}</span>
+        <span className="text-red">Liq. Price ≈ ${liquidationPrices.short}</span>
       </div>
       <div className="flex justify-between space-x-4">
         <div>
