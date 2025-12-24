@@ -143,7 +143,7 @@ const Header = () => {
 
           {/* right side */}
           <div className="mx-auto flex flex-row items-center space-x-2 sm:mx-0 md:space-x-4">
-            <KycStatus />
+            {/* <KycStatus /> */}
             {/* <SubaccountSelect /> */}
             <ConnectWallet />
             <Settings />
@@ -154,7 +154,7 @@ const Header = () => {
             <Logo className="w-6" />
           </Link>
           <div className="flex items-center space-x-2">
-            <KycStatus />
+            {/* <KycStatus /> */}
             <ConnectWallet />
             <MobileNav />
           </div>
