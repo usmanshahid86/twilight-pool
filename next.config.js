@@ -1,33 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  async redirects() {
-    return [
-      {
-        source: "/design/components",
-        destination: "/design",
-        permanent: true,
-      },
-      {
-        source: "/design/core",
-        destination: "/design",
-        permanent: true,
-      },
-      {
-        source: "/btc-deposit-flow",
-        destination: "/guides/btc-deposit-flow.html",
-        permanent: false,
-      },
-      {
-        source: "/dex-operations",
-        destination: "/guides/dex-operations.html",
-        permanent: false,
-      },
-      {
-        source: "/lend-to-twilight-pool",
-        destination: "/guides/lend-to-twilight-pool.html",
-        permanent: false,
-      },
-    ];
+  output: "export", // ✅ Static export
+
+  images: {
+    unoptimized: true, // Required for static export
   },
   transpilePackages: ["lightweight-charts"],
   webpack: (config) => {

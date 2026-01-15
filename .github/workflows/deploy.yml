@@ -1,0 +1,101 @@
+name: Deploy to S3 + CloudFront
+
+on:
+  push:
+    tags:
+      - 'v*' # deploy at each tag release
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Generate CloudFront Function
+        run: pnpm generate-cloudfront-function
+      
+      - name: Build Next.js
+        env:
+          NEXT_PUBLIC_TWILIGHT_API_RPC: ${{ secrets.NEXT_PUBLIC_TWILIGHT_API_RPC }}
+          NEXT_PUBLIC_TWILIGHT_API_REST: ${{ secrets.NEXT_PUBLIC_TWILIGHT_API_REST }}
+          NEXT_PUBLIC_TWILIGHT_PRICE_WS: ${{ secrets.NEXT_PUBLIC_TWILIGHT_PRICE_WS }}
+          NEXT_PUBLIC_TWILIGHT_PRICE_REST: ${{ secrets.NEXT_PUBLIC_TWILIGHT_PRICE_REST }}
+          NEXT_PUBLIC_ZKOS_API_ENDPOINT: ${{ secrets.NEXT_PUBLIC_ZKOS_API_ENDPOINT }}
+          NEXT_PUBLIC_RELAYER_ENDPOINT: ${{ secrets.NEXT_PUBLIC_RELAYER_ENDPOINT }}
+          NEXT_PUBLIC_CLIENT_ENDPOINT: ${{ secrets.NEXT_PUBLIC_CLIENT_ENDPOINT }}
+          NEXT_PUBLIC_PRICE_ORACLE_TOKEN: ${{ secrets.NEXT_PUBLIC_PRICE_ORACLE_TOKEN }}
+          NEXT_PUBLIC_EXPLORER_URL: ${{ secrets.NEXT_PUBLIC_EXPLORER_URL }}
+          NEXT_PUBLIC_KYC_ENDPOINT: ${{ secrets.NEXT_PUBLIC_KYC_ENDPOINT }}
+          NEXT_PUBLIC_FAUCET_ENDPOINT: ${{ secrets.NEXT_PUBLIC_FAUCET_ENDPOINT }}
+          NEXT_PUBLIC_MANDATORY_KYC: ${{ secrets.NEXT_PUBLIC_MANDATORY_KYC }}
+          NEXT_PUBLIC_TWILIGHT_NETWORK_TYPE: ${{ secrets.NEXT_PUBLIC_TWILIGHT_NETWORK_TYPE }}
+          NEXT_PUBLIC_TWILIGHT_PRICE_REST_TOKEN: ${{ secrets.NEXT_PUBLIC_TWILIGHT_PRICE_REST_TOKEN }}
+        run: pnpm build
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Sync to S3
+        run: |
+          aws s3 sync out/ s3://${{ secrets.S3_BUCKET_NAME }} \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "*.html" \
+            --exclude "_next/static/*"
+          aws s3 sync out/ s3://${{ secrets.S3_BUCKET_NAME }} \
+            --delete \
+            --cache-control "public, max-age=0, must-revalidate" \
+            --include "*.html"
+      
+      - name: Deploy CloudFront Function
+        run: |
+          FUNCTION_ETAG=$(aws cloudfront describe-function --name redirects --query 'ETag' --output text 2>/dev/null || echo "")
+          
+          if [ -z "$FUNCTION_ETAG" ]; then
+            echo "Creating new CloudFront function..."
+            aws cloudfront create-function \
+              --name redirects \
+              --function-code fileb://cloudfront-functions/redirects.js \
+              --function-config Comment="Auto-generated redirects",Runtime="cloudfront-js-1.0"
+          else
+            echo "Updating existing CloudFront function..."
+            aws cloudfront update-function \
+              --name redirects \
+              --function-code fileb://cloudfront-functions/redirects.js \
+              --if-match $FUNCTION_ETAG
+          fi
+          
+          # Publish function
+          NEW_ETAG=$(aws cloudfront describe-function --name redirects --query 'ETag' --output text)
+          aws cloudfront publish-function --name redirects --if-match $NEW_ETAG
+          echo "✅ CloudFront function deployed"
+      
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+          echo "✅ CloudFront cache invalidated"

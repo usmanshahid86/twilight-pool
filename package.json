@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "format": "prettier . --write"
+    "format": "prettier . --write",
+    "generate-cloudfront-function": "node scripts/generate-cloudfront-function.js"
   },
   "dependencies": {
     "@cosmjs/proto-signing": "^0.31.1",
