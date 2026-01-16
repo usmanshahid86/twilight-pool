@@ -85,6 +85,7 @@ jobs:
             aws cloudfront update-function \
               --name redirects \
               --function-code fileb://cloudfront-functions/redirects.js \
+              --function-config Comment="Auto-generated redirects",Runtime="cloudfront-js-1.0" \
               --if-match $FUNCTION_ETAG
           fi
           
