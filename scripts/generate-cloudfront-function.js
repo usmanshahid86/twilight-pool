@@ -26,7 +26,11 @@ const functionCode = `function handler(event) {
       }
     };
   }
-  
+   // Append .html extension if URI doesn't have an extension and isn't a directory
+  // This handles Next.js static export pages like /test-mint-burn -> /test-mint-burn.html
+  if (!uri.includes('.') && !uri.endsWith('/')) {
+    request.uri = uri + '.html';
+  }
   return request;
 }`;
 
