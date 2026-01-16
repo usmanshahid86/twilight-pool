@@ -7,6 +7,7 @@ import LayoutMountWrapper from "../_components/layout/layout-mount.client";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { TWILIGHT_NETWORK_TYPE } from '@/lib/constants';
+import '@/lib/debug/mint-burn-test'; // Add this import
 
 export const metadata = baseMetadata;
 
