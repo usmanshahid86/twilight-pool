@@ -11,6 +11,7 @@ export default function TestMintBurnPage() {
   const { mainWallet } = useWallet();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [broadcastMode, setBroadcastMode] = useState(false); // New state
 
   const [formData, setFormData] = useState({
     btcValue: "1000",
@@ -41,6 +42,7 @@ export default function TestMintBurnPage() {
         qqAccount: formData.qqAccount,
         twilightAddress: address,
         stargateClient,
+        broadcast: broadcastMode, // Pass broadcast mode
       });
 
       setResult(testResult);
@@ -56,6 +58,29 @@ export default function TestMintBurnPage() {
       <Text heading="h1">Test mintBurnTradingBtc Transaction</Text>
 
       <div className="mt-8 space-y-4">
+        {/* Broadcast Mode Toggle */}
+        <div className="border-yellow-400 bg-yellow-50 rounded-lg border-2 p-4">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={broadcastMode}
+              onChange={(e) => setBroadcastMode(e.target.checked)}
+              className="h-4 w-4"
+            />
+            <span className="font-semibold">
+              {broadcastMode
+                ? "⚠️ BROADCAST MODE (Real Transaction)"
+                : "Simulation Mode (Dry Run)"}
+            </span>
+          </label>
+          {broadcastMode && (
+            <p className="text-red-600 mt-2 text-sm">
+              ⚠️ Warning: This will send a real transaction to the chain and may
+              cost fees!
+            </p>
+          )}
+        </div>
+
         <div>
           <label className="mb-2 block text-sm font-medium">
             BTC Value (sats)
@@ -128,15 +153,62 @@ export default function TestMintBurnPage() {
           />
         </div>
 
-        <Button onClick={handleTest} disabled={loading}>
-          {loading ? "Testing..." : "Test Transaction (Simulation Only)"}
+        <Button
+          onClick={handleTest}
+          disabled={loading}
+          className={broadcastMode ? "bg-red-600 hover:bg-red-700" : ""}
+        >
+          {loading
+            ? broadcastMode
+              ? "Broadcasting..."
+              : "Simulating..."
+            : broadcastMode
+              ? "🚀 Broadcast Transaction"
+              : "Test Transaction (Simulation)"}
         </Button>
 
         {result && (
           <div
             className={`rounded p-4 ${result.success ? "bg-green-100" : "bg-red-100"}`}
           >
-            <Text heading="h3">Result:</Text>
+            <Text heading="h3">
+              {result.success ? "✅ Success" : "❌ Error"}
+            </Text>
+
+            {result.success && result.transactionHash && (
+              <div className="bg-blue-50 mt-2 rounded p-3">
+                <p className="font-semibold">Transaction Hash:</p>
+                <code className="font-mono break-all text-sm">
+                  {result.transactionHash}
+                </code>
+                {result.gasUsed && (
+                  <p className="mt-1 text-sm">Gas Used: {result.gasUsed}</p>
+                )}
+                {result.height && (
+                  <p className="text-sm">Block Height: {result.height}</p>
+                )}
+              </div>
+            )}
+
+            {!result.success && result.error && (
+              <div className="bg-red-50 mt-2 rounded p-3">
+                <p className="text-red-800 font-semibold">Error Details:</p>
+                <p className="text-red-700 text-sm">
+                  {result.error.message || result.error}
+                </p>
+                {result.error.code && (
+                  <p className="text-red-600 text-sm">
+                    Code: {result.error.code}
+                  </p>
+                )}
+                {result.error.txHash && (
+                  <p className="text-red-600 text-sm">
+                    Tx Hash: {result.error.txHash}
+                  </p>
+                )}
+              </div>
+            )}
+
             <pre className="mt-2 overflow-auto text-xs">
               {JSON.stringify(result, null, 2)}
             </pre>
